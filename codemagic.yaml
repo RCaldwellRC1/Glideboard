@@ -7,7 +7,7 @@ workflows:
       groups:
         - google_play
       vars:
-        PACKAGE_NAME: "com.yourdomain.glideboard"
+        PACKAGE_NAME: "com.robertcaldwell.vibecode"
       node: latest
     scripts:
       - name: Install dependencies
