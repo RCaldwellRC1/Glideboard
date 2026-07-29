@@ -13,9 +13,11 @@ workflows:
       - name: Install dependencies
         script: |
           npm install --legacy-peer-deps
+      - name: Expo prebuild
+        script: |
+          npx expo prebuild --platform android
       - name: Set Android SDK location
         script: |
-          mkdir -p android
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
       - name: Build Android AAB
         script: |
