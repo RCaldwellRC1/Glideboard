@@ -1,0 +1,611 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, Platform, Image, Alert, KeyboardAvoidingView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Camera, Check, User, Settings, ChevronRight, HelpCircle, Shield, CalendarClock, ImageIcon } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import { File, Directory, Paths } from 'expo-file-system';
+import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { remoteLog, setRemoteLogUser } from '@/lib/remoteLog';
+import { useUnlockState } from '@/lib/purchases';
+import { STORE_SETTINGS } from '@/lib/storePlatform';
+
+interface UserProfile {
+  name: string;
+  screenName: string;
+  dateOfBirth: string | null;
+  dobVisible: boolean;
+  gender: 'male' | 'female' | null;
+  photoUri: string | null;
+  memberSince: string | null;
+}
+
+const PROFILE_STORAGE_KEY = 'user-profile';
+// Photos are copied into this permanent folder inside the app's document
+// directory so they survive app updates (the image picker hands back a path
+// in a temporary/cache folder that iOS wipes during an update).
+const PROFILE_PHOTO_DIR = 'profile-photos';
+
+// Copies a picked/captured image into permanent storage and returns the new
+// persistent uri. Falls back to the original uri if the copy fails so the
+// user still sees their photo for this session.
+async function persistProfilePhoto(sourceUri: string): Promise<string> {
+  try {
+    const dir = new Directory(Paths.document, PROFILE_PHOTO_DIR);
+    if (!dir.exists) {
+      dir.create({ intermediates: true });
+    }
+    const source = new File(sourceUri);
+    const extension = source.extension || '.jpg';
+    // Unique filename per save so React Native's Image cache doesn't show a
+    // stale photo after changing it.
+    const dest = new File(dir, `avatar-${Date.now()}${extension}`);
+    if (dest.exists) dest.delete();
+    source.copy(dest);
+    return dest.uri;
+  } catch (error) {
+    console.error('Failed to persist profile photo:', error);
+    return sourceUri;
+  }
+}
+
+// Removes a previously persisted photo file (best effort). Only touches files
+// inside our own photo folder so we never delete the picker's originals.
+function deletePersistedPhoto(uri: string | null) {
+  if (!uri || !uri.includes(PROFILE_PHOTO_DIR)) return;
+  try {
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } catch (error) {
+    console.error('Failed to delete old profile photo:', error);
+  }
+}
+
+function calculateAge(dateOfBirth: string): number {
+  const today = new Date();
+  const birthDate = new Date(dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+function formatMemberSince(isoString: string | null): string {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
+  useTextScaleSubscription(); // re-render when global text size changes
+  const { data: unlock } = useUnlockState();
+  const [profile, setProfile] = useState<UserProfile>({
+    name: '',
+    screenName: '',
+    dateOfBirth: null,
+    dobVisible: true,
+    gender: null,
+    photoUri: null,
+    memberSince: null,
+  });
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load profile on mount
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    try {
+      // Admin section disabled — keep it locked regardless of any stored flag.
+      await AsyncStorage.setItem('admin-unlocked', 'false');
+      const data = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+      if (data) {
+        const parsed = JSON.parse(data);
+        setProfile(parsed);
+        if (parsed.screenName) {
+          setRemoteLogUser(parsed.screenName);
+          remoteLog('app_opened', { name: parsed.name, screenName: parsed.screenName, gender: parsed.gender });
+        }
+        // If profile is incomplete, show edit mode
+        if (!parsed.name || !parsed.screenName) {
+          setIsEditing(true);
+        }
+      } else {
+        // No profile yet, show edit mode
+        setIsEditing(true);
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+      setIsEditing(true);
+    }
+    setIsLoaded(true);
+  };
+
+  const saveProfile = async () => {
+    try {
+      const profileToSave = {
+        ...profile,
+        memberSince: profile.memberSince ?? new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileToSave));
+      setProfile(profileToSave);
+      setIsEditing(false);
+      setRemoteLogUser(profileToSave.screenName);
+      remoteLog('profile_saved', { name: profileToSave.name, screenName: profileToSave.screenName, gender: profileToSave.gender });
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+    }
+  };
+
+  const updateField = <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => {
+    setProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Update and immediately save photo to storage. `photoUri` should already be
+  // a persistent uri (or null to remove). Cleans up the previously stored file.
+  const updatePhoto = async (photoUri: string | null) => {
+    const previousUri = profile.photoUri;
+    const updatedProfile = {
+      ...profile,
+      photoUri,
+      memberSince: profile.memberSince ?? new Date().toISOString(),
+    };
+    setProfile(updatedProfile);
+    try {
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
+      // Only remove the old file once the new value is safely saved.
+      if (previousUri && previousUri !== photoUri) {
+        deletePersistedPhoto(previousUri);
+      }
+    } catch (error) {
+      console.error('Failed to save photo:', error);
+    }
+  };
+
+  const clearDateOfBirth = () => {
+    updateField('dateOfBirth', null);
+  };
+
+  const handleDateChange = (event: unknown, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      updateField('dateOfBirth', selectedDate.toISOString());
+    }
+  };
+
+  const formatDate = (isoString: string | null): string => {
+    if (!isoString) return 'Select date';
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const pickImage = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your photo library to add a profile photo.');
+      return;
+    }
+
+    // Launch image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const persistedUri = await persistProfilePhoto(result.assets[0].uri);
+      updatePhoto(persistedUri);
+    }
+  };
+
+  const takePhoto = async () => {
+    // Request permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Please allow access to your camera to take a profile photo.');
+      return;
+    }
+
+    // Launch camera
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const persistedUri = await persistProfilePhoto(result.assets[0].uri);
+      updatePhoto(persistedUri);
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      'Profile Photo',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Library', onPress: pickImage },
+        ...(profile.photoUri ? [{ text: 'Remove Photo', onPress: () => updatePhoto(null), style: 'destructive' as const }] : []),
+        { text: 'Cancel', style: 'cancel' as const },
+      ]
+    );
+  };
+
+  // Membership card. Shown in BOTH the profile view and the edit form so a
+  // first-time user (who lands in edit mode before any profile exists) can
+  // subscribe right away — without having to discover the Start Workout
+  // screen. Tapping opens /unlock, which offers subscribe and restore.
+  //
+  // Below the card, DEV BUILDS ONLY get a link to the screenshot preview of the
+  // paywall (/unlock?preview=1) — the full sales paywall scaled to fit one
+  // screen, ignoring current ownership, for capturing App Store screenshots.
+  // `__DEV__` is false in any release build, so this never ships to customers.
+  const renderMembershipCard = () => (
+    <>
+      {renderMembershipCardBody()}
+      {__DEV__ && (
+        <Pressable
+          onPress={() => router.push('/unlock?preview=1')}
+          className="mx-4 mt-2 bg-gray-900/60 rounded-xl px-4 py-3 flex-row items-center border border-gray-800 active:opacity-80"
+        >
+          <ImageIcon size={16} color="#6b7280" />
+          <Text className="text-gray-400 text-xs ml-2 flex-1">
+            Paywall preview (for store screenshots)
+          </Text>
+          <ChevronRight size={16} color="#6b7280" />
+        </Pressable>
+      )}
+    </>
+  );
+
+  const renderMembershipCardBody = () => {
+    if (unlock?.hasFullAccess) {
+      return (
+        <Pressable
+          onPress={() => router.push('/unlock')}
+          className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 border border-orange-500/40 active:opacity-80"
+        >
+          <View className="flex-row items-center">
+            <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <Text numberOfLines={1} className={`text-white font-semibold ml-2 flex-shrink ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
+              Glideboard Pro
+            </Text>
+            <View className="ml-auto bg-orange-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
+              <Text className={`text-orange-400 font-semibold ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>ACTIVE</Text>
+            </View>
+            <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" className="ml-1" />
+          </View>
+          <Text className={`text-gray-500 mt-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+            Full access · renews automatically · manage or cancel in your {STORE_SETTINGS}
+          </Text>
+        </Pressable>
+      );
+    }
+    return (
+      <Pressable
+        onPress={() => router.push('/unlock')}
+        className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between border border-orange-500/40 active:opacity-80"
+      >
+        <View className="flex-row items-center flex-1">
+          <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
+          <View className="ml-3 flex-1">
+            <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-semibold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
+              Start Subscription
+            </Text>
+            <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+              Full access · from $1.19/mo
+            </Text>
+          </View>
+        </View>
+        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+      </Pressable>
+    );
+  };
+
+  if (!isLoaded) {
+    return <View className="flex-1 bg-black" />;
+  }
+
+  // Profile View Mode
+  if (!isEditing) {
+    const age = profile.dateOfBirth ? calculateAge(profile.dateOfBirth) : null;
+
+    return (
+      <ScrollView
+        className="flex-1 bg-black"
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <Text className={`text-white font-bold text-center mt-6 ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Profile</Text>
+
+        {/* Photo */}
+        <Pressable
+          onPress={showPhotoOptions}
+          className="items-center mt-6"
+        >
+          <View className={`rounded-full border-4 items-center justify-center bg-gray-900 overflow-hidden border-orange-500 ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
+            {profile.photoUri ? (
+              <Image
+                source={{ uri: profile.photoUri }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <User size={largeDisplayMode ? 50 : 60} color="#6b7280" />
+            )}
+          </View>
+          <Text className={`text-orange-500 mt-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>Tap to change photo</Text>
+        </Pressable>
+
+        {/* Name and Screen Name */}
+        <View className="items-center mt-4 px-4">
+          <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-bold text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>{profile.name}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit className={`text-gray-500 mt-1 text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>@{profile.screenName}</Text>
+          <Text className={`text-gray-600 mt-2 text-center ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+            Member since {formatMemberSince(profile.memberSince)}
+          </Text>
+        </View>
+
+        {/* Info Card */}
+        <View className="mx-4 mt-6 bg-gray-900 rounded-2xl p-4">
+          <Text className={`text-gray-500 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER</Text>
+          <Text className={`text-white mt-1 capitalize ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>
+            {profile.gender ?? 'Not set'}
+          </Text>
+
+          {profile.dobVisible && age !== null && (
+            <>
+              <Text className={`text-gray-500 mt-4 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>AGE</Text>
+              <Text className={`text-white mt-1 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{age} years old</Text>
+            </>
+          )}
+        </View>
+
+        {/* Membership status. Always tappable so there's always a path to the
+            subscription screen where the user can start a paid membership or
+            restore a purchase (required by both Apple and Google Play). */}
+        {renderMembershipCard()}
+
+        {/* How It Works */}
+        <Pressable
+          onPress={() => router.push('/how-it-works')}
+          className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+        >
+          <View className="flex-row items-center">
+            <HelpCircle size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
+          </View>
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+        </Pressable>
+
+        {/* App Settings */}
+        <Pressable
+          onPress={() => router.push('/app-settings')}
+          className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+        >
+          <View className="flex-row items-center">
+            <Settings size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>App Settings</Text>
+          </View>
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+        </Pressable>
+
+        {/* Privacy Policy */}
+        <Pressable
+          onPress={() => router.push('/privacy-policy')}
+          className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+        >
+          <View className="flex-row items-center">
+            <Shield size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
+          </View>
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+        </Pressable>
+
+        {/* Edit Button */}
+        <Pressable
+          onPress={() => setIsEditing(true)}
+          className="mx-4 mt-6 border-2 border-orange-500 py-4 rounded-xl items-center active:opacity-80"
+        >
+          <Text className={`text-orange-500 font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  // Edit Profile Mode
+  return (
+    <KeyboardAvoidingView
+      className="flex-1 bg-black"
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      className="flex-1 bg-black"
+      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 140 }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
+      {/* Header */}
+      <View className="items-center mt-6">
+        <Text className={`text-white font-bold italic ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Edit Profile</Text>
+        <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>Update your information</Text>
+      </View>
+
+      {/* Photo */}
+      <Pressable onPress={showPhotoOptions} className="items-center mt-6">
+        <View className={`rounded-full border-2 border-dashed border-orange-500 items-center justify-center overflow-hidden ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
+          {profile.photoUri ? (
+            <Image
+              source={{ uri: profile.photoUri }}
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <Camera size={largeDisplayMode ? 32 : 40} color="#f97316" />
+          )}
+        </View>
+        <Text className={`text-orange-500 mt-3 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+          {profile.photoUri ? 'Change Photo' : 'Add Photo'}
+        </Text>
+      </Pressable>
+
+      {/* Membership — visible right here on first open so users can
+          subscribe without finishing the profile first. */}
+      {renderMembershipCard()}
+
+      {/* How It Works */}
+      <Pressable
+        onPress={() => router.push('/how-it-works')}
+        className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+      >
+        <View className="flex-row items-center">
+          <HelpCircle size={largeDisplayMode ? 22 : 20} color="#f97316" />
+          <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
+        </View>
+        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+      </Pressable>
+
+      {/* Privacy Policy */}
+      <Pressable
+        onPress={() => router.push('/privacy-policy')}
+        className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+      >
+        <View className="flex-row items-center">
+          <Shield size={largeDisplayMode ? 22 : 20} color="#f97316" />
+          <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
+        </View>
+        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+      </Pressable>
+
+      {/* Form */}
+      <View className="px-4 mt-6">
+        {/* Name */}
+        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>NAME *</Text>
+        <TextInput
+          className={`bg-gray-900 text-white px-4 py-3 rounded-xl mb-4 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}
+          value={profile.name}
+          onChangeText={(text) => updateField('name', text)}
+          placeholder="Enter your name"
+          placeholderTextColor="#6b7280"
+        />
+
+        {/* Screen Name */}
+        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>SCREEN NAME *</Text>
+        <TextInput
+          className={`bg-gray-900 text-white px-4 py-3 rounded-xl mb-4 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}
+          value={profile.screenName}
+          onChangeText={(text) => updateField('screenName', text)}
+          placeholder="Enter screen name"
+          placeholderTextColor="#6b7280"
+          autoCapitalize="none"
+        />
+
+        {/* Date of Birth */}
+        <View className="flex-row items-center justify-between mb-2">
+          <Text numberOfLines={1} className={`text-gray-500 flex-shrink mr-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>DATE OF BIRTH (OPTIONAL)</Text>
+          <View className="flex-row items-center flex-shrink-0">
+            <Pressable
+              onPress={clearDateOfBirth}
+              className="flex-row items-center bg-gray-800 px-3 py-1 rounded-lg mr-3"
+            >
+              <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>× Clear</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => updateField('dobVisible', !profile.dobVisible)}
+              className="flex-row items-center"
+            >
+              <View
+                className={`w-6 h-6 rounded items-center justify-center mr-2 ${
+                  profile.dobVisible ? 'bg-orange-500' : 'bg-gray-800'
+                }`}
+              >
+                {profile.dobVisible && <Check size={16} color="#fff" />}
+              </View>
+              <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>Visible</Text>
+            </Pressable>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => setShowDatePicker(true)}
+          className="bg-gray-900 px-4 py-3 rounded-xl mb-4"
+        >
+          <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>{formatDate(profile.dateOfBirth)}</Text>
+        </Pressable>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={profile.dateOfBirth ? new Date(profile.dateOfBirth) : new Date()}
+            mode="date"
+            display="spinner"
+            onChange={handleDateChange}
+            maximumDate={new Date()}
+            themeVariant="dark"
+          />
+        )}
+
+        {/* Gender */}
+        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER *</Text>
+        <View className="flex-row mb-6">
+          <Pressable
+            onPress={() => updateField('gender', 'male')}
+            className={`flex-1 py-3 rounded-xl items-center mr-2 ${
+              profile.gender === 'male' ? 'bg-orange-500' : 'bg-gray-900'
+            }`}
+          >
+            <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Male</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => updateField('gender', 'female')}
+            className={`flex-1 py-3 rounded-xl items-center ml-2 ${
+              profile.gender === 'female' ? 'bg-orange-500' : 'bg-gray-900'
+            }`}
+          >
+            <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Female</Text>
+          </Pressable>
+        </View>
+
+        {/* Buttons */}
+        <Pressable
+          onPress={saveProfile}
+          className="bg-orange-500 py-4 rounded-xl items-center mb-4 active:opacity-80"
+        >
+          <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Save Changes</Text>
+        </Pressable>
+
+        {profile.memberSince && (
+          <Pressable
+            onPress={() => {
+              loadProfile();
+              setIsEditing(false);
+            }}
+            className="bg-gray-900 py-4 rounded-xl items-center active:opacity-80"
+          >
+            <Text className={`text-gray-400 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Cancel</Text>
+          </Pressable>
+        )}
+      </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
