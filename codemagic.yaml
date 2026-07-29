@@ -14,9 +14,10 @@ workflows:
         script: |
           npm install --legacy-peer-deps
       - name: Set Android SDK location
+        - name: Set Android SDK location
         script: |
+          mkdir -p android
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-      - name: Build Android AAB
         script: |
           cd android
           ./gradlew bundleRelease
