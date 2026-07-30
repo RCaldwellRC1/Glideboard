@@ -8,6 +8,7 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
+        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dkotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check"
       node: latest
     scripts:
       - name: Install dependencies
@@ -21,8 +22,6 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
-          # Force JVM compiler arguments for all Kotlin sub-compilations & Gradle plugins
-          echo "org.gradle.jvmargs=-Xmx4096m -Dkotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check" >> android/gradle.properties
       - name: Build Android AAB
         script: |
           cd android
