@@ -8,7 +8,6 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-Dorg.gradle.project.kotlinVersion=2.1.20 -Dorg.gradle.project.android.kotlinVersion=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -22,18 +21,8 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
-          
-          # Force global Gradle init script to skip Kotlin metadata version checks safely
-          mkdir -p ~/.gradle/init.d
-          cat << 'EOF' > ~/.gradle/init.d/kotlin.gradle
-          gradle.allprojects {
-              tasks.matching { it.class.name.contains("KotlinCompile") }.configureEach {
-                  kotlinOptions {
-                      freeCompilerArgs += ["-Xskip-metadata-version-check"]
-                  }
-              }
-          }
-          EOF
+          # Force JVM compiler arguments for all Kotlin sub-compilations & Gradle plugins
+          echo "org.gradle.jvmargs=-Xmx4096m -Dkotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check" >> android/gradle.properties
       - name: Build Android AAB
         script: |
           cd android
