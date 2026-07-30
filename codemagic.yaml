@@ -8,7 +8,7 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dorg.gradle.kotlin.version=2.1.20"
+        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -17,13 +17,13 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Force Kotlin 2.1.20
+      - name: Configure Android SDK & Skip Metadata Version Checks
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
-          # Create global init script to handle task overrides
+          # Create global init script to bypass metadata version checks and disable androidSourcesJar
           mkdir -p ~/.gradle/init.d
           cat << 'EOF' > ~/.gradle/init.d/00-kotlin-override.gradle
           gradle.projectsLoaded { gradle ->
@@ -31,16 +31,25 @@ workflows:
                   tasks.matching { it.name == "androidSourcesJar" }.configureEach {
                       enabled = false
                   }
+                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                      kotlinOptions {
+                          freeCompilerArgs += ["-Xskip-metadata-version-check"]
+                      }
+                  }
               }
           }
           EOF
 
-          # Inject buildscript dependency strategy into android/build.gradle
+          # Inject kotlinVersion into android/build.gradle rootProject.ext
           python3 -c '
           with open("android/build.gradle", "r") as f:
               content = f.read()
+
           patch = """
           buildscript {
+              ext {
+                  kotlinVersion = "2.1.20"
+              }
               configurations.all {
                   resolutionStrategy.eachDependency { details ->
                       if (details.requested.group == "org.jetbrains.kotlin") {
@@ -50,13 +59,14 @@ workflows:
               }
           }
           """
+
           with open("android/build.gradle", "w") as f:
               f.write(patch + "\n" + content)
           '
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20
+          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20 -Pkotlin.compiler.freeCompilerArgs="-Xskip-metadata-version-check"
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
