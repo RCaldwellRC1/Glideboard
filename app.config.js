@@ -5,7 +5,7 @@
  * `config`, so everything in app.json still applies — this file only layers on
  * the two things the Android release build needs, without editing app.json.
  */
-module.exports = ({ config }) =>*({
+module.exports = ({ config }) => ({
   ...config,
 
   // Injects the *elease signingConfig into the preb*ild-generated build.gradle.
