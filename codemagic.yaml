@@ -22,7 +22,7 @@ workflows:
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease
+          ./gradlew bundleRelease -PfreeCompilerArgs="-Xskip-metadata-version-check"
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
