@@ -8,7 +8,6 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dkotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check"
       node: latest
     scripts:
       - name: Install dependencies
@@ -17,35 +16,36 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Global Gradle Init Script
+      - name: Configure Android SDK & Force Kotlin 2.1.20
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
-          # Create a global init script that forces Kotlin 2.1.20 across all buildscript & root plugin dependencies
-          mkdir -p ~/.gradle/init.d
-          cat << 'EOF' > ~/.gradle/init.d/force-kotlin.gradle
-          gradle.beforeSettings { settings ->
-              settings.pluginManagement {
-                  plugins {
-                      id 'org.jetbrains.kotlin.jvm' version '2.1.20'
-                      id 'org.jetbrains.kotlin.android' version '2.1.20'
-                  }
-              }
-          }
-          gradle.allprojects {
-              buildscript {
-                  configurations.all {
-                      resolutionStrategy.eachDependency { details ->
-                          if (details.requested.group == 'org.jetbrains.kotlin') {
-                              details.useVersion('2.1.20')
-                          }
+          python3 -c '
+          with open("android/build.gradle", "r") as f:
+              content = f.read()
+
+          patch = """
+          buildscript {
+              configurations.all {
+                  resolutionStrategy.eachDependency { details ->
+                      if (details.requested.group == "org.jetbrains.kotlin") {
+                          details.useVersion("2.1.20")
                       }
                   }
               }
           }
-          EOF
+          allprojects {
+              tasks.matching { it.name == "androidSourcesJar" }.configureEach {
+                  enabled = false
+              }
+          }
+          """
+
+          with open("android/build.gradle", "w") as f:
+              f.write(patch + "\n" + content)
+          '
       - name: Build Android AAB
         script: |
           cd android
