@@ -21,11 +21,11 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
-          
-          # Patch node_modules Kotlin plugin references
-          find node_modules -name "build.gradle*" -exec sed -i '' 's/1\.9\.[0-9]*/2.1.20/g' {} + || true
 
-          # Create global Gradle init script to skip Kotlin metadata version checks everywhere
+          # Safely inject ext.kotlinVersion into root android/build.gradle
+          awk '/allprojects \{/ {print "buildscript { ext.kotlinVersion = '\''2.1.20'\'' }"} 1' android/build.gradle > android/build.gradle.tmp && mv android/build.gradle.tmp android/build.gradle
+
+          # Global init script to skip metadata version checks
           mkdir -p ~/.gradle/init.d
           cat << 'EOF' > ~/.gradle/init.d/kotlin.gradle
           gradle.allprojects {
