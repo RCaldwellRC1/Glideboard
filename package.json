@@ -82,7 +82,7 @@
     "expo-manifests": "1.0.8",
     "expo-mesh-gradient": "0.4.7",
     "expo-network": "8.0.7",
-    "expo-network-addons": "0.7.2",
+    "expo-network-addons": "0.10.8",
     "expo-print": "15.0.7",
     "expo-router": "6.0.14",
     "expo-screen-capture": "8.0.8",
