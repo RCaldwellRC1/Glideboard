@@ -21,7 +21,18 @@ workflows:
       - name: Install bun
         script: |
           curl -fsSL https://bun.sh/install | bash
-          echo 'export PATH="$HOME/.bun/bin:$PATH"' >> $CM_ENV
+          # $CM_ENV takes plain KEY=value lines — "export KEY=value" is NOT parsed,
+          # which is why bun was missing from PATH in later steps.
+          echo "PATH=$HOME/.bun/bin:$PATH" >> $CM_ENV
+          # Export for this step too, so the check below runs against the new PATH.
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun --version
+
+      - name: Verify bun is on PATH
+        script: |
+          command -v bun >/dev/null 2>&1 \
+            || { echo "FAIL: bun still not on PATH after install step"; exit 1; }
+          echo "OK: bun $(bun --version) at $(command -v bun)"
 
       - name: Install dependencies
         script: bun install --frozen-lockfile
