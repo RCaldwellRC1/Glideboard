@@ -1,35 +1,58 @@
 workflows:
   android-release:
-    name: Android Release Build
+    name: Glideboard Android Release (AAB)
+    instance_type: linux_x2
     max_build_duration: 60
-    instance_type: mac_mini_m1
-
     environment:
-      groups:
-        - google_play
-      vars:
-        PACKAGE_NAME: "com.robertcaldwell.vibecode"
-      node: latest
-
+      # Reference name of the keystore uploaded in Codemagic under
+      # Teams/Personal account -> Code signing identities -> Android keystores.
+      # Codemagic exports CM_KEYSTORE_PATH / CM_KEYSTORE_PASSWORD /
+      # CM_KEY_ALIAS / CM_KEY_PASSWORD, which the Expo config plugin at
+      # plugins/withAndroidReleaseSigning.js reads in build.gradle.
+      android_signing:
+        - glideboard_keystore
+      node: 20.18.0
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $HOME/.bun/install/cache
     scripts:
+      - name: Install bun
+        script: |
+          curl -fsSL https://bun.sh/install | bash
+          echo 'export PATH="$HOME/.bun/bin:$PATH"' >> $CM_ENV
+
       - name: Install dependencies
-        script: |
-          npm install --legacy-peer-deps
+        script: bun install --frozen-lockfile
 
-      - name: Expo prebuild
-        script: |
-          npx expo prebuild --platform android --clean
+      - name: Expo prebuild (android)
+        script: npx expo prebuild --platform android --clean
 
-      - name: Build Android AAB
+      - name: Assert release signing was injected
         script: |
-          cd android
-          ./gradlew bundleRelease
+          grep -q 'signingConfig signingConfigs.release' android/app/build.gradle \
+            || { echo "FAIL: release signingConfig missing — config plugin did not run"; exit 1; }
+          grep -q 'CM_KEYSTORE_PATH' android/app/build.gradle \
+            || { echo "FAIL: keystore env wiring missing from build.gradle"; exit 1; }
+          echo "OK: release signingConfig present"
+
+      - name: Configure Android SDK path
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+
+      - name: Build AAB
+        script: cd android && ./gradlew bundleRelease
+
+      - name: Assert AAB is not debug-signed
+        script: |
+          AAB=android/app/build/outputs/bundle/release/app-release.aab
+          if jarsigner -verify -certs "$AAB" | grep -qi 'CN=Android Debug'; then
+            echo "FAIL: AAB is still signed with the Android debug key"
+            exit 1
+          fi
+          echo "OK: AAB is release-signed"
+          jarsigner -verify -certs "$AAB" | grep -m1 -i 'X.509' || true
 
     artifacts:
-      - android/app/build/outputs/**/*.aab
-
-    publishing:
-      google_play:
-        credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
-        track: internal
-        submit_as_draft: true
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/**/mapping.txt
