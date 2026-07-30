@@ -8,6 +8,7 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
+        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dorg.gradle.kotlin.version=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -16,13 +17,13 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Force Global Kotlin Version via Init Script
+      - name: Configure Android SDK & Force Kotlin 2.1.20
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
-          # Create global init script in root ~/.gradle directory
+          # Create global init script to handle task overrides
           mkdir -p ~/.gradle/init.d
           cat << 'EOF' > ~/.gradle/init.d/00-kotlin-override.gradle
           gradle.projectsLoaded { gradle ->
@@ -34,7 +35,7 @@ workflows:
           }
           EOF
 
-          # Inject Kotlin version resolution directly into android/build.gradle
+          # Inject buildscript dependency strategy into android/build.gradle
           python3 -c '
           with open("android/build.gradle", "r") as f:
               content = f.read()
