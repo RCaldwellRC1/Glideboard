@@ -17,30 +17,12 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Skip Metadata Version Checks
+      - name: Configure Android SDK & Patch Build Scripts
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
-          # Create global init script to bypass metadata version checks and disable androidSourcesJar
-          mkdir -p ~/.gradle/init.d
-          cat << 'EOF' > ~/.gradle/init.d/00-kotlin-override.gradle
-          gradle.projectsLoaded { gradle ->
-              gradle.rootProject.allprojects {
-                  tasks.matching { it.name == "androidSourcesJar" }.configureEach {
-                      enabled = false
-                  }
-                  tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                      kotlinOptions {
-                          freeCompilerArgs += ["-Xskip-metadata-version-check"]
-                      }
-                  }
-              }
-          }
-          EOF
-
-          # Inject kotlinVersion into android/build.gradle rootProject.ext
           python3 -c '
           with open("android/build.gradle", "r") as f:
               content = f.read()
@@ -55,6 +37,16 @@ workflows:
                       if (details.requested.group == "org.jetbrains.kotlin") {
                           details.useVersion("2.1.20")
                       }
+                  }
+              }
+          }
+          allprojects {
+              tasks.matching { it.name == "androidSourcesJar" }.configureEach {
+                  enabled = false
+              }
+              tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+                  kotlinOptions {
+                      freeCompilerArgs += ["-Xskip-metadata-version-check"]
                   }
               }
           }
