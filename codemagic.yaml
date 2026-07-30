@@ -16,16 +16,17 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Set Android SDK location & Gradle Properties
+      - name: Configure Android Gradle & Kotlin Version
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
-          echo "kotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check" >> android/gradle.properties
+          # Force Kotlin compiler plugin version inside build.gradle
+          sed -i '' 's/kotlin-gradle-plugin:[0-9.]*/kotlin-gradle-plugin:2.1.20/g' android/build.gradle || true
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PfreeCompilerArgs="-Xskip-metadata-version-check"
+          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
