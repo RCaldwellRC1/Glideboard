@@ -8,7 +8,6 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-Dorg.gradle.kotlin.version=2.1.20 -Dkotlin.version=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -17,16 +16,30 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Gradle Properties
+      - name: Configure Android SDK, Gradle & Global Kotlin Init Script
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
-          echo "kotlin.compiler.freeCompilerArgs=-Xskip-metadata-version-check" >> android/gradle.properties
+          
+          # Patch node_modules Kotlin plugin references
+          find node_modules -name "build.gradle*" -exec sed -i '' 's/1\.9\.[0-9]*/2.1.20/g' {} + || true
+
+          # Create global Gradle init script to skip Kotlin metadata version checks everywhere
+          mkdir -p ~/.gradle/init.d
+          cat << 'EOF' > ~/.gradle/init.d/kotlin.gradle
+          gradle.allprojects {
+              tasks.matching { it.class.name.contains("KotlinCompile") }.configureEach {
+                  kotlinOptions {
+                      freeCompilerArgs += ["-Xskip-metadata-version-check"]
+                  }
+              }
+          }
+          EOF
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20 -PfreeCompilerArgs="-Xskip-metadata-version-check"
+          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
