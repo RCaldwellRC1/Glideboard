@@ -8,7 +8,6 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -17,46 +16,42 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Force Kotlin 2.1.20 Across All Subprojects
+      - name: Configure Android SDK & Force Kotlin 2.1.20 via Settings
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
           python3 -c '
+          # Disable androidSourcesJar task in android/build.gradle
           with open("android/build.gradle", "r") as f:
               content = f.read()
-
           patch = """
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20")
-              }
-          }
-          subprojects {
-              buildscript {
-                  configurations.all {
-                      resolutionStrategy.eachDependency { details ->
-                          if (details.requested.group == "org.jetbrains.kotlin") {
-                              details.useVersion("2.1.20")
-                          }
-                      }
-                  }
-              }
-          }
           allprojects {
               tasks.matching { it.name == "androidSourcesJar" }.configureEach {
                   enabled = false
               }
           }
           """
-
           with open("android/build.gradle", "w") as f:
               f.write(patch + "\n" + content)
+
+          # Inject pluginResolutionStrategy into android/settings.gradle to force Kotlin 2.1.20 globally
+          with open("android/settings.gradle", "r") as f:
+              settings_content = f.read()
+          settings_patch = """
+          pluginManagement {
+              resolutionStrategy {
+                  eachPlugin {
+                      if (requested.id.id.startsWith("org.jetbrains.kotlin")) {
+                          useVersion("2.1.20")
+                      }
+                  }
+              }
+          }
+          """
+          with open("android/settings.gradle", "w") as f:
+              f.write(settings_patch + "\n" + settings_content)
           '
       - name: Build Android AAB
         script: |
