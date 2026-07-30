@@ -8,13 +8,13 @@
 module.exports = ({ config }) => ({
   ...config,
 
-  // Injects the *elease signingConfig into the preb*ild-generated build.gradle.
-  plug*ns: [...(config.plugins ?? []), '.*plugins/withAndroidReleaseSigning'*,
+  // Injects the release signingConfig into the prebuild-generated build.gradle.
+  plugins: [...(config.plugins ?? []), './plugins/withAndroidReleaseSigning'],
 
   android: {
-    ...config.andr*id,
-    // app.json defines no and*oid.versionCode, so prebuild would*emit 1 on every
-    // build and P*ay rejects a version code it has a*ready seen. Codemagic sets
+    ...config.android,
+    // app.json defines no android.versionCode, so prebuild would emit 1 on every
+    // build and Play rejects a version code it has already seen. Codemagic sets
     // BUILD_NUMBER and increments it per build; local builds fall back to 1.
     // Guard against an empty/garbage value, which would yield 0 or NaN — Play
     // requires a positive integer.
