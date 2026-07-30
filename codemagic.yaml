@@ -16,42 +16,41 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Force Kotlin 2.1.20 via Settings
+      - name: Configure Android SDK & Force Global Kotlin Version via Init Script
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
+          # Create global init script in root ~/.gradle directory
+          mkdir -p ~/.gradle/init.d
+          cat << 'EOF' > ~/.gradle/init.d/00-kotlin-override.gradle
+          gradle.projectsLoaded { gradle ->
+              gradle.rootProject.allprojects {
+                  tasks.matching { it.name == "androidSourcesJar" }.configureEach {
+                      enabled = false
+                  }
+              }
+          }
+          EOF
+
+          # Inject Kotlin version resolution directly into android/build.gradle
           python3 -c '
-          # Disable androidSourcesJar task in android/build.gradle
           with open("android/build.gradle", "r") as f:
               content = f.read()
           patch = """
-          allprojects {
-              tasks.matching { it.name == "androidSourcesJar" }.configureEach {
-                  enabled = false
-              }
-          }
-          """
-          with open("android/build.gradle", "w") as f:
-              f.write(patch + "\n" + content)
-
-          # Inject pluginResolutionStrategy into android/settings.gradle to force Kotlin 2.1.20 globally
-          with open("android/settings.gradle", "r") as f:
-              settings_content = f.read()
-          settings_patch = """
-          pluginManagement {
-              resolutionStrategy {
-                  eachPlugin {
-                      if (requested.id.id.startsWith("org.jetbrains.kotlin")) {
-                          useVersion("2.1.20")
+          buildscript {
+              configurations.all {
+                  resolutionStrategy.eachDependency { details ->
+                      if (details.requested.group == "org.jetbrains.kotlin") {
+                          details.useVersion("2.1.20")
                       }
                   }
               }
           }
           """
-          with open("android/settings.gradle", "w") as f:
-              f.write(settings_patch + "\n" + settings_content)
+          with open("android/build.gradle", "w") as f:
+              f.write(patch + "\n" + content)
           '
       - name: Build Android AAB
         script: |
