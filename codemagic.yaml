@@ -3,65 +3,31 @@ workflows:
     name: Android Release Build
     max_build_duration: 60
     instance_type: mac_mini_m1
+
     environment:
       groups:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dorg.gradle.kotlin.version=2.1.20"
       node: latest
+
     scripts:
       - name: Install dependencies
         script: |
           npm install --legacy-peer-deps
+
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Upgrade Gradle Wrapper
-        script: |
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-          echo "kotlinVersion=2.1.20" >> android/gradle.properties
-          echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
 
-          # Upgrade Gradle Wrapper to 8.13 to upgrade Gradle's embedded Kotlin compiler to 2.1.0+
-          sed -i '' 's/gradle-.*-bin.zip/gradle-8.13-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties || true
-
-          python3 -c '
-          with open("android/build.gradle", "r") as f:
-              content = f.read()
-
-          patch = """
-          buildscript {
-              ext {
-                  kotlinVersion = "2.1.20"
-              }
-              configurations.all {
-                  resolutionStrategy.eachDependency { details ->
-                      if (details.requested.group == "org.jetbrains.kotlin") {
-                          details.useVersion("2.1.20")
-                      }
-                  }
-              }
-          }
-          allprojects {
-              ext {
-                  kotlinVersion = "2.1.20"
-              }
-              tasks.matching { it.name == "androidSourcesJar" }.configureEach {
-                  enabled = false
-              }
-          }
-          """
-
-          with open("android/build.gradle", "w") as f:
-              f.write(patch + "\n" + content)
-          '
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20
+          ./gradlew bundleRelease
+
     artifacts:
-      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/**/*.aab
+
     publishing:
       google_play:
         credentials: $GOOGLE_PLAY_SERVICE_ACCOUNT_CREDENTIALS
