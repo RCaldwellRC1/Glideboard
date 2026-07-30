@@ -8,6 +8,7 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
+        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -16,7 +17,7 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Force Kotlin 2.1.20
+      - name: Configure Android SDK & Force Kotlin 2.1.20 Across All Subprojects
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
@@ -28,10 +29,21 @@ workflows:
 
           patch = """
           buildscript {
-              configurations.all {
-                  resolutionStrategy.eachDependency { details ->
-                      if (details.requested.group == "org.jetbrains.kotlin") {
-                          details.useVersion("2.1.20")
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20")
+              }
+          }
+          subprojects {
+              buildscript {
+                  configurations.all {
+                      resolutionStrategy.eachDependency { details ->
+                          if (details.requested.group == "org.jetbrains.kotlin") {
+                              details.useVersion("2.1.20")
+                          }
                       }
                   }
               }
