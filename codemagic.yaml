@@ -8,7 +8,7 @@ workflows:
         - google_play
       vars:
         PACKAGE_NAME: "com.robertcaldwell.vibecode"
-        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20"
+        GRADLE_OPTS: "-DkotlinVersion=2.1.20 -Dandroid.kotlinVersion=2.1.20 -Dorg.gradle.kotlin.version=2.1.20"
       node: latest
     scripts:
       - name: Install dependencies
@@ -17,11 +17,14 @@ workflows:
       - name: Expo prebuild
         script: |
           npx expo prebuild --platform android --clean
-      - name: Configure Android SDK & Patch Build Scripts
+      - name: Configure Android SDK & Upgrade Gradle Wrapper
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
           echo "kotlinVersion=2.1.20" >> android/gradle.properties
           echo "android.kotlinVersion=2.1.20" >> android/gradle.properties
+
+          # Upgrade Gradle Wrapper to 8.13 to upgrade Gradle's embedded Kotlin compiler to 2.1.0+
+          sed -i '' 's/gradle-.*-bin.zip/gradle-8.13-bin.zip/g' android/gradle/wrapper/gradle-wrapper.properties || true
 
           python3 -c '
           with open("android/build.gradle", "r") as f:
@@ -41,13 +44,11 @@ workflows:
               }
           }
           allprojects {
+              ext {
+                  kotlinVersion = "2.1.20"
+              }
               tasks.matching { it.name == "androidSourcesJar" }.configureEach {
                   enabled = false
-              }
-              tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
-                  kotlinOptions {
-                      freeCompilerArgs += ["-Xskip-metadata-version-check"]
-                  }
               }
           }
           """
@@ -58,7 +59,7 @@ workflows:
       - name: Build Android AAB
         script: |
           cd android
-          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20 -Pkotlin.compiler.freeCompilerArgs="-Xskip-metadata-version-check"
+          ./gradlew bundleRelease -Pandroid.kotlinVersion=2.1.20 -PkotlinVersion=2.1.20
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
     publishing:
