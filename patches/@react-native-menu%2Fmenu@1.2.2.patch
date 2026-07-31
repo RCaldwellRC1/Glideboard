@@ -1,13 +1,70 @@
-diff --git a/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt b/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
-index 0cd90f4741508a95a63198574228c244ad41afd8..4731e1a1528a2de495cc2ae3156c813b64ec6832 100644
---- a/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
-+++ b/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
-@@ -206,7 +206,7 @@ abstract class MenuViewManagerBase : ReactClippingViewManager<MenuView>() {
- 
-   @ReactProp(name = ViewProps.OVERFLOW)
-   fun setOverflow(view: ReactViewGroup, overflow: String?) {
--    view.overflow = overflow
-+    view.setOverflow(overflow)
+diff --git a/android/src/main/java/com/reactnativemenu/MenuView.kt b/android/src/main/java/com/reactnativemenu/MenuView.kt
+index 17ed7c6..11a5ee9 100644
+--- a/android/src/main/java/com/reactnativemenu/MenuView.kt
++++ b/android/src/main/java/com/reactnativemenu/MenuView.kt
+@@ -47,8 +47,12 @@ class MenuView(private val mContext: ReactContext) : ReactViewGroup(mContext) {
+     prepareMenu()
    }
  
-   @ReactProp(name = "backfaceVisibility")
+-  override fun setHitSlopRect(rect: Rect?) {
+-    super.setHitSlopRect(rect)
++  // RN 0.81 turned ReactViewGroup.hitSlopRect into a Kotlin property, so the old
++  // `override fun setHitSlopRect(...)` no longer overrides anything. Rather than
++  // override the property (which differs in shape between RN versions), expose a
++  // plain method and let the view manager call it.
++  fun applyHitSlopRect(rect: Rect?) {
++    hitSlopRect = rect
+     mHitSlopRect = rect
+     updateTouchDelegate()
+   }
+diff --git a/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt b/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
+index 0cd90f4..c2c5d94 100644
+--- a/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
++++ b/android/src/main/java/com/reactnativemenu/MenuViewManagerBase.kt
+@@ -121,26 +121,27 @@ abstract class MenuViewManagerBase : ReactClippingViewManager<MenuView>() {
+ 
+   @ReactProp(name = "hitSlop")
+   fun setHitSlop(view: ReactViewGroup, @Nullable hitSlop: ReadableMap?) {
+-    if (hitSlop == null) {
+-      // We should keep using setters as `Val cannot be reassigned`
+-      view.setHitSlopRect(null)
++    val rect: Rect? =
++            if (hitSlop == null) null
++            else Rect(
++                    if (hitSlop.hasKey("left"))
++                            PixelUtil.toPixelFromDIP(hitSlop.getDouble("left")).toInt()
++                    else 0,
++                    if (hitSlop.hasKey("top"))
++                            PixelUtil.toPixelFromDIP(hitSlop.getDouble("top")).toInt()
++                    else 0,
++                    if (hitSlop.hasKey("right"))
++                            PixelUtil.toPixelFromDIP(hitSlop.getDouble("right")).toInt()
++                    else 0,
++                    if (hitSlop.hasKey("bottom"))
++                            PixelUtil.toPixelFromDIP(hitSlop.getDouble("bottom")).toInt()
++                    else 0
++            )
++
++    if (view is MenuView) {
++      view.applyHitSlopRect(rect)
+     } else {
+-      view.setHitSlopRect(
+-              Rect(
+-                      if (hitSlop.hasKey("left"))
+-                              PixelUtil.toPixelFromDIP(hitSlop.getDouble("left")).toInt()
+-                      else 0,
+-                      if (hitSlop.hasKey("top"))
+-                              PixelUtil.toPixelFromDIP(hitSlop.getDouble("top")).toInt()
+-                      else 0,
+-                      if (hitSlop.hasKey("right"))
+-                              PixelUtil.toPixelFromDIP(hitSlop.getDouble("right")).toInt()
+-                      else 0,
+-                      if (hitSlop.hasKey("bottom"))
+-                              PixelUtil.toPixelFromDIP(hitSlop.getDouble("bottom")).toInt()
+-                      else 0
+-              )
+-      )
++      view.hitSlopRect = rect
+     }
+   }
+ 
