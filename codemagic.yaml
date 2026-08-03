@@ -4,6 +4,8 @@ workflows:
     instance_type: linux_x2
     max_build_duration: 60
     environment:
+      groups:
+        - google_play
       # Reference name of the keystore uploaded in Codemagic under
       # Teams/Personal account -> Code signing identities -> Android keystores.
       # Codemagic exports CM_KEYSTORE_PATH / CM_KEYSTORE_PASSWORD /
@@ -67,3 +69,9 @@ workflows:
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
       - android/app/build/outputs/**/mapping.txt
+
+    publishing:
+      google_play:
+        credentials: $GPC_AUTH_JSON
+        track: internal
+        submit_as_draft: true

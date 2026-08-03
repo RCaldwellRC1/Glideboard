@@ -8,18 +8,18 @@
 module.exports = ({ config }) => ({
   ...config,
 
-  // Injects the release signingConfig into the prebuild-generated build.gradle.
-  plugins: [...(config.plugins ?? []), './plugins/withAndroidReleaseSigning'],
+  // Injects the release signingConfig ONLY when not building on EAS.
+  // EAS handles signing via the credentials we imported earlier.
+  plugins: [
+    ...(config.plugins ?? []),
+    ...(process.env.EAS_BUILD ? [] : ['./plugins/withAndroidReleaseSigning']),
+  ],
 
   android: {
     ...config.android,
-    // app.json defines no android.versionCode, so prebuild would emit 1 on every
-    // build and Play rejects a version code it has already seen. Codemagic sets
-    // BUILD_NUMBER and increments it per build; local builds fall back to 1.
-    // Guard against an empty/garbage value, which would yield 0 or NaN — Play
-    // requires a positive integer.
+    // Priority: CI environment variable > app.json > default (1)
     versionCode: Number.parseInt(process.env.BUILD_NUMBER, 10) > 0
       ? Number.parseInt(process.env.BUILD_NUMBER, 10)
-      : 1,
+      : (config.android?.versionCode ?? 1),
   },
 });

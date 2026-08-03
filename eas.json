@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": "16.17.4"
+    "version": ">=16.17.4"
   },
   "build": {
     "development": {
@@ -8,6 +8,13 @@
       "distribution": "internal",
       "ios": {
         "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_VIBECODE_BACKEND_URL": "https://heaped-twig.vibecode.run",
+        "BACKEND_URL": "https://heaped-twig.vibecode.run",
+        "EXPO_PUBLIC_BACKEND_URL": "https://heaped-twig.vibecode.run",
+        "EXPO_PUBLIC_VIBECODE_REVENUECAT_GOOGLE_KEY": "goog_RTiFfpEFXFAtRjJlrNnvBurbPbd",
+        "EXPO_PUBLIC_MONTHLY_PRICE": "$1.99"
       }
     },
     "preview": {
@@ -17,7 +24,9 @@
       "env": {
         "EXPO_PUBLIC_VIBECODE_BACKEND_URL": "https://heaped-twig.vibecode.run",
         "BACKEND_URL": "https://heaped-twig.vibecode.run",
-        "EXPO_PUBLIC_BACKEND_URL": "https://heaped-twig.vibecode.run"
+        "EXPO_PUBLIC_BACKEND_URL": "https://heaped-twig.vibecode.run",
+        "EXPO_PUBLIC_VIBECODE_REVENUECAT_GOOGLE_KEY": "goog_RTiFfpEFXFAtRjJlrNnvBurbPbd",
+        "EXPO_PUBLIC_MONTHLY_PRICE": "$1.99"
       },
       "ios": {
         "distribution": "store"

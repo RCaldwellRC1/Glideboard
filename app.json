@@ -10,30 +10,36 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSCameraUsageDescription": "Glideboard uses the camera so you can take a profile photo.",
         "NSPhotoLibraryUsageDescription": "Glideboard accesses your photos so you can choose a profile picture.",
         "NSMicrophoneUsageDescription": "Glideboard uses the microphone to count your reps out loud during voice workouts.",
         "NSMotionUsageDescription": "Glideboard uses motion sensors to automatically count your reps as you exercise."
       },
       "bundleIdentifier": "com.robertcaldwell.vibecode",
-      "buildNumber": "11"
+      "buildNumber": "14"
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "package": "com.robertcaldwell.vibecode",
+      "versionCode": 54,
       "permissions": [
-        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES"
       ]
     },
- "plugins": [
-  "expo-router",
-  "expo-build-properties"
-],
+    "plugins": [
+      "expo-router",
+      "expo-build-properties"
+    ],
     "experiments": {
       "typedRoutes": true
     },
-    "icon": "./icon.png"
+    "icon": "./icon.png",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cd83d448-f493-4b71-8d6e-98f176dc3812"
+      }
+    },
+    "owner": "rcaldwellrc1"
   }
 }

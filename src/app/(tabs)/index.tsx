@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, TextInput, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic } from 'lucide-react-native';
 import {
   useWorkoutStore,
   EXERCISE_GROUPS,
@@ -237,7 +237,7 @@ function ExerciseDropdown({
   const customCats = DROPDOWN_SECTIONS.filter(g => g.color !== '#f97316');
 
   return (
-    <View className="flex-1 mr-2">
+    <View className="flex-1 mr-2 relative" style={{ zIndex: 50 }}>
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
       <Pressable
         onPress={onToggle}
@@ -252,12 +252,13 @@ function ExerciseDropdown({
       </Pressable>
 
       {isOpen && (
-        <View className={`absolute left-0 right-0 bg-gray-900 rounded-xl z-50 overflow-hidden shadow-lg shadow-black/50 ${activeGroup === null ? 'max-h-[520px]' : 'max-h-80'} ${isLarge ? 'top-14' : 'top-16'}`}>
+        <View className={`absolute left-0 right-0 bg-gray-900 rounded-xl z-50 overflow-hidden shadow-lg shadow-black/50 ${activeGroup === null ? 'max-h-[520px]' : 'max-h-96'} ${isLarge ? 'top-14' : 'top-16'}`}>
           <ScrollView
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingVertical: 6 }}
+            style={{ flex: 1 }}
           >
             {activeGroup === null ? (
               // Level 1: sections. Body sections (orange), then the custom
@@ -502,7 +503,12 @@ export default function TrackerScreen() {
   const repCooldownMs = Math.min(4000, Math.max(250, Math.round(baseRepCooldownMs * learnedCooldownFactor)));
 
   // Motion context for raw sensor data
-  const { motion, isListening } = useMotionContext();
+  const {
+    motion,
+    isListening,
+    diagnostics: motionDiagnostics,
+    restart: restartMotionSensor,
+  } = useMotionContext();
 
   // Voice counting - callback when a rep number is heard
   const handleVoiceRepCounted = useCallback((repNumber: number) => {
@@ -607,6 +613,65 @@ export default function TrackerScreen() {
     const interval = setInterval(update, 250);
     return () => clearInterval(interval);
   }, [ignoreMotion, adaptiveSetState, repCountingMode, adaptiveSetStartTime, setupDelayMs]);
+
+  // ---- Motion sensor health -------------------------------------------------
+  // Motion counting used to fail completely silently: on Android devices without
+  // a gyroscope the sensor never started, so the countdown ran, "Get into
+  // position" stayed on screen forever and the rep count sat at zero with no
+  // explanation. The sensor layer now reports its own health; here we turn an
+  // unhealthy sensor into something the user can actually see and act on.
+  //
+  // The 2s grace period stops the banner flashing during the normal startup
+  // probe or a brief stall right after the app returns from the background.
+  const SENSOR_FAILURE_GRACE_MS = 2000;
+  const [showSensorFailure, setShowSensorFailure] = useState(false);
+  const motionSensorHealthy = motionDiagnostics.isHealthy;
+
+  useEffect(() => {
+    if (effectiveMode !== 'motion' || motionSensorHealthy) {
+      setShowSensorFailure(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowSensorFailure(true), SENSOR_FAILURE_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [effectiveMode, motionSensorHealthy]);
+
+  // Log it once per occurrence so a device that can't count reps is visible in
+  // the logs, not just on the user's screen.
+  const sensorFailureLoggedRef = useRef(false);
+  useEffect(() => {
+    if (!showSensorFailure) {
+      sensorFailureLoggedRef.current = false;
+      return;
+    }
+    if (sensorFailureLoggedRef.current) return;
+    sensorFailureLoggedRef.current = true;
+    remoteLog('motion_counting_unavailable', {
+      source: motionDiagnostics.source,
+      deviceMotionAvailable: motionDiagnostics.deviceMotionAvailable,
+      accelerometerAvailable: motionDiagnostics.accelerometerAvailable,
+      sampleRateHz: motionDiagnostics.sampleRateHz,
+      duringActiveSet: isSetActive,
+    });
+  }, [showSensorFailure, motionDiagnostics, isSetActive]);
+
+  const sensorFailureMessage =
+    motionDiagnostics.error ??
+    (motionDiagnostics.source === 'none'
+      ? "This device isn't reporting any motion data, so reps can't be counted."
+      : "The motion sensor stopped sending data, so reps aren't being counted.");
+
+  // One-line technical summary, shown under the warning so the cause is
+  // visible on the device itself instead of only in the logs.
+  const sensorDetailLine = [
+    `sensor: ${motionDiagnostics.source}`,
+    `${motionDiagnostics.sampleRateHz} Hz`,
+    motionDiagnostics.deviceMotionAvailable === false ? 'no device-motion' : null,
+    motionDiagnostics.accelerometerAvailable === false ? 'no accelerometer' : null,
+    motionDiagnostics.restartCount > 0 ? `${motionDiagnostics.restartCount} retries` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   // Handle auto-end from adaptive store (inactivity timeout)
   const autoEndHandled = React.useRef(false);
@@ -778,6 +843,7 @@ export default function TrackerScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         onScrollBeginDrag={closeDropdowns}
+        scrollEnabled={!exerciseDropdownOpen && !inclineDropdownOpen}
       >
         {/* Tap-catcher: closes an open dropdown on a tap anywhere else. Mounted
             only while a dropdown is open (so it never interferes with scrolling)
@@ -927,8 +993,44 @@ export default function TrackerScreen() {
           ) : null}
         </View>
 
+        {/* Motion sensor failure. Deliberately shown even when no set is
+            running, so the user finds out BEFORE doing a set that won't
+            count — and gets a one-tap escape to Voice counting. */}
+        {effectiveMode === 'motion' && showSensorFailure && (
+          <View className="mx-3 mt-3 bg-red-500/15 border border-red-500/40 rounded-lg py-3 px-4">
+            <View className="flex-row items-center">
+              <TriangleAlert size={16} color="#f87171" />
+              <Text className={`text-red-400 font-bold ml-2 flex-shrink ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+                Motion counting isn't working
+              </Text>
+            </View>
+            <Text className={`text-red-300/90 mt-1 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+              {sensorFailureMessage}
+            </Text>
+            <Text className="text-red-300/50 mt-1 text-xs">{sensorDetailLine}</Text>
+            <View className="flex-row mt-3">
+              <Pressable
+                onPress={() => { restartMotionSensor(); }}
+                hitSlop={8}
+                className="flex-row items-center bg-red-500/25 rounded-lg px-3 py-2 mr-2 active:opacity-70"
+              >
+                <RefreshCw size={14} color="#fca5a5" />
+                <Text className="text-red-200 font-semibold ml-1.5 text-sm">Retry sensor</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { setRepCountingMode('voice'); }}
+                hitSlop={8}
+                className="flex-row items-center bg-blue-500/25 rounded-lg px-3 py-2 active:opacity-70"
+              >
+                <Mic size={14} color="#93c5fd" />
+                <Text className="text-blue-200 font-semibold ml-1.5 text-sm">Use voice instead</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {/* Status Indicator */}
-        {isSetActive && effectiveMode === 'motion' && (
+        {isSetActive && effectiveMode === 'motion' && !showSensorFailure && (
           <View className="mx-3 mt-3">
             {isStabilizing ? (
               <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
@@ -948,6 +1050,11 @@ export default function TrackerScreen() {
                 <Text className={`text-green-500 font-medium ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
                   Counting reps
                 </Text>
+                {/* Name the sensor when we're on the fallback, so it's obvious
+                    which path is live if counting behaves differently. */}
+                {motionDiagnostics.source === 'accelerometer' && (
+                  <Text className="text-green-600/70 ml-2 text-xs">accelerometer</Text>
+                )}
               </View>
             )}
           </View>

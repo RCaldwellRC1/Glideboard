@@ -82,7 +82,7 @@ export const EXERCISE_GROUPS: ExerciseGroup[] = [
   },
 ];
 
-export const INCLINE_LEVELS = Array.from({ length: 15 }, (_, i) => i + 1);
+export const INCLINE_LEVELS = Array.from({ length: 16 }, (_, i) => i + 1);
 
 export interface WorkoutSet {
   exercise: string;

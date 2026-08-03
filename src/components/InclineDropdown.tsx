@@ -20,7 +20,7 @@ export function InclineDropdown({
   isLarge: boolean;
 }) {
   return (
-    <View className={isLarge ? 'w-28' : 'w-32'}>
+    <View className={isLarge ? 'w-28 relative' : 'w-32 relative'} style={{ zIndex: 50 }}>
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>INCLINE</Text>
       <Pressable
         onPress={onToggle}
@@ -35,8 +35,13 @@ export function InclineDropdown({
       </Pressable>
 
       {isOpen && (
-        <View className={`absolute left-0 right-0 bg-gray-900 rounded-lg z-50 max-h-64 overflow-hidden ${isLarge ? 'top-14' : 'top-16'}`}>
-          <ScrollView showsVerticalScrollIndicator={false} nestedScrollEnabled>
+        <View className={`absolute left-0 right-0 bg-gray-900 rounded-lg z-50 max-h-96 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}>
+          <ScrollView
+            showsVerticalScrollIndicator={true}
+            nestedScrollEnabled
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingVertical: 4 }}
+          >
             {INCLINE_LEVELS.map((level) => (
               <Pressable
                 key={level}

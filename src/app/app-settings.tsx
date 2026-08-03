@@ -2,9 +2,110 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio } from 'lucide-react-native';
 import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize } from '@/lib/settings';
 import { DEVICE_NAME } from '@/lib/storePlatform';
+import { useMotionContext } from '@/lib/motion';
+
+/**
+ * Live sensor readout. Motion counting silently does nothing on devices whose
+ * sensors aren't reporting, so this gives a definitive answer: shake the
+ * device and watch the reading move. If it doesn't move, the sensor is the
+ * problem, not the rep-counting thresholds.
+ */
+function MotionSensorStatusCard({ isLarge }: { isLarge: boolean }) {
+  const { motion, diagnostics, restart } = useMotionContext();
+  const { x, y, z } = motion.accelerationIncludingGravity;
+  const magnitude = Math.sqrt(x * x + y * y + z * z);
+
+  // Peak since the screen opened — a still device sits near 9.8, a shaken one
+  // spikes well past it, so this is the "did it see anything?" answer.
+  const [peak, setPeak] = React.useState(0);
+  useEffect(() => {
+    if (magnitude > peak) setPeak(magnitude);
+  }, [magnitude, peak]);
+
+  const sourceLabel =
+    diagnostics.source === 'device-motion'
+      ? 'Device motion'
+      : diagnostics.source === 'accelerometer'
+        ? 'Accelerometer (fallback)'
+        : 'None found';
+
+  const statusColor = diagnostics.isHealthy ? '#22c55e' : '#ef4444';
+  const statusLabel = diagnostics.isHealthy
+    ? 'Working'
+    : diagnostics.source === 'none'
+      ? 'Unavailable'
+      : 'No data';
+
+  // 20 m/s² is roughly a brisk shake — enough headroom that normal reps fill a
+  // visible part of the bar without pinning it.
+  const barPercent = Math.max(0, Math.min(100, (magnitude / 20) * 100));
+
+  return (
+    <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+      <View className="flex-row items-center mb-3">
+        <Radio size={isLarge ? 22 : 20} color="#f97316" />
+        <Text className={`text-gray-400 ml-2 ${isLarge ? 'text-lg' : 'text-base'}`}>Sensor Status</Text>
+      </View>
+
+      <View className="flex-row items-center justify-between py-2">
+        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Status</Text>
+        <View className="flex-row items-center">
+          <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: statusColor }} />
+          <Text className={`font-semibold ${isLarge ? 'text-base' : 'text-sm'}`} style={{ color: statusColor }}>
+            {statusLabel}
+          </Text>
+        </View>
+      </View>
+
+      <View className="flex-row items-center justify-between py-2">
+        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Sensor in use</Text>
+        <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>{sourceLabel}</Text>
+      </View>
+
+      <View className="flex-row items-center justify-between py-2">
+        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Update rate</Text>
+        <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>{diagnostics.sampleRateHz} Hz</Text>
+      </View>
+
+      <View className="py-2">
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Live movement</Text>
+          <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>
+            {magnitude.toFixed(1)} · peak {peak.toFixed(1)}
+          </Text>
+        </View>
+        <View className="h-2 bg-gray-800 rounded-full overflow-hidden">
+          <View
+            className="h-2 rounded-full"
+            style={{ width: `${barPercent}%`, backgroundColor: diagnostics.isHealthy ? '#f97316' : '#4b5563' }}
+          />
+        </View>
+        <Text className={`text-gray-500 mt-2 ${isLarge ? 'text-sm' : 'text-xs'}`}>
+          Shake your device — the bar should move. Resting flat reads about 9.8.
+        </Text>
+      </View>
+
+      {diagnostics.error && (
+        <View className="mt-2 bg-red-500/15 rounded-xl px-3 py-2">
+          <Text className={`text-red-400 ${isLarge ? 'text-sm' : 'text-xs'}`}>{diagnostics.error}</Text>
+        </View>
+      )}
+
+      <Pressable
+        onPress={() => { setPeak(0); restart(); }}
+        className="flex-row items-center justify-center mt-3 bg-gray-800 rounded-xl py-3 active:opacity-70"
+      >
+        <RefreshCw size={isLarge ? 18 : 16} color="#f97316" />
+        <Text className={`text-orange-500 font-semibold ml-2 ${isLarge ? 'text-base' : 'text-sm'}`}>
+          Restart sensor
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
 
 function NumberStepper({
   label,
@@ -197,6 +298,9 @@ export default function AppSettingsScreen() {
             </View>
           )}
         </View>
+
+        {/* Sensor Status - only meaningful while motion counting is selected */}
+        {repCountingMode === 'motion' && <MotionSensorStatusCard isLarge={largeDisplayMode} />}
 
         {/* Motion Settings - only show when motion mode is active */}
         {repCountingMode === 'motion' && (

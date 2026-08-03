@@ -30,12 +30,14 @@ function persistAdjustments(
   thresholds: Record<string, { factor: number }>,
   cooldowns: Record<string, { factor: number }>,
 ) {
-  AsyncStorage.setItem(
-    ADJUSTMENTS_STORAGE_KEY,
-    JSON.stringify({ thresholds, cooldowns }),
-  ).catch(err => {
-    console.error('[ADAPTIVE] Failed to save adjustments:', err);
-  });
+  const data = JSON.stringify({ thresholds, cooldowns });
+  AsyncStorage.setItem(ADJUSTMENTS_STORAGE_KEY, data)
+    .then(() => {
+      console.log('[ADAPTIVE] Successfully saved learned adjustments (thresholds/cooldowns)');
+    })
+    .catch(err => {
+      console.error('[ADAPTIVE] Failed to save adjustments:', err);
+    });
 }
 
 function getProfileKey(exerciseId: string, inclineLevel: number): string {
@@ -672,9 +674,13 @@ function updateProfileROM(state: AdaptiveRepState, set: (partial: Partial<Adapti
   const newProfiles = { ...state.profiles, [key]: newProfile };
   set({ profiles: newProfiles });
 
-  AsyncStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(newProfiles)).catch(err => {
-    console.error('[ADAPTIVE] Failed to save profiles:', err);
-  });
+  AsyncStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(newProfiles))
+    .then(() => {
+      console.log('[ADAPTIVE] Successfully saved learned profile for', exerciseId);
+    })
+    .catch(err => {
+      console.error('[ADAPTIVE] Failed to save profiles:', err);
+    });
 
   console.log('[ADAPTIVE] Profile updated. avgROM:', newProfile.avgROM.toFixed(2),
               'minPeak:', newProfile.minPeak.toFixed(2),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Platform, Image, Alert, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Camera, Check, User, Settings, ChevronRight, HelpCircle, Shield, CalendarClock, ImageIcon } from 'lucide-react-native';
+import { Check, User, Settings, ChevronRight, HelpCircle, Shield, CalendarClock, ImageIcon } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -43,7 +43,7 @@ async function persistProfilePhoto(sourceUri: string): Promise<string> {
     // stale photo after changing it.
     const dest = new File(dir, `avatar-${Date.now()}${extension}`);
     if (dest.exists) dest.delete();
-    source.copy(dest);
+    await source.copy(dest);
     return dest.uri;
   } catch (error) {
     console.error('Failed to persist profile photo:', error);
@@ -106,11 +106,13 @@ export default function ProfileScreen() {
 
   const loadProfile = async () => {
     try {
+      console.log('[PROFILE] Loading profile from storage...');
       // Admin section disabled — keep it locked regardless of any stored flag.
       await AsyncStorage.setItem('admin-unlocked', 'false');
       const data = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
+        console.log('[PROFILE] Successfully loaded:', parsed.screenName);
         setProfile(parsed);
         if (parsed.screenName) {
           setRemoteLogUser(parsed.screenName);
@@ -121,11 +123,12 @@ export default function ProfileScreen() {
           setIsEditing(true);
         }
       } else {
+        console.log('[PROFILE] No existing profile found');
         // No profile yet, show edit mode
         setIsEditing(true);
       }
     } catch (error) {
-      console.error('Failed to load profile:', error);
+      console.error('[PROFILE] Failed to load profile:', error);
       setIsEditing(true);
     }
     setIsLoaded(true);
@@ -137,13 +140,25 @@ export default function ProfileScreen() {
         ...profile,
         memberSince: profile.memberSince ?? new Date().toISOString(),
       };
-      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profileToSave));
+      console.log('[PROFILE] Saving profile...', profileToSave.screenName);
+      const jsonValue = JSON.stringify(profileToSave);
+      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, jsonValue);
+
+      // Verify immediately
+      const verified = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
+      if (verified === jsonValue) {
+        console.log('[PROFILE] Persistence verified successfully');
+      } else {
+        console.warn('[PROFILE] Verification failed - saved data mismatch');
+      }
+
       setProfile(profileToSave);
       setIsEditing(false);
       setRemoteLogUser(profileToSave.screenName);
       remoteLog('profile_saved', { name: profileToSave.name, screenName: profileToSave.screenName, gender: profileToSave.gender });
     } catch (error) {
-      console.error('Failed to save profile:', error);
+      console.error('[PROFILE] Failed to save profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
     }
   };
 
@@ -215,34 +230,11 @@ export default function ProfileScreen() {
     }
   };
 
-  const takePhoto = async () => {
-    // Request permission
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your camera to take a profile photo.');
-      return;
-    }
-
-    // Launch camera
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      const persistedUri = await persistProfilePhoto(result.assets[0].uri);
-      updatePhoto(persistedUri);
-    }
-  };
-
   const showPhotoOptions = () => {
     Alert.alert(
       'Profile Photo',
       'Choose an option',
       [
-        { text: 'Take Photo', onPress: takePhoto },
         { text: 'Choose from Library', onPress: pickImage },
         ...(profile.photoUri ? [{ text: 'Remove Photo', onPress: () => updatePhoto(null), style: 'destructive' as const }] : []),
         { text: 'Cancel', style: 'cancel' as const },
@@ -254,26 +246,9 @@ export default function ProfileScreen() {
   // first-time user (who lands in edit mode before any profile exists) can
   // subscribe right away — without having to discover the Start Workout
   // screen. Tapping opens /unlock, which offers subscribe and restore.
-  //
-  // Below the card, DEV BUILDS ONLY get a link to the screenshot preview of the
-  // paywall (/unlock?preview=1) — the full sales paywall scaled to fit one
-  // screen, ignoring current ownership, for capturing App Store screenshots.
-  // `__DEV__` is false in any release build, so this never ships to customers.
   const renderMembershipCard = () => (
     <>
       {renderMembershipCardBody()}
-      {__DEV__ && (
-        <Pressable
-          onPress={() => router.push('/unlock?preview=1')}
-          className="mx-4 mt-2 bg-gray-900/60 rounded-xl px-4 py-3 flex-row items-center border border-gray-800 active:opacity-80"
-        >
-          <ImageIcon size={16} color="#6b7280" />
-          <Text className="text-gray-400 text-xs ml-2 flex-1">
-            Paywall preview (for store screenshots)
-          </Text>
-          <ChevronRight size={16} color="#6b7280" />
-        </Pressable>
-      )}
     </>
   );
 
@@ -438,22 +413,41 @@ export default function ProfileScreen() {
     <KeyboardAvoidingView
       className="flex-1 bg-black"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ paddingTop: insets.top }}
     >
-    <ScrollView
-      className="flex-1 bg-black"
-      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 140 }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode="on-drag"
-    >
-      {/* Header */}
-      <View className="items-center mt-6">
-        <Text className={`text-white font-bold italic ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Edit Profile</Text>
-        <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>Update your information</Text>
+      {/* Top Header Bar - ensures user can always save/cancel without scrolling */}
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
+        <Pressable
+          onPress={() => {
+            loadProfile();
+            setIsEditing(false);
+          }}
+          hitSlop={12}
+          className="active:opacity-60 py-1 pr-4"
+        >
+          <Text className={`text-gray-400 font-medium ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Cancel</Text>
+        </Pressable>
+
+        <Text className={`text-white font-bold italic ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
+
+        <Pressable
+          onPress={saveProfile}
+          hitSlop={12}
+          className="active:opacity-60 py-1 pl-4"
+        >
+          <Text className={`text-orange-500 font-bold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Save</Text>
+        </Pressable>
       </View>
 
-      {/* Photo */}
-      <Pressable onPress={showPhotoOptions} className="items-center mt-6">
+      <ScrollView
+        className="flex-1 bg-black"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        {/* Photo */}
+        <Pressable onPress={showPhotoOptions} className="items-center mt-8">
         <View className={`rounded-full border-2 border-dashed border-orange-500 items-center justify-center overflow-hidden ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
           {profile.photoUri ? (
             <Image
@@ -462,7 +456,7 @@ export default function ProfileScreen() {
               resizeMode="cover"
             />
           ) : (
-            <Camera size={largeDisplayMode ? 32 : 40} color="#f97316" />
+            <ImageIcon size={largeDisplayMode ? 32 : 40} color="#f97316" />
           )}
         </View>
         <Text className={`text-orange-500 mt-3 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
@@ -555,11 +549,12 @@ export default function ProfileScreen() {
 
         {showDatePicker && (
           <DateTimePicker
-            value={profile.dateOfBirth ? new Date(profile.dateOfBirth) : new Date()}
+            value={profile.dateOfBirth ? new Date(profile.dateOfBirth) : new Date(2000, 0, 1)}
             mode="date"
             display="spinner"
             onChange={handleDateChange}
             maximumDate={new Date()}
+            minimumDate={new Date(1900, 0, 1)}
             themeVariant="dark"
           />
         )}
