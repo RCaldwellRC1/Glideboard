@@ -2,10 +2,12 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio } from 'lucide-react-native';
+import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio, ShieldCheck } from 'lucide-react-native';
 import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize } from '@/lib/settings';
 import { DEVICE_NAME } from '@/lib/storePlatform';
 import { useMotionContext } from '@/lib/motion';
+import { useRestoreSubscription, useUnlockState } from '@/lib/purchases';
+import { Alert } from 'react-native';
 
 /**
  * Live sensor readout. Motion counting silently does nothing on devices whose
@@ -162,9 +164,25 @@ export default function AppSettingsScreen() {
   const setPaceSettings = useSettingsStore(s => s.setPaceSettings);
   const loadSettings = useSettingsStore(s => s.loadFromStorage);
 
+  const { data: unlock } = useUnlockState();
+  const restore = useRestoreSubscription();
+
   useEffect(() => {
     loadSettings();
   }, []);
+
+  const handleRestore = async () => {
+    try {
+      const { restored } = await restore.mutateAsync();
+      if (restored) {
+        Alert.alert('Subscription Restored', 'Your access has been successfully restored.');
+      } else {
+        Alert.alert('Nothing to Restore', 'We could not find an active subscription for this account in the store.');
+      }
+    } catch (err) {
+      Alert.alert('Restore failed', err instanceof Error ? err.message : 'Please try again.');
+    }
+  };
 
   const updatePaceSetting = (key: keyof PaceSettings, value: number) => {
     setPaceSettings({ [key]: value });
@@ -295,6 +313,46 @@ export default function AppSettingsScreen() {
               <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
                 Auto-counting is on — the accelerometer counts reps automatically. Toggle Voice Counting above to switch.
               </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Subscription Section */}
+        <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+          <View className="flex-row items-center mb-3">
+            <ShieldCheck size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Subscription</Text>
+          </View>
+
+          <View className="flex-row items-center justify-between py-2">
+            <View className="flex-1 mr-4">
+              <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Restore Purchase</Text>
+              <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+                If you have an active subscription but it's not showing, tap below to refresh your status from the store.
+              </Text>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={handleRestore}
+            className="flex-row items-center justify-center mt-3 bg-gray-800 rounded-xl py-3 active:opacity-70"
+          >
+            {restore.isPending ? (
+              <ActivityIndicator color="#f97316" />
+            ) : (
+              <>
+                <RefreshCw size={largeDisplayMode ? 18 : 16} color="#f97316" />
+                <Text className={`text-orange-500 font-semibold ml-2 ${largeDisplayMode ? 'text-base' : 'text-sm'}`}>
+                  Restore Purchases
+                </Text>
+              </>
+            )}
+          </Pressable>
+
+          {unlock?.hasFullAccess && (
+            <View className="mt-3 flex-row items-center justify-center">
+              <Check size={16} color="#22c55e" />
+              <Text className="text-green-500 font-medium ml-1.5 text-sm">Active Subscription Found</Text>
             </View>
           )}
         </View>

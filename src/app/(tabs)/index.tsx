@@ -958,21 +958,25 @@ export default function TrackerScreen() {
         </View>
 
         {/* Dropdowns */}
-        <View className="flex-row px-3 mt-3 z-50">
-          <ExerciseDropdown
-            value={currentExercise}
-            onSelect={setExercise}
-            isOpen={exerciseDropdownOpen}
-            isLarge={largeDisplayMode}
-            customExercises={customExercises}
-            onAddCustom={addCustomExercise}
-            onRenameCustom={renameCustomExercise}
-            onOpenCoach={() => router.push('/coach')}
-            onToggle={() => {
-              setExerciseDropdownOpen(!exerciseDropdownOpen);
-              setInclineDropdownOpen(false);
-            }}
-          />
+        <View className="flex-row px-3 mt-3" style={{ zIndex: 1000, elevation: 10 }}>
+        <ExerciseDropdown
+          value={currentExercise}
+          onSelect={setExercise}
+          isOpen={exerciseDropdownOpen}
+          isLarge={largeDisplayMode}
+          customExercises={customExercises}
+          onAddCustom={addCustomExercise}
+          onRenameCustom={renameCustomExercise}
+          onOpenCoach={() => router.push('/coach')}
+          onToggle={() => {
+            setExerciseDropdownOpen(!exerciseDropdownOpen);
+            setInclineDropdownOpen(false);
+          }}
+          renderOverlay={(content) => (
+            /* We'll pass this content to be rendered at the root level */
+            null
+          )}
+        />
           {/* Free Style tracks WEIGHT (lbs) via a number pad; Timed holds show
               nothing (incline is irrelevant); everything else uses the incline
               picker. */}

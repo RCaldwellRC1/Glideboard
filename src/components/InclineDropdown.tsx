@@ -20,7 +20,7 @@ export function InclineDropdown({
   isLarge: boolean;
 }) {
   return (
-    <View className={isLarge ? 'w-28 relative' : 'w-32 relative'} style={{ zIndex: 50 }}>
+    <View className={isLarge ? 'w-28 relative' : 'w-32 relative'} style={{ zIndex: 1000, elevation: 10 }}>
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>INCLINE</Text>
       <Pressable
         onPress={onToggle}

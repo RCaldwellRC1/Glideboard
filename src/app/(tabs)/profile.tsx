@@ -9,7 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { File, Directory, Paths } from 'expo-file-system';
 import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { remoteLog, setRemoteLogUser } from '@/lib/remoteLog';
-import { useUnlockState } from '@/lib/purchases';
+import { useUnlockState, useRestoreSubscription } from '@/lib/purchases';
 import { STORE_SETTINGS } from '@/lib/storePlatform';
 
 interface UserProfile {
@@ -86,6 +86,7 @@ export default function ProfileScreen() {
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   useTextScaleSubscription(); // re-render when global text size changes
   const { data: unlock } = useUnlockState();
+  const restore = useRestoreSubscription();
   const [profile, setProfile] = useState<UserProfile>({
     name: '',
     screenName: '',
@@ -242,10 +243,20 @@ export default function ProfileScreen() {
     );
   };
 
-  // Membership card. Shown in BOTH the profile view and the edit form so a
-  // first-time user (who lands in edit mode before any profile exists) can
-  // subscribe right away — without having to discover the Start Workout
-  // screen. Tapping opens /unlock, which offers subscribe and restore.
+  const handleRestore = async () => {
+    try {
+      const { restored } = await restore.mutateAsync();
+      if (restored) {
+        Alert.alert('Subscription Restored', 'Your access has been successfully restored.');
+      } else {
+        Alert.alert('Nothing to Restore', 'We could not find an active subscription for this account.');
+      }
+    } catch (err) {
+      Alert.alert('Restore failed', err instanceof Error ? err.message : 'Please try again.');
+    }
+  };
+
+  // Membership card.
   const renderMembershipCard = () => (
     <>
       {renderMembershipCardBody()}
@@ -276,23 +287,34 @@ export default function ProfileScreen() {
       );
     }
     return (
-      <Pressable
-        onPress={() => router.push('/unlock')}
-        className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between border border-orange-500/40 active:opacity-80"
-      >
-        <View className="flex-row items-center flex-1">
-          <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
-          <View className="ml-3 flex-1">
-            <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-semibold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
-              Start Subscription
-            </Text>
-            <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
-              Full access · from $1.19/mo
-            </Text>
+      <View className="mx-4 mt-4">
+        <Pressable
+          onPress={() => router.push('/unlock')}
+          className="bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between border border-orange-500/40 active:opacity-80"
+        >
+          <View className="flex-row items-center flex-1">
+            <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
+            <View className="ml-3 flex-1">
+              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-semibold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
+                Start Subscription
+              </Text>
+              <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+                Full access · from $1.19/mo
+              </Text>
+            </View>
           </View>
-        </View>
-        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
-      </Pressable>
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+        </Pressable>
+
+        <Pressable
+          onPress={handleRestore}
+          className="mt-2 py-1 items-center active:opacity-60"
+        >
+          <Text className={`text-gray-500 font-medium underline ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+            Already a member? Restore purchase
+          </Text>
+        </Pressable>
+      </View>
     );
   };
 
