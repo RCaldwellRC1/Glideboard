@@ -252,13 +252,17 @@ function ExerciseDropdown({
       </Pressable>
 
       {isOpen && (
-        <View className={`absolute left-0 right-0 bg-gray-900 rounded-xl z-50 overflow-hidden shadow-lg shadow-black/50 ${activeGroup === null ? 'max-h-[520px]' : 'max-h-96'} ${isLarge ? 'top-14' : 'top-16'}`}>
+        <View
+          className={`absolute left-0 right-0 bg-gray-900 rounded-xl z-50 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}
+          style={{ elevation: 5 }}
+        >
           <ScrollView
             showsVerticalScrollIndicator={true}
+            persistentScrollbar={true}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingVertical: 6 }}
-            style={{ flex: 1 }}
+            style={{ maxHeight: activeGroup === null ? 520 : 384 }}
           >
             {activeGroup === null ? (
               // Level 1: sections. Body sections (orange), then the custom

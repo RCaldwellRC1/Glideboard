@@ -35,14 +35,17 @@ export function InclineDropdown({
       </Pressable>
 
       {isOpen && (
-        <View className={`absolute left-0 right-0 bg-gray-900 rounded-lg z-50 max-h-96 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}>
+        <View
+          className={`absolute left-0 right-0 bg-gray-900 rounded-lg z-50 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}
+          style={{ elevation: 5 }}
+        >
           <ScrollView
             showsVerticalScrollIndicator={true}
             persistentScrollbar={true}
             nestedScrollEnabled
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingVertical: 4 }}
-            className="flex-1"
+            style={{ maxHeight: 384 }}
           >
             {INCLINE_LEVELS.map((level) => (
               <Pressable
