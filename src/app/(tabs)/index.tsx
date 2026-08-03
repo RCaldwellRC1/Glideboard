@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, Keyboard } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, Keyboard, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X } from 'lucide-react-native';
 import {
   useWorkoutStore,
   EXERCISE_GROUPS,
@@ -237,7 +237,7 @@ function ExerciseDropdown({
   const customCats = DROPDOWN_SECTIONS.filter(g => g.color !== '#f97316');
 
   return (
-    <View className="flex-1 mr-2 relative" style={{ zIndex: 50 }}>
+    <View className="flex-1 mr-2 relative">
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
       <Pressable
         onPress={onToggle}
@@ -251,137 +251,146 @@ function ExerciseDropdown({
         )}
       </Pressable>
 
-      {isOpen && (
-        <View
-          className={`absolute left-0 right-0 bg-gray-900 rounded-xl z-50 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}
-          style={{ elevation: 5 }}
+      <Modal
+        visible={isOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onToggle}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 items-center justify-center p-6"
+          onPress={onToggle}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={true}
-            persistentScrollbar={true}
-            nestedScrollEnabled
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingVertical: 6 }}
-            style={{ maxHeight: activeGroup === null ? 520 : 384 }}
+          <View
+            className="bg-gray-900 rounded-3xl w-full max-w-lg overflow-hidden border border-gray-800"
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
           >
-            {activeGroup === null ? (
-              // Level 1: sections. Body sections (orange), then the custom
-              // categories Free Style (green) & Timed (purple).
-              <>
-                {bodyGroups.map((group) => (
-                  <Pressable
-                    key={group.name}
-                    onPress={() => setExpandedGroup(group.name)}
-                    className={`mx-2 px-3 rounded-lg flex-row items-center justify-between ${isLarge ? 'py-2' : 'py-2.5'} active:bg-gray-800`}
-                  >
-                    <Text className={`font-bold ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: group.color }}>
-                      {group.name}
-                    </Text>
-                    <ChevronRight size={isLarge ? 18 : 20} color={group.color} />
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-800">
+              <View className="flex-row items-center">
+                {expandedGroup !== null && (
+                  <Pressable onPress={() => setExpandedGroup(null)} hitSlop={12} className="mr-3">
+                    <ChevronLeft size={24} color="#f97316" />
                   </Pressable>
-                ))}
+                )}
+                <Text className="text-white font-bold text-xl">
+                  {expandedGroup === null ? 'Select Category' : expandedGroup}
+                </Text>
+              </View>
+              <Pressable onPress={onToggle} hitSlop={12}>
+                <X size={24} color="#6b7280" />
+              </Pressable>
+            </View>
 
-                {/* Custom categories — visually set apart with a divider. */}
-                <View className="mt-1.5 mx-2 border-t border-gray-800" />
-                {customCats.map((group) => (
-                  <Pressable
-                    key={group.name}
-                    onPress={() => setExpandedGroup(group.name)}
-                    className={`mx-2 px-3 rounded-lg flex-row items-center justify-between ${isLarge ? 'py-2' : 'py-2.5'} active:bg-gray-800`}
-                  >
-                    <Text className={`font-bold ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: group.color }}>
-                      {group.name}
-                    </Text>
-                    <ChevronRight size={isLarge ? 18 : 20} color={group.color} />
-                  </Pressable>
-                ))}
-
-                {/* Separate expandable entry: Coach's Routines (guided programs). */}
-                <View className="mt-1.5 mx-2 border-t border-gray-800" />
-                <Pressable
-                  onPress={() => {
-                    onToggle();
-                    onOpenCoach();
-                  }}
-                  className={`mt-1.5 mb-1 mx-2 px-3 rounded-lg flex-row items-center justify-between ${isLarge ? 'py-2.5' : 'py-3'} active:bg-gray-800`}
-                >
-                  <View className="flex-row items-center flex-1 mr-2">
-                    <ClipboardList size={isLarge ? 18 : 20} color="#22c55e" />
-                    <Text numberOfLines={1} className={`text-green-500 font-bold ml-2 ${isLarge ? 'text-base' : 'text-lg'}`}>
-                      Coach's Routines
-                    </Text>
-                  </View>
-                  <ChevronRight size={isLarge ? 18 : 20} color="#22c55e" />
-                </Pressable>
-              </>
-            ) : (
-              // Level 2: exercises within the chosen section.
-              <>
-                <Pressable
-                  onPress={() => setExpandedGroup(null)}
-                  className={`px-3 flex-row items-center ${isLarge ? 'py-2.5' : 'py-3'} border-b border-gray-800`}
-                >
-                  <ChevronLeft size={isLarge ? 18 : 20} color={activeGroup.color} />
-                  <Text className={`font-bold ml-1 ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: activeGroup.color }}>
-                    {activeGroup.name}
-                  </Text>
-                </Pressable>
-
-                {activeGroup.exercises.map((exercise) => (
-                  <Pressable
-                    key={exercise}
-                    onPress={() => {
-                      onSelect(exercise);
-                      onToggle();
-                    }}
-                    className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} ${value === exercise ? 'bg-gray-800' : ''}`}
-                  >
-                    <Text
-                      className={`${isLarge ? 'text-base' : 'text-lg'} ${
-                        value === exercise ? 'text-orange-500' : 'text-white'
-                      }`}
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              persistentScrollbar={true}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingVertical: 12 }}
+              style={{ maxHeight: 500 }}
+            >
+              {activeGroup === null ? (
+                <>
+                  {bodyGroups.map((group) => (
+                    <Pressable
+                      key={group.name}
+                      onPress={() => setExpandedGroup(group.name)}
+                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
                     >
-                      {exercise}
-                    </Text>
-                  </Pressable>
-                ))}
+                      <Text className="text-xl font-bold" style={{ color: group.color }}>
+                        {group.name}
+                      </Text>
+                      <ChevronRight size={22} color={group.color} />
+                    </Pressable>
+                  ))}
 
-                {/* Empty-state hint for the custom categories before anything
-                    has been added, so the section doesn't look broken. */}
-                {isCustomCategory && groupCustom.length === 0 ? (
-                  <Text className={`px-4 py-2 italic text-gray-500 ${isLarge ? 'text-sm' : 'text-sm'}`}>
-                    {expandedGroup === TIMED_GROUP
-                      ? 'Add a hold like “Plank” or “Wall Sit”.'
-                      : 'Add your own lift or calisthenic move.'}
-                  </Text>
-                ) : null}
+                  <View className="my-2 mx-6 border-t border-gray-800" />
 
-                {/* User-created exercises in the section's color. Tap to select,
-                    press & hold to rename. */}
-                {groupCustom.map((exercise) => (
-                  <CustomExerciseRow
-                    key={exercise}
-                    exercise={exercise}
-                    group={activeGroup.name}
-                    selected={value === exercise}
-                    onSelect={(ex) => {
-                      onSelect(ex);
+                  {customCats.map((group) => (
+                    <Pressable
+                      key={group.name}
+                      onPress={() => setExpandedGroup(group.name)}
+                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
+                    >
+                      <Text className="text-xl font-bold" style={{ color: group.color }}>
+                        {group.name}
+                      </Text>
+                      <ChevronRight size={22} color={group.color} />
+                    </Pressable>
+                  ))}
+
+                  <View className="my-2 mx-6 border-t border-gray-800" />
+
+                  <Pressable
+                    onPress={() => {
                       onToggle();
+                      onOpenCoach();
                     }}
-                    onRename={onRenameCustom}
-                    isLarge={isLarge}
-                    color={activeGroup.color}
-                  />
-                ))}
+                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800"
+                  >
+                    <View className="flex-row items-center flex-1 mr-2">
+                      <ClipboardList size={22} color="#22c55e" />
+                      <Text numberOfLines={1} className="text-green-500 font-bold ml-3 text-xl">
+                        Coach's Routines
+                      </Text>
+                    </View>
+                    <ChevronRight size={22} color="#22c55e" />
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  {activeGroup.exercises.map((exercise) => (
+                    <Pressable
+                      key={exercise}
+                      onPress={() => {
+                        onSelect(exercise);
+                        onToggle();
+                      }}
+                      className={`px-8 py-4 ${value === exercise ? 'bg-orange-500/10' : ''}`}
+                    >
+                      <Text
+                        className={`text-xl ${
+                          value === exercise ? 'text-orange-500 font-bold' : 'text-white font-medium'
+                        }`}
+                      >
+                        {exercise}
+                      </Text>
+                    </Pressable>
+                  ))}
 
-                {/* Slots to add your own exercise to this section. */}
-                <AddExerciseSlot group={activeGroup.name} onAdd={onAddCustom} isLarge={isLarge} color={activeGroup.color} />
-                <AddExerciseSlot group={activeGroup.name} onAdd={onAddCustom} isLarge={isLarge} color={activeGroup.color} />
-              </>
-            )}
-          </ScrollView>
-        </View>
-      )}
+                  {isCustomCategory && groupCustom.length === 0 ? (
+                    <Text className="px-8 py-4 italic text-gray-500 text-base">
+                      {expandedGroup === TIMED_GROUP
+                        ? 'Add a hold like “Plank” or “Wall Sit”.'
+                        : 'Add your own lift or calisthenic move.'}
+                    </Text>
+                  ) : null}
+
+                  {groupCustom.map((exercise) => (
+                    <CustomExerciseRow
+                      key={exercise}
+                      exercise={exercise}
+                      group={activeGroup.name}
+                      selected={value === exercise}
+                      onSelect={(ex) => {
+                        onSelect(ex);
+                        onToggle();
+                      }}
+                      onRename={onRenameCustom}
+                      isLarge={isLarge}
+                      color={activeGroup.color}
+                    />
+                  ))}
+
+                  <View className="mt-2">
+                    <AddExerciseSlot group={activeGroup.name} onAdd={onAddCustom} isLarge={isLarge} color={activeGroup.color} />
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -958,25 +967,21 @@ export default function TrackerScreen() {
         </View>
 
         {/* Dropdowns */}
-        <View className="flex-row px-3 mt-3" style={{ zIndex: 1000, elevation: 10 }}>
-        <ExerciseDropdown
-          value={currentExercise}
-          onSelect={setExercise}
-          isOpen={exerciseDropdownOpen}
-          isLarge={largeDisplayMode}
-          customExercises={customExercises}
-          onAddCustom={addCustomExercise}
-          onRenameCustom={renameCustomExercise}
-          onOpenCoach={() => router.push('/coach')}
-          onToggle={() => {
-            setExerciseDropdownOpen(!exerciseDropdownOpen);
-            setInclineDropdownOpen(false);
-          }}
-          renderOverlay={(content) => (
-            /* We'll pass this content to be rendered at the root level */
-            null
-          )}
-        />
+        <View className="flex-row px-3 mt-3">
+          <ExerciseDropdown
+            value={currentExercise}
+            onSelect={setExercise}
+            isOpen={exerciseDropdownOpen}
+            isLarge={largeDisplayMode}
+            customExercises={customExercises}
+            onAddCustom={addCustomExercise}
+            onRenameCustom={renameCustomExercise}
+            onOpenCoach={() => router.push('/coach')}
+            onToggle={() => {
+              setExerciseDropdownOpen(!exerciseDropdownOpen);
+              setInclineDropdownOpen(false);
+            }}
+          />
           {/* Free Style tracks WEIGHT (lbs) via a number pad; Timed holds show
               nothing (incline is irrelevant); everything else uses the incline
               picker. */}

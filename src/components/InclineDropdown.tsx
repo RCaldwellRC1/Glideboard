@@ -1,11 +1,9 @@
 import React from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { ChevronDown, ChevronUp } from 'lucide-react-native';
+import { View, Text, Pressable, ScrollView, Modal } from 'react-native';
+import { ChevronDown, ChevronUp, X } from 'lucide-react-native';
 import { INCLINE_LEVELS } from '@/lib/workout';
 
-// Incline-level picker shared by the Tracker and the Coach Routine runner. The
-// open/closed state is controlled by the parent so it can coordinate with other
-// dropdowns on the screen.
+// Incline-level picker shared by the Tracker and the Coach Routine runner.
 export function InclineDropdown({
   value,
   onSelect,
@@ -20,7 +18,7 @@ export function InclineDropdown({
   isLarge: boolean;
 }) {
   return (
-    <View className={isLarge ? 'w-28 relative' : 'w-32 relative'} style={{ zIndex: 1000, elevation: 10 }}>
+    <View className={isLarge ? 'w-28 relative' : 'w-32 relative'}>
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>INCLINE</Text>
       <Pressable
         onPress={onToggle}
@@ -34,40 +32,56 @@ export function InclineDropdown({
         )}
       </Pressable>
 
-      {isOpen && (
-        <View
-          className={`absolute left-0 right-0 bg-gray-900 rounded-lg z-50 overflow-hidden shadow-lg shadow-black/50 ${isLarge ? 'top-14' : 'top-16'}`}
-          style={{ elevation: 5 }}
+      <Modal
+        visible={isOpen}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={onToggle}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 items-center justify-center p-6"
+          onPress={onToggle}
         >
-          <ScrollView
-            showsVerticalScrollIndicator={true}
-            persistentScrollbar={true}
-            nestedScrollEnabled
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingVertical: 4 }}
-            style={{ maxHeight: 384 }}
+          <View
+            className="bg-gray-900 rounded-3xl w-full max-w-sm overflow-hidden border border-gray-800"
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
           >
-            {INCLINE_LEVELS.map((level) => (
-              <Pressable
-                key={level}
-                onPress={() => {
-                  onSelect(level);
-                  onToggle();
-                }}
-                className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} ${value === level ? 'bg-gray-800' : ''}`}
-              >
-                <Text
-                  className={`${isLarge ? 'text-base' : 'text-lg'} ${
-                    value === level ? 'text-orange-500' : 'text-white'
-                  }`}
-                >
-                  LEVEL {level}
-                </Text>
+            <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-800">
+              <Text className="text-white font-bold text-xl">Select Incline</Text>
+              <Pressable onPress={onToggle} hitSlop={12}>
+                <X size={24} color="#6b7280" />
               </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      )}
+            </View>
+
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              persistentScrollbar={true}
+              contentContainerStyle={{ paddingVertical: 12 }}
+              style={{ maxHeight: 400 }}
+            >
+              {INCLINE_LEVELS.map((level) => (
+                <Pressable
+                  key={level}
+                  onPress={() => {
+                    onSelect(level);
+                    onToggle();
+                  }}
+                  className={`px-8 py-4 ${value === level ? 'bg-orange-500/10' : ''}`}
+                >
+                  <Text
+                    className={`text-xl font-medium ${
+                      value === level ? 'text-orange-500' : 'text-white'
+                    }`}
+                  >
+                    Level {level}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

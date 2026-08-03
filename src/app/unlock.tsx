@@ -169,6 +169,26 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
         Everything unlocked. Choose the plan that fits — renews automatically, cancel anytime.
       </Text>
 
+      {/* Restore — ALWAYS available (only hidden in the compact screenshot
+          preview). Apple requires a Restore Purchases action to be reachable at
+          all times, regardless of current access state. */}
+      {!previewMode && (
+        <Pressable
+          onPress={handleRestore}
+          disabled={busy}
+          className="mt-6 bg-gray-900 border border-gray-800 rounded-2xl p-4 flex-row items-center justify-center active:opacity-70"
+        >
+          {restore.isPending ? (
+            <ActivityIndicator color="#f97316" />
+          ) : (
+            <>
+              <RefreshCw size={18} color="#f97316" />
+              <Text className="text-white font-semibold text-lg ml-2">Restore Previous Purchase</Text>
+            </>
+          )}
+        </Pressable>
+      )}
+
       {/* Current access status. A paid subscriber sees the "active" card and no
           buy option. */}
       {hasPaidSubscription && (
@@ -271,22 +291,6 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
             <Text numberOfLines={1} adjustsFontSizeToFit className="text-white font-bold text-lg">
               Start Subscription
             </Text>
-          )}
-        </Pressable>
-      )}
-
-      {/* Restore — ALWAYS available (only hidden in the compact screenshot
-          preview). Apple requires a Restore Purchases action to be reachable at
-          all times, regardless of current access state. */}
-      {!previewMode && (
-        <Pressable onPress={handleRestore} disabled={busy} className="mt-4 flex-row items-center justify-center py-2">
-          {restore.isPending ? (
-            <ActivityIndicator color="#9ca3af" />
-          ) : (
-            <>
-              <RefreshCw size={15} color="#9ca3af" />
-              <Text className="text-gray-400 text-base ml-2">Restore purchase</Text>
-            </>
           )}
         </Pressable>
       )}
