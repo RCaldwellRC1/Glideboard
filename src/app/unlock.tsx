@@ -309,7 +309,7 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
           </Pressable>
         </View>
       )}
-    </>
+    </View>
   );
 
   // Preview: full-screen, no scroll, scaled to fit so the whole paywall lands in
