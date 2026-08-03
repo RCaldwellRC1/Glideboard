@@ -840,9 +840,8 @@ export default function TrackerScreen() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingTop: insets.top + 4, paddingBottom: insets.bottom + 100 }}
-        showsVerticalScrollIndicator={false}
+        showsVerticalScrollIndicator={true}
         keyboardShouldPersistTaps="handled"
-        onScrollBeginDrag={closeDropdowns}
         scrollEnabled={!exerciseDropdownOpen && !inclineDropdownOpen}
       >
         {/* Tap-catcher: closes an open dropdown on a tap anywhere else. Mounted
