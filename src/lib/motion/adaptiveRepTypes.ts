@@ -60,8 +60,8 @@ export const ADAPTIVE_REP_CONSTANTS = {
 
   // ROM learning
   INITIAL_ROM_CONFIDENCE: 0.5,
-  ROM_LEARNING_REPS: 3,                 // Learn from first 3 reps
-  ROM_UPDATE_WEIGHT: 0.1,               // Blend factor for new ROM
+  ROM_LEARNING_REPS: 5,                 // Learn from first 5 reps
+  ROM_UPDATE_WEIGHT: 0.3,               // Blend faster (3x) for quicker tablet adaptation
   ROM_MARGIN: 0.85,                     // effective_ROM = avg_ROM * 0.85
 
   // Rep thresholds (as fraction of effective ROM)

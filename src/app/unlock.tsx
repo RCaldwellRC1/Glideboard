@@ -48,29 +48,18 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
   // Which plan the user has selected. Defaults to the annual (best-value) plan.
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('annual');
 
-  // Fit-to-screen state for preview: measure the available height and the
-  // paywall's natural height, then scale (uniformly — never stretched) so the
-  // whole paywall always lands inside one screen with nothing clipped. The 0.97
-  // safety factor guards against sub-pixel rounding that could shave an edge.
+  // Measure content for preview scaling
   const [availH, setAvailH] = useState(0);
   const [contentH, setContentH] = useState(0);
   const fitScale =
     previewMode && availH > 0 && contentH > 0 ? Math.min(1, (availH / contentH) * 0.97) : 1;
 
-  // --- Funnel analytics -----------------------------------------------------
-  // Log a paywall view exactly once when a real (non-preview) user reaches this
-  // screen. Combined with `subscribe_tapped` below and the rc_purchase_* events
-  // from lib/purchases.ts, this reconstructs the full drop-off funnel:
-  //   paywall_viewed → subscribe_tapped → rc_offerings → purchase result/cancel/error
   useEffect(() => {
     if (preview) {
-      // Logged so we can confirm from the LOGS tab that the screenshot preview
-      // actually opened (rather than the ordinary paywall).
       remoteLog('paywall_preview_opened', {});
       return;
     }
     remoteLog('paywall_viewed', { storeConfigured: isStoreConfigured });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preview]);
 
   const close = () => {
@@ -78,9 +67,6 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
     else router.replace('/(tabs)/profile');
   };
 
-  // Closing via the X / back gesture. Logged separately from `close` (which is
-  // also called right after a successful purchase) so a dismissal here means
-  // "saw the paywall but left without buying" — the key top-of-funnel drop-off.
   const dismiss = () => {
     if (!previewMode) remoteLog('paywall_dismissed', {});
     close();
@@ -88,13 +74,12 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
 
   const handleSubscribe = async () => {
     if (previewMode) {
-      Alert.alert('Preview only', 'This is a preview of the paywall for your store screenshot. No purchase is made here.');
+      Alert.alert('Preview only', 'No purchase is made here.');
       return;
     }
     remoteLog('subscribe_tapped', { plan: selectedPlan });
     try {
       const { purchased } = await subscribe.mutateAsync(selectedPlan);
-      // The user cancelled the store's purchase sheet — quietly do nothing.
       if (!purchased) return;
       const priceLine =
         selectedPlan === 'monthly'
@@ -111,10 +96,7 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
   };
 
   const handleRestore = async () => {
-    if (previewMode) {
-      Alert.alert('Preview only', 'This is a preview of the paywall for your store screenshot.');
-      return;
-    }
+    if (previewMode) return;
     try {
       const { restored } = await restore.mutateAsync();
       if (restored) {
@@ -129,18 +111,32 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
 
   const subscriptionActive = state?.subscriptionActive ?? false;
   const busy = subscribe.isPending || restore.isPending;
-
-  // Only a real, active PAID subscription removes the "buy" option. In preview
-  // mode we always render the full sales paywall so a screenshot can be captured.
   const hasPaidSubscription = !previewMode && subscriptionActive;
-  // Show the benefits / price / subscribe button whenever there's no active paid
-  // subscription (i.e. always, except for an existing paid subscriber).
   const showSales = !hasPaidSubscription;
 
-  // The paywall content — shared between normal (scrollable) and preview
-  // (fit-to-screen) layouts.
   const body = (
-    <>
+    <View className="w-full">
+      {/* Restore Bar — VERY TOP for returning users */}
+      {!previewMode && showSales && (
+        <Pressable
+          onPress={handleRestore}
+          disabled={busy}
+          className="bg-orange-500 border border-orange-600 rounded-2xl p-5 flex-row items-center justify-center mb-6 active:opacity-70 shadow-lg shadow-orange-900/40"
+        >
+          {restore.isPending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <RefreshCw size={22} color="#fff" />
+              <View className="ml-3">
+                <Text className="text-white font-bold text-lg">Already a member?</Text>
+                <Text className="text-white/90 text-sm font-medium">Restore Previous Purchase</Text>
+              </View>
+            </>
+          )}
+        </Pressable>
+      )}
+
       {/* Crest */}
       <View className={`items-center ${previewMode ? '-mt-2' : 'mt-2'}`}>
         <View
@@ -168,26 +164,6 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
       <Text className={`text-gray-400 text-center leading-5 ${previewMode ? 'text-sm mt-1.5' : 'text-base mt-2'}`}>
         Everything unlocked. Choose the plan that fits — renews automatically, cancel anytime.
       </Text>
-
-      {/* Restore — ALWAYS available (only hidden in the compact screenshot
-          preview). Apple requires a Restore Purchases action to be reachable at
-          all times, regardless of current access state. */}
-      {!previewMode && (
-        <Pressable
-          onPress={handleRestore}
-          disabled={busy}
-          className="mt-6 bg-gray-900 border border-gray-800 rounded-2xl p-4 flex-row items-center justify-center active:opacity-70"
-        >
-          {restore.isPending ? (
-            <ActivityIndicator color="#f97316" />
-          ) : (
-            <>
-              <RefreshCw size={18} color="#f97316" />
-              <Text className="text-white font-semibold text-lg ml-2">Restore Previous Purchase</Text>
-            </>
-          )}
-        </Pressable>
-      )}
 
       {/* Current access status. A paid subscriber sees the "active" card and no
           buy option. */}

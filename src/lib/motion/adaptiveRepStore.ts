@@ -140,8 +140,8 @@ interface AdaptiveRepState {
 }
 
 // Constants for rep detection
-const MIN_PEAK_FOR_REP = 0.15; // Lower to catch reps with short range of motion
-const SMOOTHING_WINDOW = 5; // Smaller window = less lag, more responsive to actual peaks
+const MIN_PEAK_FOR_REP = 0.10; // Lower to catch reps with short range of motion
+const SMOOTHING_WINDOW = 10; // Filter out more noise on tablet accelerometers
 
 // Returns `value` only if it is a usable finite number, otherwise `fallback`.
 // IMPORTANT: `??` does NOT catch NaN, so a corrupted profile value (NaN) would
@@ -352,10 +352,10 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     // Apply sensitivity multiplier (0.6=high/fast, 1.0=medium, 1.5=low/slow)
     const sens = state._sensitivityMultiplier;
     const triggerThreshold = state.isLearningROM
-      ? 0.20 * sens
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens, 0.15);
+      ? 0.10 * sens
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens, 0.10);
 
-    const returnThreshold = 0.15; // More forgiving — smoothed signal rarely drops to 0.10 between reps
+    const returnThreshold = 0.10; // More forgiving
 
     // Track peak deviation
     if (deviation > state.peakDeviation) {

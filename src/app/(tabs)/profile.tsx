@@ -220,14 +220,26 @@ export default function ProfileScreen() {
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: false,
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
-      const persistedUri = await persistProfilePhoto(result.assets[0].uri);
-      updatePhoto(persistedUri);
+      const selectedUri = result.assets[0].uri;
+      Alert.alert(
+        'Save Profile Photo?',
+        'Would you like to save this image as your profile picture?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: async () => {
+              const persistedUri = await persistProfilePhoto(selectedUri);
+              updatePhoto(persistedUri);
+            }
+          },
+        ]
+      );
     }
   };
 
