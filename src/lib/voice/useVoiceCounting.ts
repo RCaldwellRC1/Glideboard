@@ -26,20 +26,12 @@ const MIN_CHUNK_MS = 300;          // Don't transcribe clips shorter than 300ms
 const METERING_POLL_MS = 80;       // Check audio level every 80ms
 const MAX_START_FAILURES = 4;      // Give up (with a message) after this many failed prepares
 
-// Largest jump we'll trust from a single transcription chunk. Whisper commonly
-// mishears the "-teen" numbers as their "-ty" counterparts (thirteen→thirty,
-// fourteen→forty, fifteen→fifty). Because we count UP to whatever number we
-// hear, an unguarded "30" when you meant "13" would back-fill 13→30 — a huge
-// over-count in one breath. Reps are spoken every couple seconds and chunks are
-// ~1.5s, so you can realistically only miss one or two numbers between chunks;
-// anything bigger is almost certainly a mis-hear, so we advance by just one.
-const MAX_REP_JUMP = 3;
+// Large jump we'll trust from a single transcription chunk.
+// Increased from 3 to 6 to ensure the counter catches up quickly if a few
+// reps are missed in a row.
+const MAX_REP_JUMP = 6;
 
-// Phrases Whisper hallucinates over breathing/grunting/silence. These never
-// contain a real rep count, so we drop them before number extraction to cut
-// noise (and avoid a stray digit inside one being miscounted). We saw several of
-// these pollute a real workout — subtitle/credit lines like
-// "Subs by www.zeoranger.co.uk" — so URL/credit markers are included too.
+// Phrases Whisper hallucinates over breathing/grunting/silence.
 const HALLUCINATION_PHRASES = [
   'thanks for watching',
   'thank you for watching',
@@ -56,6 +48,11 @@ const HALLUCINATION_PHRASES = [
   '.org',
   '.net',
   '.co.uk',
+  'you',
+  'bye',
+  'thank you',
+  'pfft',
+  'so',
 ];
 
 // Standalone number-homophones. Whisper often returns a single mis-heard token

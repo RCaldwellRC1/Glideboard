@@ -51,6 +51,7 @@ export async function ensureDeviceId(): Promise<string> {
 }
 
 export function remoteLog(event: string, data?: Record<string, unknown>) {
+  console.log(`[REMOTE_LOG] ${event}:`, JSON.stringify(data ?? {}));
   if (!BACKEND_URL) return;
   fetch(`${BACKEND_URL}/api/logs`, {
     method: 'POST',
