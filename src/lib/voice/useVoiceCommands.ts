@@ -31,8 +31,8 @@ import {
 // starts next always releases the previous recorder — from either hook — before
 // preparing, instead of racing it and wedging (or crashing) the audio session.
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const TRANSCRIBE_URL = `${BACKEND_URL}/api/transcribe`;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
+const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 
 // Voice activity detection thresholds (dBFS) — same values proven out in
 // useVoiceCounting for reliably catching short, barked utterances.
@@ -115,11 +115,19 @@ export function useVoiceCommands(
   onCommandRef.current = onCommand;
 
   const transcribe = useCallback(async (uri: string) => {
-    if (!BACKEND_URL) return;
+    if (!OPENAI_API_KEY) return;
     try {
       const fd = new FormData();
       fd.append('file', { uri, name: 'command.m4a', type: 'audio/mp4' } as unknown as Blob);
-      const res = await fetch(TRANSCRIBE_URL, { method: 'POST', body: fd });
+      fd.append('model', 'whisper-1');
+      fd.append('language', 'en');
+      const res = await fetch(TRANSCRIBE_URL, {
+        method: 'POST',
+        body: fd,
+        headers: {
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        }
+      });
       if (!res.ok) return;
       const data = await res.json();
       const text: string = data.text || '';

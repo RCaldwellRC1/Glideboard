@@ -112,12 +112,16 @@ export function Paywall({ preview = false }: { preview?: boolean }) {
   const subscriptionActive = state?.subscriptionActive ?? false;
   const busy = subscribe.isPending || restore.isPending;
   const hasPaidSubscription = !previewMode && subscriptionActive;
+
+  // ALWAYS show the restore button if they aren't already actively recognized
+  // as paid, regardless of the "busy" or "pending" state.
+  const showRestore = !hasPaidSubscription;
   const showSales = !hasPaidSubscription;
 
   const body = (
     <View className="w-full">
       {/* Restore Bar — VERY TOP for returning users */}
-      {!previewMode && showSales && (
+      {!previewMode && showRestore && (
         <Pressable
           onPress={handleRestore}
           disabled={busy}

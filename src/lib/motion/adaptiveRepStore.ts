@@ -107,6 +107,7 @@ interface AdaptiveRepState {
   _sensitivityMultiplier: number;
 
   // Pace-derived gating (computed from the user's Pace Settings + Motion Sensitivity)
+  _expectedRepMs: number;
   _minRepDurationMs: number;  // a counted rep's motion must last at least this long (jitter floor)
   _repCooldownMs: number;     // minimum time between two counted reps (primary anti-double-count gate)
   _setupDelayMs: number;      // minimum "get into position" delay before counting begins each set
@@ -140,7 +141,7 @@ interface AdaptiveRepState {
 }
 
 // Constants for rep detection
-const MIN_PEAK_FOR_REP = 0.10; // Lower to catch reps with short range of motion
+const MIN_PEAK_FOR_REP = 0.07; // Lower even more for ultra-slow/controlled reps
 const SMOOTHING_WINDOW = 10; // Filter out more noise on tablet accelerometers
 
 // Returns `value` only if it is a usable finite number, otherwise `fallback`.
@@ -182,6 +183,7 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
   cooldownAdjustments: {},
 
   _sensitivityMultiplier: 1.0,
+  _expectedRepMs: 2000,
   _minRepDurationMs: 120,
   _repCooldownMs: 800,
   _setupDelayMs: 6000,
@@ -235,6 +237,7 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       repTimings: [],
 
       _sensitivityMultiplier: sensitivityMultiplier,
+      _expectedRepMs: (repCooldownMs / 0.85), // reconstruct original pace
       _minRepDurationMs: minRepDurationMs,
       _repCooldownMs: repCooldownMs,
       _setupDelayMs: setupDelayMs,
@@ -352,10 +355,10 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     // Apply sensitivity multiplier (0.6=high/fast, 1.0=medium, 1.5=low/slow)
     const sens = state._sensitivityMultiplier;
     const triggerThreshold = state.isLearningROM
-      ? 0.10 * sens
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens, 0.10);
+      ? 0.05 * sens
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens, 0.07);
 
-    const returnThreshold = 0.10; // More forgiving
+    const returnThreshold = 0.07; // Very forgiving
 
     // Track peak deviation
     if (deviation > state.peakDeviation) {

@@ -13,8 +13,8 @@ import {
 // Transcription runs through our own backend, where the OpenAI proxy key is
 // correctly authenticated. Calling OpenAI directly from the app returned 401
 // unauthorized, which silently broke voice rep counting.
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
-const TRANSCRIBE_URL = `${BACKEND_URL}/api/transcribe`;
+const OPENAI_API_KEY = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
+const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 
 // Voice activity detection thresholds (dBFS)
 const SPEECH_THRESHOLD = -35;      // Above this = someone is speaking
@@ -170,17 +170,13 @@ export function useVoiceCounting(
   onRepCountedRef.current = onRepCounted;
 
   const transcribeAndProcess = useCallback(async (uri: string) => {
-    if (!BACKEND_URL) {
-      console.warn('[VOICE] No backend URL configured');
-      remoteLog('voice_error', { reason: 'no_backend_url' });
+    if (!OPENAI_API_KEY) {
+      console.warn('[VOICE] No OpenAI API key configured');
+      remoteLog('voice_error', { reason: 'no_api_key' });
       return;
     }
     setIsProcessing(true);
     try {
-      // Standard React Native multipart upload: the { uri, name, type } shape
-      // tells RN's networking layer to stream the file's bytes directly from
-      // disk. (The expo-file-system File-as-Blob path sent corrupted bytes that
-      // OpenAI rejected as an invalid file format.)
       const buildForm = () => {
         const fd = new FormData();
         fd.append('file', {
@@ -188,17 +184,22 @@ export function useVoiceCounting(
           name: 'recording.m4a',
           type: 'audio/mp4',
         } as unknown as Blob);
+        fd.append('model', 'whisper-1');
+        fd.append('language', 'en');
         return fd;
       };
 
-      // A single transient blip (proxy cold-start, dropped packet) should not
-      // kill rep counting, so retry once on a network-level failure before we
-      // surface the "can't reach" banner.
       let response: Response | null = null;
       let lastNetworkErr: unknown = null;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          response = await fetch(TRANSCRIBE_URL, { method: 'POST', body: buildForm() });
+          response = await fetch(TRANSCRIBE_URL, {
+            method: 'POST',
+            body: buildForm(),
+            headers: {
+              'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            }
+          });
           break;
         } catch (err) {
           lastNetworkErr = err;
@@ -207,21 +208,15 @@ export function useVoiceCounting(
       }
 
       if (!response) {
-        // fetch itself threw both times → we genuinely couldn't reach the server.
         console.warn('[VOICE] Transcription network error:', lastNetworkErr);
         remoteLog('voice_error', { reason: 'network', message: String(lastNetworkErr).slice(0, 200) });
         setError("Can't reach the counter — check your connection");
         return;
       }
 
-      // We reached the server (any HTTP status means connectivity is fine), so
-      // clear any earlier "can't reach" warning regardless of the result.
       setError(null);
 
       if (!response.ok) {
-        // The transcription service hiccupped, but the connection is healthy.
-        // Drop this chunk silently and keep listening — the next utterance will
-        // be counted. We deliberately don't latch the connection banner here.
         const body = await response.text().catch(() => '');
         console.warn('[VOICE] Transcription failed:', response.status, body);
         remoteLog('voice_error', { reason: 'http', status: response.status, body: body.slice(0, 200) });
