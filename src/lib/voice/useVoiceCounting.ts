@@ -292,7 +292,12 @@ export function useVoiceCounting(
         const status = await recording.getStatusAsync();
         const duration = status.durationMillis ?? 0;
         const uri = recording.getURI();
-        await recording.stopAndUnloadAsync();
+
+        if (status.isRecording) {
+          await recording.stopAndUnloadAsync();
+        } else if (status.canRecord) {
+          await recording.stopAndUnloadAsync();
+        }
 
         if (duration >= MIN_CHUNK_MS && uri) {
           // Fire-and-forget transcription so the next chunk starts immediately
@@ -489,7 +494,11 @@ export function useVoiceCounting(
         try {
           const status = await rec.getStatusAsync();
           const uri = rec.getURI();
-          await rec.stopAndUnloadAsync();
+          if (status.isRecording) {
+            await rec.stopAndUnloadAsync();
+          } else if (status.canRecord) {
+            await rec.stopAndUnloadAsync();
+          }
           if ((status.durationMillis ?? 0) >= MIN_CHUNK_MS && uri) {
             transcribeAndProcess(uri);
           }

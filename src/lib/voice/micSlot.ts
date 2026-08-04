@@ -48,7 +48,17 @@ export function claimTeardown(rec: Audio.Recording): boolean {
 // No-op if another path already claimed this recorder's teardown.
 export async function safeUnload(rec: Audio.Recording | null | undefined): Promise<void> {
   if (!rec || !claimTeardown(rec)) return;
-  try { await rec.stopAndUnloadAsync(); } catch { /* already unloaded */ }
+  try {
+    const status = await rec.getStatusAsync();
+    if (status.isRecording) {
+      await rec.stopAndUnloadAsync();
+    } else if (status.canRecord) {
+      // Just unload if it was prepared but not started
+      await rec.stopAndUnloadAsync();
+    }
+  } catch {
+    /* already unloaded or in invalid state */
+  }
 }
 
 // Claim the slot for a freshly-started recorder.

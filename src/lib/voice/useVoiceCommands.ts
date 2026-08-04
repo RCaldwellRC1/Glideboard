@@ -159,7 +159,11 @@ export function useVoiceCommands(
         const status = await recording.getStatusAsync();
         const duration = status.durationMillis ?? 0;
         const uri = recording.getURI();
-        await recording.stopAndUnloadAsync();
+        if (status.isRecording) {
+          await recording.stopAndUnloadAsync();
+        } else if (status.canRecord) {
+          await recording.stopAndUnloadAsync();
+        }
         if (shouldTranscribe && duration >= MIN_CHUNK_MS && uri) {
           transcribe(uri); // fire-and-forget so the next chunk starts immediately
         }

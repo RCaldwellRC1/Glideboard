@@ -354,9 +354,14 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     // For learned mode, use 50% of learned peak
     // Apply sensitivity multiplier (0.6=high/fast, 1.0=medium, 1.5=low/slow)
     const sens = state._sensitivityMultiplier;
+
+    // Pace-adaptive threshold: slower pace = smoother/weaker peaks.
+    // Base trigger is 0.20; if pace > 2s (lift+hold+down), we lower it proportionally.
+    const paceFactor = Math.max(0.5, Math.min(1.0, 2.0 / (state._expectedRepMs / 1000 || 2.0)));
+
     const triggerThreshold = state.isLearningROM
-      ? 0.05 * sens
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens, 0.07);
+      ? 0.05 * sens * paceFactor
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
 
     const returnThreshold = 0.07; // Very forgiving
 
