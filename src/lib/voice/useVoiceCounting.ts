@@ -65,8 +65,9 @@ const HALLUCINATION_PHRASES = [
 // realistically only appear when someone is barking a rep number.
 const STANDALONE_HOMOPHONES: Record<string, number> = {
   won: 1,
+  to: 2, too: 2,
   tree: 3,
-  fore: 4,
+  for: 4, fore: 4,
   sex: 6,
   ate: 8, age: 8,
   nein: 9, nan: 9,
