@@ -5,13 +5,6 @@ workflows:
     environment:
       groups:
         - google_play
-      # Reference name of the keystore uploaded in Codemagic under
-      # Teams/Personal account -> Code signing identities -> Android keystores.
-      # Codemagic exports CM_KEYSTORE_PATH / CM_KEYSTORE_PASSWORD /
-      # CM_KEY_ALIAS / CM_KEY_PASSWORD, which the Expo config plugin at
-      # plugins/withAndroidReleaseSigning.js reads in build.gradle.
-      android_signing:
-        - glideboard_keystore
       node: 20.18.0
       java: 17
     cache:
