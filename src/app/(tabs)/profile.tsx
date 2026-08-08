@@ -442,7 +442,7 @@ export default function ProfileScreen() {
         {/* Version Footer */}
         <View className="mt-8 mb-4 items-center">
           <Text className="text-gray-700 text-xs font-bold uppercase tracking-widest">
-            Glideboard v1.0.29
+            Glideboard v1.0.30
           </Text>
         </View>
       </ScrollView>

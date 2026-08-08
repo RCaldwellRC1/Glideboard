@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState, useRef } from 'react';
+import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -530,94 +530,6 @@ function TimedTrophyCard({
           {dateLabel}
         </Text>
       ) : null}
-    </View>
-  );
-}
-
-// Full-screen pop-out for trophies to make them shareable on social media.
-// Includes branding (logo + text) and a high-quality presentation of the award.
-function FullScreenTrophyModal({
-  trophy,
-  onClose
-}: {
-  trophy: TrophyCardProps | null;
-  onClose: () => void;
-}) {
-  if (!trophy) return null;
-
-  const IconComponent = {
-    trophy: Trophy,
-    target: Target,
-    flame: Flame,
-    trending: TrendingUp,
-  }[trophy.icon];
-
-  return (
-    <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-6">
-      <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}>
-        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black/95" />
-      </Animated.View>
-
-      <Animated.View
-        entering={ZoomIn.duration(300).springify().damping(18)}
-        className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 border-orange-500 overflow-hidden shadow-2xl shadow-orange-500/50"
-      >
-        <LinearGradient
-          colors={['#1a1405', '#0f172a']}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {/* Glideboard Branding Header */}
-        <View className="flex-row items-center px-8 pt-8">
-          <Image
-            source={require('../../../icon.png')}
-            style={{ width: 44, height: 44, borderRadius: 10 }}
-          />
-          <View className="ml-3">
-            <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
-            <Text className="text-orange-500 font-bold text-[10px] tracking-[0.2em] -mt-1">ACHIEVEMENT</Text>
-          </View>
-        </View>
-
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="w-40 h-40 rounded-full bg-orange-500/10 items-center justify-center mb-8 border border-orange-500/20">
-            <IconComponent size={80} color="#f97316" strokeWidth={1.5} />
-          </View>
-
-          <Text className="text-white font-black text-4xl text-center leading-tight mb-2">
-            {trophy.title}
-          </Text>
-
-          <Text className="text-gray-400 text-xl text-center font-medium px-4">
-            {trophy.description}
-          </Text>
-
-          <View className="mt-10 items-center">
-            <View className={`px-6 py-2 rounded-full border ${trophy.earned ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800 border-gray-700'}`}>
-              <Text className={`${trophy.earned ? 'text-orange-500' : 'text-gray-500'} font-black tracking-widest text-sm uppercase`}>
-                {trophy.earned ? 'Officially Achieved' : 'Active Goal'}
-              </Text>
-            </View>
-            {trophy.earned && trophy.dateLabel && (
-              <Text className="text-gray-500 mt-2 font-bold">{trophy.dateLabel}</Text>
-            )}
-          </View>
-        </View>
-
-        {/* Decorative corner accents */}
-        <View className="absolute bottom-6 right-8">
-          <Sparkles size={24} color="#f97316" opacity={0.3} />
-        </View>
-      </Animated.View>
-
-      <Pressable
-        onPress={onClose}
-        className="mt-8 bg-gray-800 w-12 h-12 rounded-full items-center justify-center active:bg-gray-700 border border-gray-600"
-      >
-        <X size={24} color="#9ca3af" />
-      </Pressable>
-
-      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-widest">Tap anywhere to close</Text>
     </View>
   );
 }
