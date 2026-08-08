@@ -363,7 +363,9 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       ? 0.05 * sens * paceFactor
       : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
 
-    const returnThreshold = 0.07; // Very forgiving
+    // Apply sensitivity to the return threshold too, so Low Sensitivity is
+    // harder to "finish" as well (prevents phantom reps from small jitters).
+    const returnThreshold = 0.07 * sens;
 
     // Track peak deviation
     if (deviation > state.peakDeviation) {
@@ -398,12 +400,17 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
       // Minimum requirements for a valid rep:
       // 1. Duration >= MIN_REP_DURATION_MS
-      // 2. Peak must be significant - use learned minPeak for this exercise, or low default in learning mode
-      const minPeak = state.isLearningROM
+      // 2. Peak must be significant - use learned minPeak for this exercise, or low default in learning mode.
+      // We apply the same sensitivity/adjustment scaling here as we do for the trigger threshold.
+      // This ensures that if a movement was deliberate enough to START the rep, it's judged
+      // against a consistent standard to FINISH it.
+      const rawMinPeak = state.isLearningROM
         ? MIN_PEAK_FOR_REP  // Low threshold during learning
-        : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);  // Use learned minPeak (NaN-safe: a corrupted profile falls back instead of rejecting every rep)
+        : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
 
-      if (repDuration >= state._minRepDurationMs && peak >= minPeak) {
+      const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor, 0.07);
+
+      if (repDuration >= state._minRepDurationMs && peak >= activeMinPeak) {
         // Valid rep!
         const newRepCount = state.repCount + 1;
 
@@ -418,6 +425,10 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+        // Calculate active cooldown using the learned factor
+        const cooldownFactor = state.cooldownAdjustments[getProfileKey(exerciseId, inclineLevel)]?.factor ?? 1;
+        const activeCooldown = state._repCooldownMs * cooldownFactor;
+
         set({
           repCount: newRepCount,
           lastRepTime: now,
@@ -425,7 +436,7 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
           repStartTime: null,
           peakDeviation: 0,
           movingDirection: 'none',
-          repCooldownUntil: now + state._repCooldownMs, // Add cooldown (pace-derived)
+          repCooldownUntil: now + activeCooldown,
           repTimings: [...state.repTimings, timing],
           measuredPeaks: newPeaks,
         });
@@ -443,7 +454,7 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
         // Invalid rep - still reset inactivity since user is moving
         const reason = repDuration < state._minRepDurationMs
           ? `too fast: ${repDuration}ms (min ${state._minRepDurationMs}ms)`
-          : `peak too low: ${peak.toFixed(2)} < ${minPeak.toFixed(2)}`;
+          : `peak too low: ${peak.toFixed(2)} < ${activeMinPeak.toFixed(2)}`;
         console.log('[ADAPTIVE] Rep rejected -', reason);
         resetInactivityTimer(get, set);
         set({
@@ -642,8 +653,13 @@ function updateProfileROM(state: AdaptiveRepState, set: (partial: Partial<Adapti
   if (validPeaks.length === 0) return;
 
   const avgMeasuredROM = validPeaks.reduce((a, b) => a + b, 0) / validPeaks.length;
-  // Calculate minimum peak as 50% of average ROM (learned per exercise)
-  const minMeasuredPeak = Math.min(...validPeaks) * 0.8; // 80% of the smallest peak we saw
+  // Calculate minimum peak as 80% of the smallest peak we saw, but cap it at
+  // 70% of the average ROM. This prevents "threshold runaway" where one very
+  // strong rep sets an impossible standard for the rest of the set.
+  const minMeasuredPeak = Math.min(
+    Math.min(...validPeaks) * 0.8,
+    avgMeasuredROM * 0.7
+  );
 
   let newProfile: ExerciseProfile;
 

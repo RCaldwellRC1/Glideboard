@@ -296,6 +296,7 @@ function RunnerView({
   const [setsDone, setSetsDone] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
+  const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
   const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   // Seconds left on the pre-set "get into position" countdown (null = not counting).
@@ -512,13 +513,31 @@ function RunnerView({
       }
     } else if (repCountingMode === 'voice') {
       stopVoiceListening();
-      setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
-      setShowConfirmModal(true);
+
+      if (isVoiceProcessing) {
+        console.log('[VOICE] Delaying summary modal until final transcription finishes...');
+        setIsWaitingForVoiceToEndSet(true);
+      } else {
+        setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+        setShowConfirmModal(true);
+      }
       return;
     }
     endSet();
     advanceAfterSet();
-  }, [repCountingMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, advanceAfterSet]);
+  }, [repCountingMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, advanceAfterSet, isVoiceProcessing]);
+
+  // When we're waiting for the final voice transcription to finish, watch the
+  // processing flag. Once it drops to false, we can safely show the summary
+  // with the absolute latest count.
+  useEffect(() => {
+    if (isWaitingForVoiceToEndSet && !isVoiceProcessing) {
+      console.log('[VOICE] Final transcription finished, showing summary modal.');
+      setIsWaitingForVoiceToEndSet(false);
+      setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+      setShowConfirmModal(true);
+    }
+  }, [isWaitingForVoiceToEndSet, isVoiceProcessing, currentReps]);
 
   const handleConfirmReps = useCallback((confirmedCount: number) => {
     setReps(confirmedCount);

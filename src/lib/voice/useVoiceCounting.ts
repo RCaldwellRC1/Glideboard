@@ -19,7 +19,7 @@ const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 // Voice activity detection thresholds (dBFS)
 const SPEECH_THRESHOLD = -35;      // Above this = someone is speaking
 const SILENCE_THRESHOLD = -45;     // Below this = silence
-const SILENCE_AFTER_SPEECH_MS = 350; // Silence for 350ms after speech → transcribe now
+const SILENCE_AFTER_SPEECH_MS = 500; // Silence for 500ms after speech → transcribe now
 const MAX_CHUNK_MS = 1500;         // Force transcribe after 1.5s even without silence —
                                    // keeps clips small/fast when counting continuously
 const MIN_CHUNK_MS = 300;          // Don't transcribe clips shorter than 300ms
@@ -31,7 +31,11 @@ const MAX_START_FAILURES = 4;      // Give up (with a message) after this many f
 // reps are missed in a row.
 const MAX_REP_JUMP = 6;
 
-// Phrases Whisper hallucinates over breathing/grunting/silence.
+// Temporal cooldown between counted reps (ms). Prevents "machine-gunning"
+// multiple counts from a single mis-heard grunt or overlapping audio chunks.
+const VOICE_REP_COOLDOWN_MS = 1200;
+
+// Phrases Whisper hallucinations over breathing/grunting/silence.
 const HALLUCINATION_PHRASES = [
   'thanks for watching',
   'thank you for watching',
@@ -164,6 +168,7 @@ export function useVoiceCounting(
   const speechDetectedRef = useRef(false);
   const silenceStartRef = useRef<number | null>(null);
   const lastCountedRef = useRef(0);
+  const lastRepTimestampRef = useRef(0);
   const onRepCountedRef = useRef(onRepCounted);
   onRepCountedRef.current = onRepCounted;
 
@@ -240,6 +245,16 @@ export function useVoiceCounting(
 
       for (const num of numbers) {
         if (num > lastCountedRef.current) {
+          const nowMs = Date.now();
+          const timeSinceLastRep = nowMs - lastRepTimestampRef.current;
+
+          // Temporal cooldown to prevent double-counting from overlapping chunks
+          // or rapid-fire mis-hears.
+          if (timeSinceLastRep < VOICE_REP_COOLDOWN_MS) {
+            console.log(`[VOICE] Ignoring heard number ${num} - too close to previous rep (${timeSinceLastRep}ms)`);
+            continue;
+          }
+
           // Guard against a single mis-heard number (e.g. "thirty" for
           // "thirteen") back-filling a huge run of reps. If the jump is larger
           // than we could plausibly have missed between chunks, treat it as one
@@ -257,6 +272,7 @@ export function useVoiceCounting(
             remoteLog('rep_counted', { rep: i, via: 'voice' });
           }
           lastCountedRef.current = target;
+          lastRepTimestampRef.current = nowMs;
           break;
         }
       }

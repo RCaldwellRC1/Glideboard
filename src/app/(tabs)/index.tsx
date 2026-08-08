@@ -402,6 +402,7 @@ export default function TrackerScreen() {
   const [isPaceSetterMode, setIsPaceSetterMode] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
+  const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
   // Short "we adjusted the tracker" message shown in the confirm modal after a
   // correction. null = show the normal rep-entry UI.
   const [learningMsg, setLearningMsg] = useState<string | null>(null);
@@ -729,15 +730,34 @@ export default function TrackerScreen() {
         return; // Don't save the set yet — wait for user to confirm count
       }
     } else if (effectiveMode === 'voice') {
-      // Stop the mic, then show the confirmation modal seeded with the
-      // voice-counted reps so the user can confirm or correct them.
+      // Stop the mic. If Whisper is already processing a chunk (e.g. the user
+      // just said "ten"), we wait for it to finish before showing the summary
+      // modal. Otherwise the summary "snapshot" would miss that final rep.
       stopVoiceListening();
-      setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
-      setShowConfirmModal(true);
+
+      if (isVoiceProcessing) {
+        console.log('[VOICE] Delaying summary modal until final transcription finishes...');
+        setIsWaitingForVoiceToEndSet(true);
+      } else {
+        setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+        setShowConfirmModal(true);
+      }
       return; // Don't save the set yet — wait for user to confirm count
     }
     endSet();
-  }, [effectiveMode, adaptiveEndSet, endSet, currentReps, currentExercise, currentInclineLevel, stopVoiceListening]);
+  }, [effectiveMode, adaptiveEndSet, endSet, currentReps, currentExercise, currentInclineLevel, stopVoiceListening, isVoiceProcessing]);
+
+  // When we're waiting for the final voice transcription to finish, watch the
+  // processing flag. Once it drops to false, we can safely show the summary
+  // with the absolute latest count.
+  useEffect(() => {
+    if (isWaitingForVoiceToEndSet && !isVoiceProcessing) {
+      console.log('[VOICE] Final transcription finished, showing summary modal.');
+      setIsWaitingForVoiceToEndSet(false);
+      setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+      setShowConfirmModal(true);
+    }
+  }, [isWaitingForVoiceToEndSet, isVoiceProcessing, currentReps]);
 
   // Called by the timed runner when a hold completes (timer done, "Done", or
   // END SET). Records the held seconds as a timed set.

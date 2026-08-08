@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,11 +7,15 @@ import Animated, {
   withSequence,
   withTiming,
   cancelAnimation,
+  FadeIn,
+  ZoomIn,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Trophy, Target, Flame, TrendingUp, ChevronDown, Ribbon, Medal, Crown, Clock, Sparkles, Star } from 'lucide-react-native';
+import { Trophy, Target, Flame, TrendingUp, ChevronDown, Ribbon, Medal, Crown, Clock, Sparkles, Star, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 import {
   useWorkoutStore,
   formatTrophyDate,
@@ -37,9 +41,11 @@ interface TrophyCardProps {
   // When earned, the date it was achieved (e.g. "Mar 12, 2026"). Shown in
   // orange under the description so users can see when they hit each milestone.
   dateLabel?: string | null;
+  onPress?: () => void;
+  isSelectable?: boolean;
 }
 
-function TrophyCard({ icon, title, description, earned, isLarge, dateLabel }: TrophyCardProps) {
+function TrophyCard({ icon, title, description, earned, isLarge, dateLabel, onPress, isSelectable }: TrophyCardProps) {
   const IconComponent = {
     trophy: Trophy,
     target: Target,
@@ -47,7 +53,7 @@ function TrophyCard({ icon, title, description, earned, isLarge, dateLabel }: Tr
     trending: TrendingUp,
   }[icon];
 
-  return (
+  const content = (
     <View
       className={`flex-1 m-1.5 rounded-2xl p-3 items-center ${
         earned ? 'border-2 border-orange-500 bg-gray-900' : 'border border-gray-800 bg-gray-900/50'
@@ -85,8 +91,25 @@ function TrophyCard({ icon, title, description, earned, isLarge, dateLabel }: Tr
           {dateLabel}
         </Text>
       ) : null}
+
+      {earned && isSelectable && (
+        <View className="mt-1.5 flex-row items-center">
+          <Sparkles size={10} color="#f97316" />
+          <Text className="text-[10px] text-orange-500/60 font-bold ml-1 uppercase">Share</Text>
+        </View>
+      )}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} className="flex-1 active:opacity-80">
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 interface PRCardProps {
@@ -391,6 +414,94 @@ function fmtHold(total: number): string {
   return `${total}s`;
 }
 
+// Full-screen pop-out for trophies to make them shareable on social media.
+// Includes branding (logo + text) and a high-quality presentation of the award.
+function FullScreenTrophyModal({
+  trophy,
+  onClose
+}: {
+  trophy: TrophyCardProps | null;
+  onClose: () => void;
+}) {
+  if (!trophy) return null;
+
+  const IconComponent = {
+    trophy: Trophy,
+    target: Target,
+    flame: Flame,
+    trending: TrendingUp,
+  }[trophy.icon];
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-6">
+      <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}>
+        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black/95" />
+      </Animated.View>
+
+      <Animated.View
+        entering={ZoomIn.duration(300).springify().damping(18)}
+        className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 border-orange-500 overflow-hidden shadow-2xl shadow-orange-500/50"
+      >
+        <LinearGradient
+          colors={['#1a1405', '#0f172a']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Glideboard Branding Header */}
+        <View className="flex-row items-center px-8 pt-8">
+          <Image
+            source={require('../../../icon.png')}
+            style={{ width: 44, height: 44, borderRadius: 10 }}
+          />
+          <View className="ml-3">
+            <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
+            <Text className="text-orange-500 font-bold text-[10px] tracking-[0.2em] -mt-1">ACHIEVEMENT</Text>
+          </View>
+        </View>
+
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-40 h-40 rounded-full bg-orange-500/10 items-center justify-center mb-8 border border-orange-500/20">
+            <IconComponent size={80} color="#f97316" strokeWidth={1.5} />
+          </View>
+
+          <Text className="text-white font-black text-4xl text-center leading-tight mb-2">
+            {trophy.title}
+          </Text>
+
+          <Text className="text-gray-400 text-xl text-center font-medium px-4">
+            {trophy.description}
+          </Text>
+
+          <View className="mt-10 items-center">
+            <View className={`px-6 py-2 rounded-full border ${trophy.earned ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800 border-gray-700'}`}>
+              <Text className={`${trophy.earned ? 'text-orange-500' : 'text-gray-500'} font-black tracking-widest text-sm uppercase`}>
+                {trophy.earned ? 'Officially Achieved' : 'Active Goal'}
+              </Text>
+            </View>
+            {trophy.earned && trophy.dateLabel && (
+              <Text className="text-gray-500 mt-2 font-bold">{trophy.dateLabel}</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Decorative corner accents */}
+        <View className="absolute bottom-6 right-8">
+          <Sparkles size={24} color="#f97316" opacity={0.3} />
+        </View>
+      </Animated.View>
+
+      <Pressable
+        onPress={onClose}
+        className="mt-8 bg-gray-800 w-12 h-12 rounded-full items-center justify-center active:bg-gray-700 border border-gray-600"
+      >
+        <X size={24} color="#9ca3af" />
+      </Pressable>
+
+      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-widest">Tap anywhere to close</Text>
+    </View>
+  );
+}
+
 // A Timed-hold PR card — the exercise name and accents use the Timed category's
 // purple, and it shows the best hold time achieved.
 function TimedTrophyCard({
@@ -419,6 +530,94 @@ function TimedTrophyCard({
           {dateLabel}
         </Text>
       ) : null}
+    </View>
+  );
+}
+
+// Full-screen pop-out for trophies to make them shareable on social media.
+// Includes branding (logo + text) and a high-quality presentation of the award.
+function FullScreenTrophyModal({
+  trophy,
+  onClose
+}: {
+  trophy: TrophyCardProps | null;
+  onClose: () => void;
+}) {
+  if (!trophy) return null;
+
+  const IconComponent = {
+    trophy: Trophy,
+    target: Target,
+    flame: Flame,
+    trending: TrendingUp,
+  }[trophy.icon];
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-6">
+      <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}>
+        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black/95" />
+      </Animated.View>
+
+      <Animated.View
+        entering={ZoomIn.duration(300).springify().damping(18)}
+        className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 border-orange-500 overflow-hidden shadow-2xl shadow-orange-500/50"
+      >
+        <LinearGradient
+          colors={['#1a1405', '#0f172a']}
+          style={StyleSheet.absoluteFill}
+        />
+
+        {/* Glideboard Branding Header */}
+        <View className="flex-row items-center px-8 pt-8">
+          <Image
+            source={require('../../../icon.png')}
+            style={{ width: 44, height: 44, borderRadius: 10 }}
+          />
+          <View className="ml-3">
+            <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
+            <Text className="text-orange-500 font-bold text-[10px] tracking-[0.2em] -mt-1">ACHIEVEMENT</Text>
+          </View>
+        </View>
+
+        <View className="flex-1 items-center justify-center px-8">
+          <View className="w-40 h-40 rounded-full bg-orange-500/10 items-center justify-center mb-8 border border-orange-500/20">
+            <IconComponent size={80} color="#f97316" strokeWidth={1.5} />
+          </View>
+
+          <Text className="text-white font-black text-4xl text-center leading-tight mb-2">
+            {trophy.title}
+          </Text>
+
+          <Text className="text-gray-400 text-xl text-center font-medium px-4">
+            {trophy.description}
+          </Text>
+
+          <View className="mt-10 items-center">
+            <View className={`px-6 py-2 rounded-full border ${trophy.earned ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800 border-gray-700'}`}>
+              <Text className={`${trophy.earned ? 'text-orange-500' : 'text-gray-500'} font-black tracking-widest text-sm uppercase`}>
+                {trophy.earned ? 'Officially Achieved' : 'Active Goal'}
+              </Text>
+            </View>
+            {trophy.earned && trophy.dateLabel && (
+              <Text className="text-gray-500 mt-2 font-bold">{trophy.dateLabel}</Text>
+            )}
+          </View>
+        </View>
+
+        {/* Decorative corner accents */}
+        <View className="absolute bottom-6 right-8">
+          <Sparkles size={24} color="#f97316" opacity={0.3} />
+        </View>
+      </Animated.View>
+
+      <Pressable
+        onPress={onClose}
+        className="mt-8 bg-gray-800 w-12 h-12 rounded-full items-center justify-center active:bg-gray-700 border border-gray-600"
+      >
+        <X size={24} color="#9ca3af" />
+      </Pressable>
+
+      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-widest">Tap anywhere to close</Text>
     </View>
   );
 }
@@ -452,6 +651,15 @@ export default function TrophiesScreen() {
 
   // The exercise whose progress chart is popped open (null when closed).
   const [chartExercise, setChartExercise] = useState<string | null>(null);
+
+  // The trophy card expanded to full screen for sharing (null when closed).
+  const [expandedTrophy, setExpandedTrophy] = useState<TrophyCardProps | null>(null);
+
+  const handleTrophyPress = useCallback((props: TrophyCardProps) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setExpandedTrophy(props);
+    remoteLog('trophy_expanded', { title: String(props.title) });
+  }, []);
 
   // Only one trophies section is open at a time. Opening a new one closes the
   // previous, and we scroll the tapped header back to the top of the screen so
@@ -762,7 +970,12 @@ export default function TrophiesScreen() {
         <View className="flex-row flex-wrap px-2">
           {trophyShelf.map((trophy, index) => (
             <View key={index} className="w-1/2">
-              <TrophyCard {...trophy} isLarge={largeDisplayMode} />
+              <TrophyCard
+                {...trophy}
+                isLarge={largeDisplayMode}
+                isSelectable={true}
+                onPress={() => handleTrophyPress({ ...trophy, isLarge: largeDisplayMode })}
+              />
             </View>
           ))}
         </View>
@@ -771,18 +984,25 @@ export default function TrophiesScreen() {
       {/* Rep Milestones */}
       <CollapsibleSection title="Rep Milestones" isLarge={largeDisplayMode} {...sectionProps('reps')}>
         <View className="flex-row flex-wrap px-2">
-          {repMilestones.map((milestone, index) => (
-            <View key={index} className="w-1/2">
-              <TrophyCard
-                icon="trophy"
-                title={`${milestone.reps.toLocaleString()} Total Reps`}
-                description={`Reach ${milestone.reps.toLocaleString()} total reps`}
-                earned={milestone.earned}
-                isLarge={largeDisplayMode}
-                dateLabel={milestone.dateLabel}
-              />
-            </View>
-          ))}
+          {repMilestones.map((milestone, index) => {
+            const trophyProps: TrophyCardProps = {
+              icon: 'trophy',
+              title: `${milestone.reps.toLocaleString()} Total Reps`,
+              description: `Reach ${milestone.reps.toLocaleString()} total reps`,
+              earned: milestone.earned,
+              isLarge: largeDisplayMode,
+              dateLabel: milestone.dateLabel,
+            };
+            return (
+              <View key={index} className="w-1/2">
+                <TrophyCard
+                  {...trophyProps}
+                  isSelectable={true}
+                  onPress={() => handleTrophyPress(trophyProps)}
+                />
+              </View>
+            );
+          })}
         </View>
       </CollapsibleSection>
 
@@ -879,6 +1099,7 @@ export default function TrophiesScreen() {
     </ScrollView>
 
     <PRChartModal exercise={chartExercise} onClose={() => setChartExercise(null)} />
+    <FullScreenTrophyModal trophy={expandedTrophy} onClose={() => setExpandedTrophy(null)} />
     </>
   );
 }

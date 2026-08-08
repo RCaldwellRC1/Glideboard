@@ -438,6 +438,13 @@ export default function ProfileScreen() {
         >
           <Text className={`text-orange-500 font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
         </Pressable>
+
+        {/* Version Footer */}
+        <View className="mt-8 mb-4 items-center">
+          <Text className="text-gray-700 text-xs font-bold uppercase tracking-widest">
+            Glideboard v1.0.29
+          </Text>
+        </View>
       </ScrollView>
     );
   }
