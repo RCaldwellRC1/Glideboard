@@ -17,9 +17,12 @@ module.exports = ({ config }) => ({
 
   android: {
     ...config.android,
-    // Priority: CI environment variable > app.json > default (1)
-    versionCode: Number.parseInt(process.env.BUILD_NUMBER, 10) > 0
-      ? Number.parseInt(process.env.BUILD_NUMBER, 10)
-      : (config.android?.versionCode ?? 1),
+    // Priority: Math.max(CI environment variable, app.json, default 1)
+    // Ensures version code only ever goes UP even if CI build number resets.
+    versionCode: Math.max(
+      Number.parseInt(process.env.BUILD_NUMBER, 10) || 0,
+      config.android?.versionCode || 0,
+      1
+    ),
   },
 });
