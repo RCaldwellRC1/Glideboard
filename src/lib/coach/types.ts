@@ -55,6 +55,25 @@ Mind & Muscle Connection: Focus on the working muscle. Some users like to close 
 
 Note: 60 seconds between sets is ideal for this program, but adjust that as you feel ready.`;
 
+const BACK_FOCUS_INSTRUCTIONS = `Wide, Thick Back — 4 Week Program
+
+This routine is specifically designed to target the major muscles of the back to build both width and thickness. By combining vertical pulls for width and horizontal rows for thickness, you'll develop a complete, powerful back.
+
+How to get the most out of this program
+
+Focus on the stretch at the start of each movement and a strong squeeze of the shoulder blades at the peak. Do not use momentum or "body English" to move the board — control is everything.
+
+In this app's settings, under Pace Settings:
+• Set "Delay to Start New" at 4–6 seconds.
+• Set "Lift" to 2 seconds and "Down" to 2 or 3 seconds for maximal control.
+• Set "Hold at Top" to 1 second to really emphasize the contraction.
+
+The goal is to reach your 15-rep target for each set. If you can't reach 15 with perfect form, lower the incline. If 15 reps feels too easy, increase the incline slightly on your next set.
+
+Mind & Muscle Connection: Imagine your hands as just "hooks" and pull with your elbows. This shift in focus helps take the biceps out of the movement and puts the load squarely on the back muscles.
+
+Rest 60–90 seconds between sets to allow for full recovery so you can keep the intensity high on every exercise.`;
+
 export const UPPER_BODY_20: CoachRoutine = {
   id: 'upper-body-20',
   title: '20 Minute Upper Body Workout',
@@ -71,7 +90,23 @@ export const UPPER_BODY_20: CoachRoutine = {
   ],
 };
 
-export const COACH_ROUTINES: CoachRoutine[] = [UPPER_BODY_20];
+export const WIDE_THICK_BACK: CoachRoutine = {
+  id: 'wide-thick-back',
+  title: 'Wide, Thick Back',
+  subtitle: '4-week program · 3×/week · Back Focus',
+  instructions: BACK_FOCUS_INSTRUCTIONS,
+  programLength: 12,
+  steps: [
+    { group: 'BACK', exercise: 'Pull-Ups', sets: 3, repRangeLabel: '15 Reps target', targetReps: 15 },
+    { group: 'BACK', exercise: 'Rows (Low)', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+    { group: 'BACK', exercise: 'Face Pulls', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+    { group: 'BACK', exercise: 'Crossover Pulls', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+    { group: 'BACK', exercise: 'Underhand Rows', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+    { group: 'BACK', exercise: 'Chin-Ups', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+  ],
+};
+
+export const COACH_ROUTINES: CoachRoutine[] = [UPPER_BODY_20, WIDE_THICK_BACK];
 
 // ---------------------------------------------------------------------------
 // Multi-workout programs — a coach-built plan made of several distinct

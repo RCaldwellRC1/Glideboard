@@ -24,6 +24,9 @@ interface CoachState {
   completions: CoachCompletion[];
   // User-built routines, saved on this device only.
   customRoutines: CoachRoutine[];
+  // Customized versions of built-in or custom routines.
+  // Keyed by routineId.
+  customizedRoutines: Record<string, CoachRoutine>;
   isLoaded: boolean;
 
   loadFromStorage: () => Promise<void>;
@@ -39,6 +42,10 @@ interface CoachState {
   updateCustomRoutine: (routine: CoachRoutine) => void;
   // Remove a custom routine (and its saved preferences) from the device.
   deleteCustomRoutine: (routineId: string) => void;
+  // Customize any routine (built-in or custom).
+  customizeRoutine: (routine: CoachRoutine) => void;
+  // Revert a routine to its original default state.
+  resetRoutine: (routineId: string) => void;
 }
 
 // Pull the user's display name from the saved profile, matching what the
@@ -66,6 +73,7 @@ export const useCoachStore = create<CoachState>((set, get) => {
         dontShowInstructions: s.dontShowInstructions,
         completions: s.completions,
         customRoutines: s.customRoutines,
+        customizedRoutines: s.customizedRoutines,
       }));
     } catch (error) {
       console.error('Failed to save coach data:', error);
@@ -78,6 +86,7 @@ export const useCoachStore = create<CoachState>((set, get) => {
     dontShowInstructions: {},
     completions: [],
     customRoutines: [],
+    customizedRoutines: {},
     isLoaded: false,
 
     loadFromStorage: async () => {
@@ -91,6 +100,7 @@ export const useCoachStore = create<CoachState>((set, get) => {
             dontShowInstructions: parsed.dontShowInstructions ?? {},
             completions: Array.isArray(parsed.completions) ? parsed.completions : [],
             customRoutines: Array.isArray(parsed.customRoutines) ? parsed.customRoutines : [],
+            customizedRoutines: parsed.customizedRoutines ?? {},
             isLoaded: true,
           });
         } else {
@@ -185,11 +195,28 @@ export const useCoachStore = create<CoachState>((set, get) => {
         // Drop the routine, its "don't show instructions" flag, and any
         // recorded completions so nothing dangles after deletion.
         const { [routineId]: _removed, ...restDontShow } = prev.dontShowInstructions;
+        const { [routineId]: _customizedRemoved, ...restCustomized } = prev.customizedRoutines;
         return {
           customRoutines: prev.customRoutines.filter(r => r.id !== routineId),
           dontShowInstructions: restDontShow,
+          customizedRoutines: restCustomized,
           completions: prev.completions.filter(c => c.routineId !== routineId),
         };
+      });
+      persist();
+    },
+
+    customizeRoutine: (routine: CoachRoutine) => {
+      set(prev => ({
+        customizedRoutines: { ...prev.customizedRoutines, [routine.id]: routine },
+      }));
+      persist();
+    },
+
+    resetRoutine: (routineId: string) => {
+      set(prev => {
+        const { [routineId]: _removed, ...rest } = prev.customizedRoutines;
+        return { customizedRoutines: rest };
       });
       persist();
     },

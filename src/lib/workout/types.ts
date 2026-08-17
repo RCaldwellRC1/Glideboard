@@ -40,6 +40,7 @@ export const EXERCISE_GROUPS: ExerciseGroup[] = [
       'Pullovers',
       'Crossover Pulls',
       'Chin-Ups',
+      'Underhand Rows',
     ],
   },
   {

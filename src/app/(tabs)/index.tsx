@@ -26,172 +26,9 @@ import { InclineDropdown } from '@/components/InclineDropdown';
 import { WeightInput } from '@/components/WeightPad';
 import { TimedExerciseRunner, type TimedRunnerHandle } from '@/components/TimedExerciseRunner';
 import { RepModeToggle } from '@/components/RepModeToggle';
+import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 
-// A single "Press and hold to add Exercize" slot. After a 2-second long press
-// the keyboard appears and the user types a new exercise name; pressing
-// Return/Enter (or the green checkmark) creates it.
-function AddExerciseSlot({
-  group,
-  onAdd,
-  isLarge,
-  color = '#22c55e',
-}: {
-  group: string;
-  onAdd: (group: string, name: string) => void;
-  isLarge: boolean;
-  color?: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState('');
 
-  const commit = () => {
-    const name = text.trim();
-    if (name.length > 0) {
-      onAdd(group, name);
-    }
-    setText('');
-    setEditing(false);
-    Keyboard.dismiss();
-  };
-
-  if (editing) {
-    return (
-      <View className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'} bg-gray-800`}>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          autoFocus
-          placeholder="Type exercise name"
-          placeholderTextColor="#6b7280"
-          returnKeyType="done"
-          autoCapitalize="words"
-          onSubmitEditing={commit}
-          onBlur={() => {
-            // Bail out of editing if they tapped away without typing anything.
-            if (text.trim().length === 0) setEditing(false);
-          }}
-          className={`flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}
-          style={{ color }}
-        />
-        <Pressable onPress={commit} hitSlop={12} className="ml-2 active:opacity-60">
-          <Check size={isLarge ? 20 : 22} color={color} />
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <Pressable
-      delayLongPress={2000}
-      onLongPress={() => setEditing(true)}
-      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} flex-row items-center active:bg-gray-800`}
-    >
-      <Plus size={isLarge ? 14 : 16} color={color} />
-      <Text className={`italic ml-2 ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: `${color}b3` }}>
-        Press and hold to add Exercize
-      </Text>
-    </Pressable>
-  );
-}
-
-// A green user-created exercise row. Tap to select it; press and hold to edit
-// its name (fixes typos). Editing mirrors the AddExerciseSlot flow.
-function CustomExerciseRow({
-  exercise,
-  group,
-  selected,
-  onSelect,
-  onRename,
-  isLarge,
-  color = '#22c55e',
-}: {
-  exercise: string;
-  group: string;
-  selected: boolean;
-  onSelect: (exercise: string) => void;
-  onRename: (group: string, oldName: string, newName: string) => void;
-  isLarge: boolean;
-  color?: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [text, setText] = useState(exercise);
-
-  const commit = () => {
-    const name = text.trim();
-    if (name.length > 0 && name !== exercise) {
-      onRename(group, exercise, name);
-    }
-    setEditing(false);
-    Keyboard.dismiss();
-  };
-
-  if (editing) {
-    return (
-      <View className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'} bg-gray-800`}>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          autoFocus
-          placeholder="Exercise name"
-          placeholderTextColor="#6b7280"
-          returnKeyType="done"
-          autoCapitalize="words"
-          onSubmitEditing={commit}
-          onBlur={commit}
-          className={`flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}
-          style={{ color }}
-        />
-        <Pressable onPress={commit} hitSlop={12} className="ml-2 active:opacity-60">
-          <Check size={isLarge ? 20 : 22} color={color} />
-        </Pressable>
-      </View>
-    );
-  }
-
-  return (
-    <Pressable
-      onPress={() => onSelect(exercise)}
-      delayLongPress={500}
-      onLongPress={() => {
-        setText(exercise);
-        setEditing(true);
-      }}
-      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} ${selected ? 'bg-gray-800' : ''}`}
-    >
-      <Text
-        className={`font-semibold ${isLarge ? 'text-base' : 'text-lg'}`}
-        style={{ color, opacity: selected ? 0.85 : 1 }}
-      >
-        {exercise}
-      </Text>
-    </Pressable>
-  );
-}
-
-// The selectable sections, in display order: the built-in body sections
-// (orange) followed by the two user-driven categories — Free Style (green) and
-// Timed (purple). The custom categories carry no built-in exercises; everything
-// in them is user-added.
-interface DropdownSection {
-  name: string;
-  exercises: string[];
-  color: string;
-  subtitle?: string;
-}
-
-const DROPDOWN_SECTIONS: DropdownSection[] = [
-  ...EXERCISE_GROUPS.map(g => ({ name: g.name, exercises: g.exercises, color: '#f97316' })),
-  {
-    name: FREE_STYLE_GROUP,
-    exercises: [],
-    color: CATEGORY_COLORS.freestyle,
-  },
-  {
-    name: TIMED_GROUP,
-    exercises: [],
-    color: CATEGORY_COLORS.timed,
-  },
-];
 
 function ExerciseDropdown({
   value,
@@ -214,27 +51,7 @@ function ExerciseDropdown({
   onRenameCustom: (group: string, oldName: string, newName: string) => void;
   onOpenCoach: () => void;
 }) {
-  // Two-level navigation: first pick a section, then an exercise within it.
-  const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
-
-  // Whenever the dropdown opens, show the sections collapsed (top-level list)
-  // so the user picks a category first, rather than jumping straight into the
-  // section of the currently selected exercise.
-  useEffect(() => {
-    if (!isOpen) return;
-    setExpandedGroup(null);
-  }, [isOpen]);
-
-  const activeGroup = DROPDOWN_SECTIONS.find(g => g.name === expandedGroup) ?? null;
-  const groupCustom = expandedGroup ? customExercises[expandedGroup] ?? [] : [];
-  const isCustomCategory =
-    expandedGroup === FREE_STYLE_GROUP || expandedGroup === TIMED_GROUP;
-
-  // Color the collapsed button's value by the selected exercise's category.
   const valueColor = categoryColor(getExerciseCategory(value, customExercises));
-
-  const bodyGroups = DROPDOWN_SECTIONS.filter(g => g.color === '#f97316');
-  const customCats = DROPDOWN_SECTIONS.filter(g => g.color !== '#f97316');
 
   return (
     <View className="flex-1 mr-2 relative">
@@ -251,146 +68,19 @@ function ExerciseDropdown({
         )}
       </Pressable>
 
-      <Modal
+      <ExercisePickerModal
         visible={isOpen}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={onToggle}
-      >
-        <Pressable
-          className="flex-1 bg-black/60 items-center justify-center p-6"
-          onPress={onToggle}
-        >
-          <View
-            className="bg-gray-900 rounded-3xl w-full max-w-lg overflow-hidden border border-gray-800"
-            onStartShouldSetResponder={() => true}
-            onResponderTerminationRequest={() => false}
-          >
-            <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-800">
-              <View className="flex-row items-center">
-                {expandedGroup !== null && (
-                  <Pressable onPress={() => setExpandedGroup(null)} hitSlop={12} className="mr-3">
-                    <ChevronLeft size={24} color="#f97316" />
-                  </Pressable>
-                )}
-                <Text className="text-white font-bold text-xl">
-                  {expandedGroup === null ? 'Select Category' : expandedGroup}
-                </Text>
-              </View>
-              <Pressable onPress={onToggle} hitSlop={12}>
-                <X size={24} color="#6b7280" />
-              </Pressable>
-            </View>
-
-            <ScrollView
-              showsVerticalScrollIndicator={true}
-              persistentScrollbar={true}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingVertical: 12 }}
-              style={{ maxHeight: 500 }}
-            >
-              {activeGroup === null ? (
-                <>
-                  {bodyGroups.map((group) => (
-                    <Pressable
-                      key={group.name}
-                      onPress={() => setExpandedGroup(group.name)}
-                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
-                    >
-                      <Text className="text-xl font-bold" style={{ color: group.color }}>
-                        {group.name}
-                      </Text>
-                      <ChevronRight size={22} color={group.color} />
-                    </Pressable>
-                  ))}
-
-                  <View className="my-2 mx-6 border-t border-gray-800" />
-
-                  {customCats.map((group) => (
-                    <Pressable
-                      key={group.name}
-                      onPress={() => setExpandedGroup(group.name)}
-                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
-                    >
-                      <Text className="text-xl font-bold" style={{ color: group.color }}>
-                        {group.name}
-                      </Text>
-                      <ChevronRight size={22} color={group.color} />
-                    </Pressable>
-                  ))}
-
-                  <View className="my-2 mx-6 border-t border-gray-800" />
-
-                  <Pressable
-                    onPress={() => {
-                      onToggle();
-                      onOpenCoach();
-                    }}
-                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800"
-                  >
-                    <View className="flex-row items-center flex-1 mr-2">
-                      <ClipboardList size={22} color="#22c55e" />
-                      <Text numberOfLines={1} className="text-green-500 font-bold ml-3 text-xl">
-                        Coach's Routines
-                      </Text>
-                    </View>
-                    <ChevronRight size={22} color="#22c55e" />
-                  </Pressable>
-                </>
-              ) : (
-                <>
-                  {activeGroup.exercises.map((exercise) => (
-                    <Pressable
-                      key={exercise}
-                      onPress={() => {
-                        onSelect(exercise);
-                        onToggle();
-                      }}
-                      className={`px-8 py-4 ${value === exercise ? 'bg-orange-500/10' : ''}`}
-                    >
-                      <Text
-                        className={`text-xl ${
-                          value === exercise ? 'text-orange-500 font-bold' : 'text-white font-medium'
-                        }`}
-                      >
-                        {exercise}
-                      </Text>
-                    </Pressable>
-                  ))}
-
-                  {isCustomCategory && groupCustom.length === 0 ? (
-                    <Text className="px-8 py-4 italic text-gray-500 text-base">
-                      {expandedGroup === TIMED_GROUP
-                        ? 'Add a hold like “Plank” or “Wall Sit”.'
-                        : 'Add your own lift or calisthenic move.'}
-                    </Text>
-                  ) : null}
-
-                  {groupCustom.map((exercise) => (
-                    <CustomExerciseRow
-                      key={exercise}
-                      exercise={exercise}
-                      group={activeGroup.name}
-                      selected={value === exercise}
-                      onSelect={(ex) => {
-                        onSelect(ex);
-                        onToggle();
-                      }}
-                      onRename={onRenameCustom}
-                      isLarge={isLarge}
-                      color={activeGroup.color}
-                    />
-                  ))}
-
-                  <View className="mt-2">
-                    <AddExerciseSlot group={activeGroup.name} onAdd={onAddCustom} isLarge={isLarge} color={activeGroup.color} />
-                  </View>
-                </>
-              )}
-            </ScrollView>
-          </View>
-        </Pressable>
-      </Modal>
+        onClose={onToggle}
+        onSelect={(exercise) => {
+          onSelect(exercise);
+          onToggle();
+        }}
+        isLarge={isLarge}
+        customExercises={customExercises}
+        onAddCustom={onAddCustom}
+        onRenameCustom={onRenameCustom}
+        onOpenCoach={onOpenCoach}
+      />
     </View>
   );
 }
