@@ -451,6 +451,18 @@ export default function AppSettingsScreen() {
             />
           </View>
         </View>
+
+        {/* Support Link */}
+        <View className="mt-8 mb-4 items-center">
+          <Pressable
+            onPress={() => router.push('/diagnostics')}
+            className="px-4 py-2 active:opacity-60"
+          >
+            <Text className="text-gray-600 text-xs font-bold uppercase tracking-widest underline">
+              Need help? Troubleshoot counting
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

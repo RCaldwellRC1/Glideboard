@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Platform, Image, Alert, KeyboardAvoidingView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check, User, Settings, ChevronRight, HelpCircle, Shield, CalendarClock, ImageIcon } from 'lucide-react-native';
+import { Check, User, Settings, ChevronRight, HelpCircle, Shield, CalendarClock, ImageIcon, Activity } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -439,10 +439,21 @@ export default function ProfileScreen() {
           <Text className={`text-orange-500 font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
         </Pressable>
 
+        {/* Troubleshooting Access */}
+        <Pressable
+          onPress={() => router.push('/diagnostics')}
+          className="mx-4 mt-8 bg-gray-900/50 border border-gray-800 py-4 rounded-xl items-center flex-row justify-center active:opacity-70"
+        >
+          <Activity size={18} color="#f97316" />
+          <Text className="text-gray-400 font-bold ml-2 uppercase tracking-widest text-xs">
+            Troubleshoot Counting
+          </Text>
+        </Pressable>
+
         {/* Version Footer */}
-        <View className="mt-8 mb-4 items-center">
+        <View className="mt-4 mb-4 items-center">
           <Text className="text-gray-700 text-xs font-bold uppercase tracking-widest">
-            Glideboard v1.0.33
+            Glideboard v1.0.34
           </Text>
         </View>
       </ScrollView>
