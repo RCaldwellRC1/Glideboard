@@ -16,7 +16,7 @@ import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
 
-// Cap how much the iOS "Larger Text" accessibility setting can inflate fonts.
+// Cap font scaling for accessibility.
 const MAX_FONT_SCALE = 1.3;
 // @ts-ignore
 RNText.defaultProps = RNText.defaultProps || {};
@@ -31,7 +31,7 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent splash screen from auto-hiding.
+// Prevent the splash screen from auto-hiding.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient();
@@ -65,7 +65,7 @@ export default function RootLayout() {
   useKeepAwake();
 
   useEffect(() => {
-    async function prepare() {
+    async function init() {
       try {
         const purchaseMode = isStoreConfigured ? 'REAL' : 'SIMULATED';
         console.log(`[PURCHASES] mode: ${purchaseMode}`);
@@ -73,16 +73,14 @@ export default function RootLayout() {
         await initRemoteLog();
         remoteLog('app_open', { platform: 'mobile' });
 
-        const loadSettings = useSettingsStore.getState().loadFromStorage;
-        await loadSettings();
-      } catch (e) {
-        console.warn('[BOOT] Prepare error:', e);
+        await useSettingsStore.getState().loadFromStorage();
+      } catch (err) {
+        console.warn('[BOOT] Init error:', err);
       } finally {
         SplashScreen.hideAsync().catch(() => {});
       }
     }
-
-    prepare();
+    init();
   }, []);
 
   useEffect(() => {
@@ -97,7 +95,12 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
-            <MotionProvider updateInterval={16} smoothingFactor={0.8}>
+            {/*
+                CRITICAL STABILITY FIX: autoStart={false}
+                We prevent the hardware sensor probe from running during boot.
+                It is manually started once the Tracker (index.tsx) mounts.
+            */}
+            <MotionProvider updateInterval={16} smoothingFactor={0.8} autoStart={false}>
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
               <RootLayoutNav colorScheme={colorScheme} />
             </MotionProvider>
