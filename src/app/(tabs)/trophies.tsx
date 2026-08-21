@@ -494,18 +494,6 @@ function FullScreenTrophyModal({
   );
 }
 
-      <Pressable
-        onPress={onClose}
-        className="mt-8 bg-gray-800 w-12 h-12 rounded-full items-center justify-center active:bg-gray-700 border border-gray-600"
-      >
-        <X size={24} color="#9ca3af" />
-      </Pressable>
-
-      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-widest">Tap anywhere to close</Text>
-    </View>
-  );
-}
-
 // A Timed-hold PR card — the exercise name and accents use the Timed category's
 // purple, and it shows the best hold time achieved.
 function TimedTrophyCard({
