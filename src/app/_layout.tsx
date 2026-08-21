@@ -10,13 +10,13 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, AppState, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
 
-// Cap font scaling for accessibility.
+// Cap how much the iOS "Larger Text" accessibility setting can inflate fonts.
 const MAX_FONT_SCALE = 1.3;
 // @ts-ignore
 RNText.defaultProps = RNText.defaultProps || {};
@@ -31,7 +31,7 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent splash screen from auto-hiding.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient();
@@ -41,19 +41,19 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <View style={[{ flex: 1 }, vars(getFontSizeVars(textSize))]}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="app-settings" options={{ headerShown: false }} />
-        <Stack.Screen name="unlock" options={{ headerShown: false, presentation: 'modal' }} />
-        <Stack.Screen name="how-it-works" options={{ headerShown: false }} />
-        <Stack.Screen name="coach" options={{ headerShown: false }} />
-        <Stack.Screen name="coach-routine" options={{ headerShown: false }} />
-        <Stack.Screen name="coach-program" options={{ headerShown: false }} />
-        <Stack.Screen name="coach-build" options={{ headerShown: false }} />
-        <Stack.Screen name="diagnostics" options={{ headerShown: false, presentation: 'modal' }} />
-        <Stack.Screen name="workout-summary" options={{ headerShown: false }} />
-        <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
-      </Stack>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="app-settings" options={{ headerShown: false }} />
+          <Stack.Screen name="unlock" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="how-it-works" options={{ headerShown: false }} />
+          <Stack.Screen name="coach" options={{ headerShown: false }} />
+          <Stack.Screen name="coach-routine" options={{ headerShown: false }} />
+          <Stack.Screen name="coach-program" options={{ headerShown: false }} />
+          <Stack.Screen name="coach-build" options={{ headerShown: false }} />
+          <Stack.Screen name="diagnostics" options={{ headerShown: false, presentation: 'modal' }} />
+          <Stack.Screen name="workout-summary" options={{ headerShown: false }} />
+          <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
+        </Stack>
       </View>
     </ThemeProvider>
   );
@@ -61,23 +61,24 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [appIsReady, setAppIsReady] = useState(false);
 
   useKeepAwake();
 
   useEffect(() => {
     async function prepare() {
       try {
+        const purchaseMode = isStoreConfigured ? 'REAL' : 'SIMULATED';
+        console.log(`[PURCHASES] mode: ${purchaseMode}`);
+
         await initRemoteLog();
+        remoteLog('app_open', { platform: 'mobile' });
+
         const loadSettings = useSettingsStore.getState().loadFromStorage;
         await loadSettings();
-
-        // Brief pause to ensure all native modules are initialized
-        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (e) {
-        console.warn('[BOOT] Prepare failed:', e);
+        console.warn('[BOOT] Prepare error:', e);
       } finally {
-        setAppIsReady(true);
+        SplashScreen.hideAsync().catch(() => {});
       }
     }
 
@@ -91,20 +92,10 @@ export default function RootLayout() {
     return () => sub.remove();
   }, []);
 
-  const onLayoutRootView = useCallback(async () => {
-    if (appIsReady) {
-      await SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [appIsReady]);
-
-  if (!appIsReady) {
-    return <View style={{ flex: 1, backgroundColor: '#000' }} />;
-  }
-
   return (
     <RootErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
             <MotionProvider updateInterval={16} smoothingFactor={0.8}>
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
