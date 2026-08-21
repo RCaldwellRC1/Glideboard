@@ -10,11 +10,9 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, AppState, StyleSheet, type AppStateStatus } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, AppState, StyleSheet, Image, Animated, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
-import { Image } from 'expo-image';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
 
@@ -33,7 +31,7 @@ export const unstable_settings = {
   initialRouteName: '(tabs)',
 };
 
-// Keep the splash screen visible while we fetch resources.
+// Keep the splash screen visible until we are ready to show the JS greeting.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient();
@@ -72,16 +70,15 @@ export default function RootLayout() {
     async function prepare() {
       try {
         const purchaseMode = isStoreConfigured ? 'REAL' : 'SIMULATED';
-        console.log(`[PURCHASES] mode: ${purchaseMode}`);
-
         await initRemoteLog();
         remoteLog('app_open', { platform: 'mobile' });
-        remoteLog('purchase_mode', { mode: purchaseMode });
 
-        // Artifically wait for a beat to ensure everything is wired up
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Ensure settings are loaded
+        const loadSettings = useSettingsStore.getState().loadFromStorage;
+        await loadSettings();
+
       } catch (e) {
-        console.warn(e);
+        console.warn('[BOOT] Prepare failed:', e);
       } finally {
         setAppIsReady(true);
         setShowGreeting(true);
@@ -103,7 +100,7 @@ export default function RootLayout() {
   }, []);
 
   if (!appIsReady) {
-    return null;
+    return <View style={{ flex: 1, backgroundColor: '#000' }} />;
   }
 
   return (
@@ -125,39 +122,45 @@ export default function RootLayout() {
   );
 }
 
+/**
+ * Standard Animated version of the greeting.
+ * Bypasses Reanimated to ensure maximum stability on Android boot.
+ */
 function CustomGreeting({ onFinish }: { onFinish: () => void }) {
-  const fade = useSharedValue(1);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Hide the native splash immediately once the greeting is rendered
+    // 1. Give the JS layer one frame to render its content
+    // 2. Hide the native splash immediately
     SplashScreen.hideAsync().catch(() => {});
 
+    // 3. Hold for 2 seconds, then fade out
     const timeout = setTimeout(() => {
-      fade.value = withTiming(0, { duration: 600 }, (finished) => {
-        if (finished) runOnJS(onFinish)();
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }).start(() => {
+        onFinish();
       });
     }, 2000);
-    return () => clearTimeout(timeout);
-  }, [fade, onFinish]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: fade.value,
-  }));
+    return () => clearTimeout(timeout);
+  }, [fadeAnim, onFinish]);
 
   return (
     <Animated.View
       pointerEvents="none"
       style={[
         StyleSheet.absoluteFill,
-        { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-        animatedStyle
+        { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', zIndex: 1000, opacity: fadeAnim },
       ]}
     >
       <View style={{ alignItems: 'center' }}>
         <Image
           source={require('../../icon.png')}
           style={{ width: 140, height: 140, borderRadius: 28 }}
-          contentFit="contain"
+          resizeMode="contain"
         />
         <View style={{ marginTop: 32, alignItems: 'center' }}>
           <Text style={{ color: '#fff', fontWeight: '900', fontSize: 60, textAlign: 'center' }}>Hi</Text>
