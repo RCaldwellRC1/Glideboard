@@ -74,6 +74,25 @@ Mind & Muscle Connection: Imagine your hands as just "hooks" and pull with your 
 
 Rest 60–90 seconds between sets to allow for full recovery so you can keep the intensity high on every exercise.`;
 
+const PUSH_DAY_INSTRUCTIONS = `Push Day — 4 Week Program
+
+This comprehensive routine targets the "push" muscles: the chest, shoulders, and triceps. By hitting these groups together, you take advantage of their natural synergy to build a powerful, balanced upper body.
+
+How to get the most out of this program
+
+Focus on steady, controlled movements. The target is 10 reps per set, which should feel challenging but achievable with good form.
+
+In this app's settings, under Pace Settings:
+• Set "Delay to Start New" at 4–6 seconds.
+• Set "Lift" and "Down" to 2 seconds for smooth, constant tension.
+• Set "Hold at Top" to 1 second for a hard squeeze.
+
+Progression: When 10 reps becomes comfortable, increase the incline slightly on your next session.
+
+Mind & Muscle Connection: For chest moves, focus on bringing your biceps together to squeeze the pectorals. For shoulders, imagine pushing the board up with your elbows. For triceps, focus on the full extension of the arm.
+
+Rest 60 seconds between sets and 90 seconds when switching muscle groups.`;
+
 export const UPPER_BODY_20: CoachRoutine = {
   id: 'upper-body-20',
   title: '20 Minute Upper Body Workout',
@@ -106,7 +125,27 @@ export const WIDE_THICK_BACK: CoachRoutine = {
   ],
 };
 
-export const COACH_ROUTINES: CoachRoutine[] = [UPPER_BODY_20, WIDE_THICK_BACK];
+export const PUSH_DAY: CoachRoutine = {
+  id: 'push-day',
+  title: 'Push Day',
+  subtitle: '10 Exercises; Chest, Shoulders, Triceps',
+  instructions: PUSH_DAY_INSTRUCTIONS,
+  programLength: 12,
+  steps: [
+    { group: 'CHEST', exercise: 'Chest Flys', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'CHEST', exercise: 'Chest Press Incline', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'CHEST', exercise: 'Chest Press Decline', sets: 1, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'CHEST', exercise: 'Chest Press', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'SHOULDERS', exercise: 'Shoulder Press', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'SHOULDERS', exercise: 'Lateral Raises', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'ARMS', exercise: 'Tricep Press-Downs', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'ARMS', exercise: 'Tricep Dips', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'CHEST', exercise: 'Pullovers', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+    { group: 'CHEST', exercise: 'Underhand Chest', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+  ],
+};
+
+export const COACH_ROUTINES: CoachRoutine[] = [UPPER_BODY_20, WIDE_THICK_BACK, PUSH_DAY];
 
 // ---------------------------------------------------------------------------
 // Multi-workout programs — a coach-built plan made of several distinct

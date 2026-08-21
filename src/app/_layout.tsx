@@ -10,10 +10,10 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
-import { useEffect } from 'react';
-import React from 'react';
-import { View, Text, Pressable, AppState, type AppStateStatus } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, AppState, StyleSheet, Image, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
 
@@ -77,6 +77,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [showGreeting, setShowGreeting] = useState(true);
 
   // Keep the device screen awake the entire time the app is in the foreground.
   // Without this, iOS dims and then auto-locks the phone after the user's Auto-Lock
@@ -135,11 +136,57 @@ export default function RootLayout() {
             <MotionProvider updateInterval={16} smoothingFactor={0.8}>
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
               <RootLayoutNav colorScheme={colorScheme} />
+              {showGreeting && <CustomGreeting onFinish={() => setShowGreeting(false)} />}
             </MotionProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </RootErrorBoundary>
+  );
+}
+
+/**
+ * Branded greeting screen that follows the native splash.
+ * Shows the logo and a friendly "Hi / Let's Do This!" message for 2 seconds.
+ */
+function CustomGreeting({ onFinish }: { onFinish: () => void }) {
+  const fade = useSharedValue(1);
+
+  useEffect(() => {
+    // Hold the message for 2 seconds, then fade out gracefully.
+    const timeout = setTimeout(() => {
+      fade.value = withTiming(0, { duration: 600 }, (finished) => {
+        if (finished) runOnJS(onFinish)();
+      });
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [fade, onFinish]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+        animatedStyle
+      ]}
+    >
+      <View style={{ alignItems: 'center' }}>
+        <Image
+          source={require('../../icon.png')}
+          style={{ width: 140, height: 140, borderRadius: 28 }}
+          resizeMode="contain"
+        />
+        <View style={{ marginTop: 32, alignItems: 'center' }}>
+          <Text className="text-white font-black text-6xl text-center">Hi</Text>
+          <Text className="text-white font-bold text-3xl text-center mt-2">Let's Do This!</Text>
+        </View>
+      </View>
+    </Animated.View>
   );
 }
 

@@ -3,11 +3,10 @@ import { View, Text, Pressable, ScrollView, TextInput, Keyboard, Modal } from 'r
 import { ChevronLeft, ChevronRight, Plus, Check, ClipboardList, X } from 'lucide-react-native';
 import {
   EXERCISE_GROUPS,
+  CUSTOM_CATEGORY_GROUPS,
   FREE_STYLE_GROUP,
   TIMED_GROUP,
-  CATEGORY_COLORS,
   categoryColor,
-  getExerciseCategory,
 } from '@/lib/workout';
 
 interface ExercisePickerModalProps {
@@ -163,16 +162,11 @@ function CustomExerciseRow({
 
 const DROPDOWN_SECTIONS = [
   ...EXERCISE_GROUPS.map(g => ({ name: g.name, exercises: g.exercises, color: '#f97316' })),
-  {
-    name: FREE_STYLE_GROUP,
-    exercises: [],
-    color: CATEGORY_COLORS.freestyle,
-  },
-  {
-    name: TIMED_GROUP,
-    exercises: [],
-    color: CATEGORY_COLORS.timed,
-  },
+  ...CUSTOM_CATEGORY_GROUPS.map(g => ({
+    name: g.name,
+    exercises: g.exercises,
+    color: g.name === FREE_STYLE_GROUP ? '#e11d48' : '#a855f7'
+  }))
 ];
 
 export function ExercisePickerModal({

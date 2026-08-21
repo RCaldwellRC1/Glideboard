@@ -26,6 +26,7 @@ export const EXERCISE_GROUPS: ExerciseGroup[] = [
       'Chest Press Decline',
       'Chest Flys',
       'Pullovers',
+      'Underhand Chest',
     ],
   },
   {

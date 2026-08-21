@@ -16,14 +16,21 @@
 import type { ExerciseGroup } from './types';
 
 export const FREE_STYLE_GROUP = 'FREE STYLE';
-export const TIMED_GROUP = 'TIMED';
+export const BUILTIN_TIMED_EXERCISES = [
+  'Iso Wall Sits',
+  'Iso Plank from Knee',
+  'Iso Plank from feet',
+  'Iso Lunge Hold',
+  'Iso Warrior Pose',
+  'Iso Curl Hold',
+];
 
 // The custom-only category groups, in display order. These are NOT part of
 // EXERCISE_GROUPS on purpose — they carry no built-in exercises and must not
 // participate in the native-duplicate pruning that runs over body sections.
 export const CUSTOM_CATEGORY_GROUPS: ExerciseGroup[] = [
   { name: FREE_STYLE_GROUP, exercises: [] },
-  { name: TIMED_GROUP, exercises: [] },
+  { name: TIMED_GROUP, exercises: BUILTIN_TIMED_EXERCISES },
 ];
 
 export type ExerciseCategory = 'standard' | 'freestyle' | 'timed';
@@ -48,6 +55,10 @@ export function getExerciseCategory(
   customExercises: Record<string, string[]>
 ): ExerciseCategory {
   const name = exercise.trim().toLowerCase();
+
+  // Check built-in timed list first
+  if (BUILTIN_TIMED_EXERCISES.some(e => e.toLowerCase() === name)) return 'timed';
+
   const inGroup = (group: string) =>
     (customExercises[group] ?? []).some(e => e.trim().toLowerCase() === name);
   if (inGroup(TIMED_GROUP)) return 'timed';
