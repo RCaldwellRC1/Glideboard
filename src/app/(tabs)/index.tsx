@@ -339,9 +339,10 @@ export default function TrackerScreen() {
     setPendingSetSummary(null);
   }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, effectiveMode]);
 
-  const lastPerformance = getLastPerformance(currentExercise);
-  const lastIncline = lastPerformance?.inclineLevel;
-  const lastReps = lastPerformance?.lastReps;
+  const perfLevel = isFreestyle ? currentWeight : currentInclineLevel;
+  const levelLabel = isFreestyle ? `${currentWeight} lb` : `Level ${currentInclineLevel}`;
+  const lastPerformance = getLastPerformance(currentExercise, perfLevel);
+  const targetReps = lastPerformance?.lastReps ?? 0;
 
   const currentExerciseColor = categoryColor(category);
 
@@ -539,23 +540,49 @@ export default function TrackerScreen() {
         )}
 
         <View className="mx-3 mt-5 bg-gray-900 rounded-2xl p-4 border border-gray-800">
-          <View className="flex-row justify-between items-center mb-4">
-            <Text className="text-gray-400 font-bold tracking-widest text-xs">LAST PERFORMANCE</Text>
-            <Target size={16} color="#4b5563" />
-          </View>
-          {lastPerformance ? (
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Incline</Text>
-                <Text className="text-white text-2xl font-bold">Lvl {lastIncline}</Text>
+          {targetReps === 0 ? (
+            <View>
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-gray-400 font-bold tracking-widest text-xs uppercase">Last Performance</Text>
+                <Target size={16} color="#4b5563" />
               </View>
-              <View className="items-end">
-                <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Best Reps</Text>
-                <Text className="text-white text-2xl font-bold">{lastReps}</Text>
-              </View>
+              <Text className="text-gray-500 italic">No history yet for this exercise.</Text>
             </View>
           ) : (
-            <Text className="text-gray-600 italic">No history yet for this exercise.</Text>
+            <View>
+              <View className="flex-row justify-between items-center mb-4">
+                <Text className="text-gray-400 font-bold tracking-widest text-xs uppercase">Goal: Beat {targetReps} reps</Text>
+                <Target size={16} color="#f97316" />
+              </View>
+
+              <View className={`bg-gray-800 rounded-lg flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-10' : 'h-12'}`}>
+                {/* Progress Bar Fill */}
+                <View
+                  className={`h-full ${currentReps > targetReps ? 'bg-green-500' : 'bg-orange-500'} rounded-l-lg`}
+                  style={{ width: `${Math.min((currentReps / targetReps) * 100, 100)}%` }}
+                />
+
+                {/* Text overlay */}
+                <View className="absolute inset-0 flex-row items-center justify-center">
+                  <Text numberOfLines={1} className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+                    {currentReps} / {targetReps}
+                  </Text>
+                </View>
+
+                {/* Target marker line */}
+                <View
+                  className={`absolute w-0.5 bg-white/40 ${largeDisplayMode ? 'h-6' : 'h-8'}`}
+                  style={{ left: '100%', marginLeft: -2 }}
+                />
+              </View>
+
+              {currentReps > targetReps && (
+                <View className="flex-row items-center justify-center mt-2">
+                  <Sparkles size={14} color="#22c55e" />
+                  <Text className="text-green-500 font-bold ml-1.5 text-xs uppercase tracking-widest">New Personal Best!</Text>
+                </View>
+              )}
+            </View>
           )}
         </View>
       </ScrollView>
