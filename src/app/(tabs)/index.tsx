@@ -261,13 +261,6 @@ export default function TrackerScreen() {
     loadFromStorage();
     loadSettings();
     loadAdaptiveProfiles();
-
-    // START MOTION SENSOR MANUALLY AFTER MOUNT
-    // This is the definitive fix for Android startup crashes caused by
-    // early hardware sensor probes.
-    startMotionSensor().catch(err => {
-      console.warn('[TRACKER] Failed to start motion sensor:', err);
-    });
   }, []);
 
   // Sync adaptive rep count to workout store
