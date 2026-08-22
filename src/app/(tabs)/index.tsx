@@ -54,7 +54,7 @@ function ExerciseDropdown({
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
       <Pressable
         onPress={onToggle}
-        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
+        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-2.5' : 'px-4 py-3'}`}
       >
         <Text numberOfLines={1} adjustsFontSizeToFit className={`font-semibold uppercase flex-1 mr-1 ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: valueColor }}>{value}</Text>
         {isOpen ? (
@@ -210,8 +210,6 @@ export default function TrackerScreen() {
     loadAdaptiveProfiles();
 
     // START MOTION SENSOR MANUALLY AFTER MOUNT
-    // This is the definitive fix for Android startup crashes caused by
-    // early hardware sensor probes.
     setTimeout(() => {
         startMotionSensor().catch(err => {
             console.warn('[TRACKER] Failed to start motion sensor:', err);
@@ -351,7 +349,7 @@ export default function TrackerScreen() {
   return (
     <View className="flex-1 bg-black">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-row items-end px-4 mb-6">
+        <View className="flex-row items-end px-4 mb-4">
           <ExerciseDropdown
             value={currentExercise}
             onSelect={setExercise}
@@ -376,7 +374,7 @@ export default function TrackerScreen() {
           )}
         </View>
 
-        <View className="flex-row px-4 h-[280] mb-6">
+        <View className="flex-row px-4 mb-4" style={{ height: largeDisplayMode ? 200 : 280 }}>
           <View className="flex-1 mr-4 bg-gray-900 rounded-3xl items-center justify-center border border-gray-800 shadow-lg relative overflow-hidden">
             <View className="absolute top-4 left-4 flex-row items-center">
               <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: currentExerciseColor }} />
@@ -407,7 +405,7 @@ export default function TrackerScreen() {
             ) : (
               <>
                 <Text className={`text-gray-500 font-medium mb-1 tracking-widest ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>REPS</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit className={`font-black text-white ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>
+                <Text numberOfLines={1} adjustsFontSizeToFit className={`font-black text-white ${largeDisplayMode ? 'text-6xl' : 'text-8xl'}`}>
                   {currentReps}
                 </Text>
               </>
@@ -416,7 +414,7 @@ export default function TrackerScreen() {
 
           <View className="w-24 bg-gray-900 rounded-3xl items-center justify-center border border-gray-800 shadow-lg">
             <Text className={`text-gray-500 font-medium mb-1 tracking-widest ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>SET</Text>
-            <Text className={`font-black text-white ${largeDisplayMode ? 'text-5xl' : 'text-6xl'}`}>
+            <Text className={`font-black text-white ${largeDisplayMode ? 'text-4xl' : 'text-6xl'}`}>
               {currentSet}
             </Text>
           </View>
