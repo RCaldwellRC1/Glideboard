@@ -1,5 +1,6 @@
 import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import Svg, { Rect } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
