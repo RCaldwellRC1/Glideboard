@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, Keyboard, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X, Sparkles } from 'lucide-react-native';
@@ -54,7 +54,7 @@ function ExerciseDropdown({
       <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
       <Pressable
         onPress={onToggle}
-        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-2.5' : 'px-4 py-3'}`}
+        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
       >
         <Text numberOfLines={1} adjustsFontSizeToFit className={`font-semibold uppercase flex-1 mr-1 ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: valueColor }}>{value}</Text>
         {isOpen ? (
@@ -209,7 +209,6 @@ export default function TrackerScreen() {
     loadSettings();
     loadAdaptiveProfiles();
 
-    // START MOTION SENSOR MANUALLY AFTER MOUNT
     setTimeout(() => {
         startMotionSensor().catch(err => {
             console.warn('[TRACKER] Failed to start motion sensor:', err);
@@ -346,10 +345,76 @@ export default function TrackerScreen() {
 
   const currentExerciseColor = categoryColor(category);
 
+  const closeDropdowns = () => {
+    setExerciseDropdownOpen(false);
+    setInclineDropdownOpen(false);
+  };
+
   return (
     <View className="flex-1 bg-black">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: insets.bottom + 40 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-row items-end px-4 mb-4">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 4, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={!exerciseDropdownOpen && !inclineDropdownOpen}>
+        {(exerciseDropdownOpen || inclineDropdownOpen) && (
+          <Pressable
+            onPress={closeDropdowns}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40 }}
+          />
+        )}
+
+        {/* Header Buttons */}
+        <View className="flex-row justify-between items-start px-3 pt-2">
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              if (isWorkoutActive) endWorkout();
+              else if (!isAccessLoading) {
+                if (!hasFullAccess) router.push('/unlock');
+                else startWorkout();
+              }
+            }}
+            hitSlop={{ top: 16, bottom: 20, left: 16, right: 0 }}
+            className="active:opacity-70 flex-1 items-center py-2"
+          >
+            <Text allowFontScaling={false} className={`font-bold ${isWorkoutActive ? 'text-red-500' : 'text-green-500'} ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+              {isWorkoutActive ? 'END' : 'START'}
+            </Text>
+            <Text allowFontScaling={false} numberOfLines={1} className={`font-bold ${isWorkoutActive ? 'text-red-500' : 'text-green-500'} ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+              WORKOUT
+            </Text>
+          </Pressable>
+
+          <View className="px-3">
+            <RepModeToggle
+              value={effectiveMode === 'voice' ? 'voice' : 'motion'}
+              isLarge={largeDisplayMode}
+              onToggle={() => {
+                setRepCountingMode(effectiveMode === 'voice' ? 'motion' : 'voice');
+                remoteLog('rep_mode_toggled', { mode: effectiveMode === 'voice' ? 'motion' : 'voice', source: 'tracker' });
+              }}
+            />
+          </View>
+
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              if (isSetActive) handleEndSet();
+              else startSet();
+            }}
+            disabled={!isWorkoutActive}
+            hitSlop={{ top: 16, bottom: 20, left: 0, right: 16 }}
+            className="active:opacity-70 items-center flex-1 py-2"
+          >
+            <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? (isSetActive ? 'text-red-500' : 'text-green-500') : 'text-gray-600'}`}>
+              {isSetActive ? 'END SET' : 'START NEXT'}
+            </Text>
+            {!isSetActive && (
+              <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? 'text-green-500' : 'text-gray-600'}`}>
+                SET
+              </Text>
+            )}
+          </Pressable>
+        </View>
+
+        <View className="flex-row px-3 mt-3">
           <ExerciseDropdown
             value={currentExercise}
             onSelect={setExercise}
@@ -362,8 +427,8 @@ export default function TrackerScreen() {
             onOpenCoach={() => router.push('/coach')}
           />
           {isFreestyle ? (
-            <WeightInput value={currentWeight} onChange={setCurrentWeight} isLarge={largeDisplayMode} />
-          ) : (
+            <WeightInput value={currentWeight} onSelect={setCurrentWeight} isLarge={largeDisplayMode} />
+          ) : !isTimed ? (
             <InclineDropdown
               value={currentInclineLevel}
               onSelect={setInclineLevel}
@@ -371,197 +436,128 @@ export default function TrackerScreen() {
               onToggle={() => setInclineDropdownOpen(o => !o)}
               isLarge={largeDisplayMode}
             />
-          )}
+          ) : null}
         </View>
 
-        <View className="flex-row px-4 mb-4" style={{ height: largeDisplayMode ? 200 : 280 }}>
-          <View className="flex-1 mr-4 bg-gray-900 rounded-3xl items-center justify-center border border-gray-800 shadow-lg relative overflow-hidden">
-            <View className="absolute top-4 left-4 flex-row items-center">
-              <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: currentExerciseColor }} />
-              <Text className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">{category}</Text>
-            </View>
-
-            {!isTimed && (
-              <View className="absolute top-2 right-2">
-                <RepModeToggle
-                  value={effectiveMode === 'voice' ? 'voice' : 'motion'}
-                  isLarge={largeDisplayMode}
-                  onToggle={() => {
-                    setRepCountingMode(effectiveMode === 'voice' ? 'motion' : 'voice');
-                    remoteLog('rep_mode_toggled', { mode: effectiveMode === 'voice' ? 'motion' : 'voice', source: 'tracker' });
-                  }}
-                />
-              </View>
-            )}
-
-            {isTimed ? (
-              <TimedExerciseRunner
-                ref={timedRunnerRef}
-                exercise={currentExercise}
-                seconds={timedSeconds}
-                onDurationChange={(s) => setTimedDuration(currentExercise, s)}
-                isLarge={largeDisplayMode}
-              />
-            ) : (
-              <>
-                <Text className={`text-gray-500 font-medium mb-1 tracking-widest ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>REPS</Text>
-                <Text numberOfLines={1} adjustsFontSizeToFit className={`font-black text-white ${largeDisplayMode ? 'text-6xl' : 'text-8xl'}`}>
-                  {currentReps}
-                </Text>
-              </>
-            )}
-          </View>
-
-          <View className="w-24 bg-gray-900 rounded-3xl items-center justify-center border border-gray-800 shadow-lg">
-            <Text className={`text-gray-500 font-medium mb-1 tracking-widest ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>SET</Text>
-            <Text className={`font-black text-white ${largeDisplayMode ? 'text-4xl' : 'text-6xl'}`}>
-              {currentSet}
-            </Text>
-          </View>
-        </View>
-
-        {isSetActive && effectiveMode === 'motion' && (
-          <View className="mx-4 mb-6">
+        {isSetActive && effectiveMode === 'motion' && !showSensorFailure && (
+          <View className="mx-3 mt-3">
             {ignoreMotion ? (
-              <View className="flex-row items-center justify-center bg-yellow-500/10 rounded-2xl py-4 border border-yellow-500/20">
-                <Loader size={20} color="#eab308" className="mr-3" />
-                <Text className="text-yellow-500 font-bold text-lg">
+              <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
+                <Loader size={16} color="#eab308" />
+                <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 ml-2 font-medium flex-shrink ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
                   Get into position{setupSecondsLeft > 0 ? `... ${setupSecondsLeft}s` : '...'}
                 </Text>
               </View>
             ) : isLearningROM ? (
-              <View className="flex-row items-center justify-center bg-blue-500/10 rounded-2xl py-4 border border-blue-500/20">
-                <Sparkles size={20} color="#60a5fa" className="mr-3" />
-                <Text className="text-blue-400 font-bold text-lg">Learning your movement...</Text>
+              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4">
+                <Sparkles size={16} color="#60a5fa" />
+                <Text numberOfLines={1} adjustsFontSizeToFit className={`text-blue-400 font-medium ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+                  Learning your movement pattern...
+                </Text>
               </View>
             ) : (
-              <View className="flex-row items-center justify-center bg-green-500/10 rounded-2xl py-4 border border-green-500/20">
-                <Check size={20} color="#22c55e" className="mr-3" />
-                <Text className="text-green-500 font-bold text-lg">Ready to count</Text>
+              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4">
+                <Check size={16} color="#22c55e" />
+                <Text className={`text-green-500 font-medium ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>Counting reps</Text>
               </View>
             )}
           </View>
         )}
 
         {isSetActive && effectiveMode === 'voice' && (
-          <View className="mx-4 mb-6">
+          <View className="mx-3 mt-3">
             {voiceError ? (
-              <View className="flex-row items-center justify-center bg-red-500/10 rounded-2xl py-4 border border-red-500/20 px-4">
-                <TriangleAlert size={20} color="#ef4444" className="mr-3" />
-                <Text className="text-red-500 font-bold text-center flex-1">{voiceError}</Text>
+              <View className="flex-row items-center justify-center bg-red-500/20 rounded-lg py-2 px-4">
+                <TriangleAlert size={16} color="#ef4444" />
+                <Text numberOfLines={2} adjustsFontSizeToFit className={`text-red-400 font-medium text-center flex-shrink ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>{voiceError}</Text>
               </View>
             ) : isVoiceProcessing ? (
-              <View className="flex-row items-center justify-center bg-blue-500/10 rounded-2xl py-4 border border-blue-500/20">
-                <Loader size={20} color="#60a5fa" className="mr-3" />
-                <Text className="text-blue-400 font-bold text-lg">Listening to your voice...</Text>
+              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4">
+                <Loader size={16} color="#60a5fa" />
+                <Text className="text-blue-400 font-medium ml-2 text-lg">Listening...</Text>
               </View>
             ) : (
-              <View className="flex-row items-center justify-center bg-green-500/10 rounded-2xl py-4 border border-green-500/20">
-                <Mic size={20} color="#22c55e" className="mr-3" />
-                <Text className="text-green-500 font-bold text-lg">Count your reps out loud</Text>
+              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4">
+                <Mic size={16} color="#22c55e" />
+                <Text className="text-green-500 font-medium ml-2">Count your reps out loud</Text>
               </View>
             )}
           </View>
         )}
 
         {showSensorFailure && (
-          <View className="mx-4 mb-6 bg-red-500/10 rounded-2xl p-4 border border-red-500/20">
-            <View className="flex-row items-center mb-1">
-              <TriangleAlert size={18} color="#ef4444" />
-              <Text className="text-red-500 font-bold ml-2">Motion counting unavailable</Text>
+          <View className="mx-3 mt-3 bg-red-500/15 border border-red-500/40 rounded-lg py-3 px-4">
+            <View className="flex-row items-center">
+              <TriangleAlert size={16} color="#ef4444" />
+              <Text className="text-red-400 font-bold ml-2">Motion counting unavailable</Text>
             </View>
-            <Text className="text-red-400/80 text-xs">Try restarting the app or switch to Voice counting.</Text>
-            <Pressable onPress={restartMotionSensor} className="mt-3 flex-row items-center bg-red-500/20 self-start px-3 py-1.5 rounded-lg active:bg-red-500/30">
-              <RefreshCw size={14} color="#ef4444" />
-              <Text className="text-red-500 font-bold ml-1.5 text-xs">Restart Sensor</Text>
+            <Text className="text-red-300 mt-1 text-xs">Try restarting the app or switch to Voice.</Text>
+            <Pressable onPress={restartMotionSensor} className="mt-2 flex-row items-center bg-red-500/20 self-start px-3 py-1.5 rounded-lg">
+              <RefreshCw size={12} color="#ef4444" />
+              <Text className="text-red-400 font-bold ml-1.5 text-xs">Restart Sensor</Text>
             </Pressable>
           </View>
         )}
 
-        <View className="px-4 mb-6">
-          <Pressable
-            onPress={isSetActive ? handleEndSet : startSet}
-            className={`py-6 rounded-3xl items-center justify-center shadow-xl ${isSetActive ? 'bg-red-600' : 'bg-orange-500'} active:opacity-90`}
-          >
-            <Text className={`text-white font-black tracking-widest ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>
-              {isSetActive ? 'END SET' : 'START SET'}
+        <View className="flex-row px-3 mt-3">
+          {isTimed ? (
+            <TimedExerciseRunner
+              ref={timedRunnerRef}
+              exercise={currentExercise}
+              durationSeconds={timedSeconds}
+              isSetActive={isSetActive}
+              isLarge={largeDisplayMode}
+              onSetDuration={(s) => setTimedDuration(currentExercise, s)}
+              onFinalized={(h) => endTimedSet(h)}
+            />
+          ) : isPaceSetterMode ? (
+            <Pressable className="flex-1 mr-2" onPress={() => setIsPaceSetterMode(false)}>
+              <PaceSetterGauge size={largeDisplayMode ? 140 : 160} isActive={isSetActive} currentReps={currentReps} isLarge={largeDisplayMode} />
+            </Pressable>
+          ) : (
+            <Pressable
+              className={`flex-1 mr-2 border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`}
+              onPress={() => setIsPaceSetterMode(true)}
+            >
+              <Text className={`text-gray-500 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>REPS</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-orange-500 font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentReps}</Text>
+            </Pressable>
+          )}
+
+          <View className={`flex-1 ml-2 bg-gray-900 border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`}>
+            <Text className={`text-gray-500 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>SET</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentSet}</Text>
+          </View>
+        </View>
+
+        {!isTimed && (
+          <Pressable onPress={() => setIsPaceSetterMode(!isPaceSetterMode)} className="mx-3 mt-2">
+            <Text className={`text-gray-500 text-center ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+              {isPaceSetterMode ? 'Tap Pace-Setter to return to Rep Counter' : 'Tap Rep Counter to switch to Pace-Setter Mode'}
             </Text>
           </Pressable>
-        </View>
+        )}
 
-        <View className="px-4">
-          <View className="bg-gray-900 rounded-3xl p-5 border border-gray-800">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-gray-400 font-bold tracking-widest text-xs">LAST PERFORMANCE</Text>
-              <Target size={16} color="#4b5563" />
+        <View className="mx-3 mt-5 bg-gray-900 rounded-2xl p-4 border border-gray-800">
+          <View className="flex-row justify-between items-center mb-4">
+            <Text className="text-gray-400 font-bold tracking-widest text-xs">LAST PERFORMANCE</Text>
+            <Target size={16} color="#4b5563" />
+          </View>
+          {lastPerformance ? (
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Incline</Text>
+                <Text className="text-white text-2xl font-bold">Lvl {lastIncline}</Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Best Reps</Text>
+                <Text className="text-white text-2xl font-bold">{lastReps}</Text>
+              </View>
             </View>
-            {lastPerformance ? (
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Incline</Text>
-                  <Text className="text-white text-2xl font-bold">Lvl {lastIncline}</Text>
-                </View>
-                <View className="items-end">
-                  <Text className="text-gray-500 text-xs mb-1 uppercase font-medium">Best Reps</Text>
-                  <Text className="text-white text-2xl font-bold">{lastReps}</Text>
-                </View>
-              </View>
-            ) : (
-              <Text className="text-gray-600 italic">No history yet for this exercise.</Text>
-            )}
-          </View>
+          ) : (
+            <Text className="text-gray-600 italic">No history yet for this exercise.</Text>
+          )}
         </View>
-
-        {!isSetActive && (
-          <View className="px-4 mt-6">
-            <Pressable
-              onPress={() => setIsPaceSetterMode(!isPaceSetterMode)}
-              className="flex-row items-center justify-between bg-gray-900/50 rounded-2xl p-4 border border-gray-800 active:bg-gray-800"
-            >
-              <View className="flex-row items-center">
-                <View className="w-10 h-10 rounded-xl bg-orange-500/10 items-center justify-center">
-                  <RefreshCw size={20} color="#f97316" />
-                </View>
-                <View className="ml-3">
-                  <Text className="text-white font-bold">Pace-Setter Gauge</Text>
-                  <Text className="text-gray-500 text-xs">Match your speed to the goal</Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color="#4b5563" />
-            </Pressable>
-          </View>
-        )}
-
-        {isPaceSetterMode && (
-          <View className="mx-4 mt-4 bg-gray-900 rounded-3xl p-6 border border-gray-800">
-            <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-white font-bold text-lg">Pace-Setter</Text>
-              <Pressable onPress={() => setIsPaceSetterMode(false)}><X size={20} color="#6b7280" /></Pressable>
-            </View>
-            <PaceSetterGauge size={largeDisplayMode ? 180 : 220} />
-            <Text className="text-gray-500 text-center mt-6 text-sm leading-5 px-4">
-              Focus on <Text className="text-white font-bold">Time Under Tension</Text>. Match your glide to the orange bar for maximum results.
-            </Text>
-          </View>
-        )}
-
-        {!isWorkoutActive && (
-          <View className="px-4 mt-8 mb-12">
-            <Pressable
-              onPress={() => router.push('/coach')}
-              className="bg-green-600/10 border border-green-500/30 rounded-2xl p-5 flex-row items-center active:bg-green-600/20"
-            >
-              <View className="w-12 h-12 rounded-full bg-green-500 items-center justify-center">
-                <ClipboardList size={24} color="#000" />
-              </View>
-              <View className="ml-4 flex-1">
-                <Text className="text-green-500 font-black text-lg">COACH'S ROUTINES</Text>
-                <Text className="text-green-400/60 text-sm">Guided multi-set programs</Text>
-              </View>
-              <ChevronRight size={24} color="#22c55e" />
-            </Pressable>
-          </View>
-        )}
       </ScrollView>
 
       <RepConfirmationModal

@@ -1,0 +1,12 @@
+- `[x]` Fix syntax error in `unlock.tsx`
+- `[x]` Switch to Direct OpenAI Whisper calls (Voice fix)
+- `[x]` Switch AI Brain to Google Gemini (Anthropic cost savings)
+- `[x]` Set ultra-sensitive motion learning (0.05 threshold)
+- `[x]` Move "Restore Purchase" button to top of Paywall
+- `[x]` Update Codemagic ENV: Real OpenAI & Google keys live
+- `[x]` Commit and Push to GitHub (Commit: `51f379f`)
+- `[x]` Monitor Codemagic Build #71 (Confirmed Voice & Motion success!)
+- `[x]` Polish Voice Accuracy: Add "To/Too/For" homophones
+- `[x]` Monitor FINAL Production Build (Index #72 - Success 🎯)
+- `[/]` Rollout Build #72 in Google Play Console & Update Tablet
+- `[ ]` Final "Hero Set" Verification on tablet (V1.0.26)
