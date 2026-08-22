@@ -2,23 +2,23 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X, Sparkles } from 'lucide-react-native';
+
+// Break circular dependency by importing from direct files
+import { useWorkoutStore } from '@/lib/workout/store';
 import {
-  useWorkoutStore,
-  EXERCISE_GROUPS,
-  INCLINE_LEVELS,
   FREE_STYLE_GROUP,
   TIMED_GROUP,
-  CATEGORY_COLORS,
-  categoryColor,
-  getExerciseCategory,
   DEFAULT_TIMED_SECONDS,
-} from '@/lib/workout';
+  categoryColor,
+  getExerciseCategory
+} from '@/lib/workout/categories';
+import { INCLINE_LEVELS } from '@/lib/workout/types';
+
 import { useHasFullAccess } from '@/lib/purchases';
 import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
-import { useAdaptiveRepStore } from '@/lib/motion';
-import { useMotionContext } from '@/lib/motion';
+import { useAdaptiveRepStore, useMotionContext } from '@/lib/motion';
 import { useVoiceCounting } from '@/lib/voice';
 import { PaceSetterGauge } from '@/components/PaceSetterGauge';
 import { RepConfirmationModal } from '@/components/RepConfirmationModal';
@@ -27,8 +27,6 @@ import { WeightInput } from '@/components/WeightPad';
 import { TimedExerciseRunner, type TimedRunnerHandle } from '@/components/TimedExerciseRunner';
 import { RepModeToggle } from '@/components/RepModeToggle';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
-
-
 
 function ExerciseDropdown({
   value,
@@ -93,13 +91,11 @@ export default function TrackerScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
-  // Short "we adjusted the tracker" message shown in the confirm modal after a
-  // correction. null = show the normal rep-entry UI.
   const [learningMsg, setLearningMsg] = useState<string | null>(null);
   const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
 
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
-  useTextScaleSubscription(); // re-render when global text size changes
+  useTextScaleSubscription();
   const repCountingMode = useSettingsStore(s => s.repCountingMode);
   const repModeUserSet = useSettingsStore(s => s.repModeUserSet);
   const setRepCountingMode = useSettingsStore(s => s.setRepCountingMode);
@@ -108,12 +104,6 @@ export default function TrackerScreen() {
   const loadSettings = useSettingsStore(s => s.loadFromStorage);
 
   const sensitivityMultiplierMap = { low: 1.5, medium: 1.0, high: 0.6 } as const;
-
-  // The accelerometer is only "in motion" for a fraction of a rep (the start &
-  // end accelerations), so motion-duration is a poor rep length — for short-ROM
-  // moves like Calf Raises it's only ~100ms even when paced slowly. So duration
-  // is just a tiny jitter filter; the real anti-double-count gate is the cooldown
-  // (minimum time between two counted reps), derived from the user's pace.
   const jitterFloorMsMap = { low: 140, medium: 100, high: 70 } as const;
   const cooldownFloorMsMap = { low: 1000, medium: 700, high: 450 } as const;
 
@@ -160,11 +150,11 @@ export default function TrackerScreen() {
   const timedSeconds = timedDurations[currentExercise] ?? DEFAULT_TIMED_SECONDS;
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
-  // Adaptive rep counter store
   const adaptiveSetState = useAdaptiveRepStore(s => s.setState);
   const adaptiveRepCount = useAdaptiveRepStore(s => s.repCount);
   const adaptiveSetStartTime = useAdaptiveRepStore(s => s.setStartTime);
   const ignoreMotion = useAdaptiveRepStore(s => s.ignoreMotion);
+  const isLearningROM = useAdaptiveRepStore(s => s.isLearningROM);
   const adaptiveStartSet = useAdaptiveRepStore(s => s.startSet);
   const adaptiveEndSet = useAdaptiveRepStore(s => s.endSet);
   const adaptiveProcessMotion = useAdaptiveRepStore(s => s.processMotion);
@@ -177,7 +167,6 @@ export default function TrackerScreen() {
   });
   const repCooldownMs = Math.min(4000, Math.max(250, Math.round(baseRepCooldownMs * learnedCooldownFactor)));
 
-  // Motion context for raw sensor data
   const {
     motion,
     isListening,

@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet, Image as RNImage } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -269,30 +269,43 @@ function fmtHold(total: number): string {
 function FullScreenTrophyModal({ trophy, onClose }: { trophy: TrophyCardProps | null; onClose: () => void; }) {
   if (!trophy) return null;
   const IconComponent = { trophy: Trophy, target: Target, flame: Flame, trending: TrendingUp }[trophy.icon];
+
+  const goldColor = '#D4AF37';
+  const shimmerGold = '#FFD700';
+
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-6">
       <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}><Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black/95" /></Animated.View>
-      <Animated.View entering={ZoomIn.duration(300).springify().damping(18)} className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 border-orange-500 overflow-hidden shadow-2xl" style={{ marginTop: 40 }}>
+      <Animated.View entering={ZoomIn.duration(300).springify().damping(18)} className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 overflow-hidden shadow-2xl" style={{ borderColor: goldColor, marginTop: 40, shadowColor: goldColor, shadowOpacity: 0.5, shadowRadius: 20 }}>
+        <LinearGradient colors={['#1a1405', '#0f0f0f']} style={StyleSheet.absoluteFill} />
         <View className="flex-row items-center px-8 pt-8">
           <Image source={require('../../../icon.png')} style={{ width: 44, height: 44, borderRadius: 10 }} />
           <View className="ml-3">
             <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
-            <Text className="text-orange-500 font-bold text-[10px] tracking-[0.2em] -mt-1">ACHIEVEMENT</Text>
+            <Text className="font-bold text-[10px] tracking-[0.2em] -mt-1" style={{ color: shimmerGold }}>ACHIEVEMENT</Text>
           </View>
         </View>
         <View className="flex-1 items-center justify-center px-8">
-          <View className="w-40 h-40 rounded-full bg-orange-500/10 items-center justify-center mb-8 border border-orange-500/20">
-            <IconComponent size={80} color="#f97316" strokeWidth={1.5} />
+          <View className="absolute"><View style={{ width: 200, height: 200, borderRadius: 100, backgroundColor: goldColor, opacity: 0.08 }} /></View>
+          <View className="w-40 h-40 rounded-full items-center justify-center mb-8 border-2" style={{ backgroundColor: 'rgba(212,175,55,0.1)', borderColor: 'rgba(212,175,55,0.2)' }}>
+            <IconComponent size={86} color={goldColor} fill={goldColor} strokeWidth={1} />
           </View>
           <Text className="text-white font-black text-4xl text-center leading-tight mb-2">{trophy.title}</Text>
           <Text className="text-gray-400 text-xl text-center font-medium px-4">{trophy.description}</Text>
           <View className="mt-10 items-center">
-            <View className={`px-6 py-2 rounded-full border ${trophy.earned ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800 border-gray-700'}`}>
-              <Text className={`${trophy.earned ? 'text-orange-500' : 'text-gray-500'} font-black tracking-widest text-sm uppercase`}>{trophy.earned ? 'Officially Achieved' : 'Active Goal'}</Text>
+            <View className="px-6 py-2 rounded-full border" style={{ backgroundColor: trophy.earned ? 'rgba(212,175,55,0.15)' : 'rgba(75,85,99,0.2)', borderColor: trophy.earned ? 'rgba(212,175,55,0.3)' : 'rgba(75,85,99,0.3)' }}>
+              <Text className="font-black tracking-widest text-sm uppercase" style={{ color: trophy.earned ? shimmerGold : '#6b7280' }}>{trophy.earned ? 'Officially Achieved' : 'Active Goal'}</Text>
             </View>
-            {trophy.earned && trophy.dateLabel && <Text className="text-gray-500 mt-2 font-bold">{trophy.dateLabel}</Text>}
+            {trophy.earned && trophy.dateLabel && (
+              <View className="mt-3 items-center">
+                <Text className="text-gray-500 text-[10px] uppercase font-bold tracking-tighter mb-0.5">Certified Date</Text>
+                <Text className="text-white font-bold text-base">{trophy.dateLabel}</Text>
+              </View>
+            )}
           </View>
         </View>
+        <View className="absolute bottom-6 right-8"><Sparkles size={28} color={shimmerGold} opacity={0.4} /></View>
+        <View className="absolute top-24 right-12"><Sparkles size={14} color={shimmerGold} opacity={0.2} /></View>
       </Animated.View>
       <Pressable onPress={onClose} className="mt-8 bg-gray-800 w-12 h-12 rounded-full items-center justify-center active:bg-gray-700 border border-gray-600"><X size={24} color="#9ca3af" /></Pressable>
       <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-widest">Tap anywhere to close</Text>
@@ -416,7 +429,7 @@ export default function TrophiesScreen() {
 
   return (
     <>
-    <ScrollView ref={scrollRef} className="flex-1 bg-black" contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
+    <ScrollView ref={scrollRef} className="flex-1 bg-black" contentContainerStyle={{ paddingTop: insets.top + 20, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
       <View className="items-center mt-4"><Text className={largeDisplayMode ? 'text-4xl' : 'text-5xl'}>🏆</Text><Text className={`text-white font-bold mt-2 ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>Achievements</Text><Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-base' : 'text-sm'}`}>{earnedCount} trophies earned</Text></View>
       <View className="mx-4 mt-6 bg-gray-900 rounded-2xl p-4"><Text className={`text-gray-400 mb-3 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Your Stats</Text><View className="flex-row justify-between items-center py-2"><Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Total Reps</Text><Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.totalReps}</Text></View><View className="flex-row justify-between items-center py-2"><Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Current Streak</Text><Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.streak} days</Text></View><View className="flex-row justify-between items-center py-2"><Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Weekly Streak</Text><Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.weeklyStreak} {stats.weeklyStreak === 1 ? 'week' : 'weeks'}</Text></View><View className="flex-row justify-between items-center py-2"><Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Workouts This Week</Text><Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.workoutsThisWeek}</Text></View></View>
       <CollapsibleSection title="Trophy Shelf" isLarge={largeDisplayMode} {...sectionProps('shelf')}><View className="flex-row flex-wrap px-2">{trophyShelf.map((trophy, index) => (<View key={index} className="w-1/2"><TrophyCard {...trophy} isLarge={largeDisplayMode} isSelectable={true} onPress={() => handleTrophyPress({ ...trophy, isLarge: largeDisplayMode })} /></View>))}</View></CollapsibleSection>
