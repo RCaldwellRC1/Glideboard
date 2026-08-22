@@ -11,7 +11,7 @@ import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, AppState, StyleSheet, Image, Animated, type AppStateStatus } from 'react-native';
+import { View, Text, Pressable, AppState, StyleSheet, Image, Animated, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
