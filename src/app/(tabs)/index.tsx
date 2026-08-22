@@ -4,15 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X, Sparkles } from 'lucide-react-native';
 
-// Break circular dependency by importing from direct files
 import { useWorkoutStore } from '@/lib/workout/store';
 import {
-  FREE_STYLE_GROUP,
-  TIMED_GROUP,
   DEFAULT_TIMED_SECONDS,
   categoryColor,
   getExerciseCategory
 } from '@/lib/workout/categories';
+import { FREE_STYLE_GROUP, TIMED_GROUP } from '@/lib/workout/constants';
 import { INCLINE_LEVELS } from '@/lib/workout/types';
 
 import { useHasFullAccess } from '@/lib/purchases';
@@ -211,9 +209,13 @@ export default function TrackerScreen() {
     loadSettings();
     loadAdaptiveProfiles();
 
-    // Delayed hardware start
+    // START MOTION SENSOR MANUALLY AFTER MOUNT
+    // This is the definitive fix for Android startup crashes caused by
+    // early hardware sensor probes.
     setTimeout(() => {
-      startMotionSensor().catch(() => {});
+        startMotionSensor().catch(err => {
+            console.warn('[TRACKER] Failed to start motion sensor:', err);
+        });
     }, 1000);
   }, []);
 

@@ -10,8 +10,8 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Pressable, AppState, type AppStateStatus } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, AppState, StyleSheet, Image, Animated, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { vars } from 'nativewind';
 import { useSettingsStore, getFontSizeVars } from '@/lib/settings/store';
@@ -62,6 +62,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appIsReady, setAppIsReady] = useState(false);
+  const [showGreeting, setShowGreeting] = useState(false);
 
   useKeepAwake();
 
@@ -72,22 +73,21 @@ export default function RootLayout() {
         await useSettingsStore.getState().loadFromStorage().catch(() => {});
       } finally {
         setAppIsReady(true);
+        setShowGreeting(true);
       }
     }
     prepare();
   }, []);
 
   useEffect(() => {
-    if (appIsReady) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [appIsReady]);
-
-  useEffect(() => {
     const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
       focusManager.setFocused(status === 'active');
     });
     return () => sub.remove();
+  }, []);
+
+  const onGreetingFinish = useCallback(() => {
+    setShowGreeting(false);
   }, []);
 
   if (!appIsReady) {
@@ -99,14 +99,66 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
+            {/*
+                HARDWARE ISOLATION: autoStart={false}
+                Ensures we never touch sensors until the user is well past the boot phase.
+            */}
             <MotionProvider updateInterval={16} smoothingFactor={0.8} autoStart={false}>
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
               <RootLayoutNav colorScheme={colorScheme} />
+              {showGreeting && (
+                <CustomGreeting onFinish={onGreetingFinish} />
+              )}
             </MotionProvider>
           </KeyboardProvider>
         </GestureHandlerRootView>
       </QueryClientProvider>
     </RootErrorBoundary>
+  );
+}
+
+function CustomGreeting({ onFinish }: { onFinish: () => void }) {
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Hide the native splash immediately once the greeting is rendered.
+    // Wrapped in timeout to give the JS layer a frame to stabilize.
+    setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, 50);
+
+    const timeout = setTimeout(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }).start(() => {
+        onFinish();
+      });
+    }, 2000);
+    return () => clearTimeout(timeout);
+  }, [fadeAnim, onFinish]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        StyleSheet.absoluteFill,
+        { backgroundColor: '#000', alignItems: 'center', justifyContent: 'center', zIndex: 1000, opacity: fadeAnim },
+      ]}
+    >
+      <View style={{ alignItems: 'center' }}>
+        <Image
+          source={require('../../icon.png')}
+          style={{ width: 140, height: 140, borderRadius: 28 }}
+          resizeMode="contain"
+        />
+        <View style={{ marginTop: 32, alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: '900', fontSize: 60, textAlign: 'center' }}>Hi</Text>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 30, textAlign: 'center', marginTop: 8 }}>Let's Do This!</Text>
+        </View>
+      </View>
+    </Animated.View>
   );
 }
 
