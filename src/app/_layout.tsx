@@ -10,7 +10,7 @@ import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { MotionProvider } from '@/lib/motion';
 import { remoteLog, initRemoteLog } from '@/lib/remoteLog';
 import { isStoreConfigured } from '@/lib/purchases';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, AppState, type AppStateStatus } from 'react-native';
 import { Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { vars } from 'nativewind';
