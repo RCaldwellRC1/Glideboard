@@ -431,6 +431,9 @@ function FullScreenTrophyModal({
     trending: TrendingUp,
   }[trophy.icon];
 
+  const goldColor = '#D4AF37';
+  const shimmerGold = '#FFD700';
+
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-6">
       <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}>
@@ -439,9 +442,14 @@ function FullScreenTrophyModal({
 
       <Animated.View
         entering={ZoomIn.duration(300).springify().damping(18)}
-        className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 border-orange-500 overflow-hidden shadow-2xl"
-        style={{ marginTop: 40 }}
+        className="w-full max-w-md aspect-[3/4] bg-gray-900 rounded-[40px] border-4 overflow-hidden shadow-2xl"
+        style={{ borderColor: goldColor, marginTop: 40, shadowColor: goldColor, shadowOpacity: 0.5, shadowRadius: 20 }}
       >
+        <LinearGradient
+          colors={['#1a1405', '#0f0f0f']}
+          style={StyleSheet.absoluteFill}
+        />
+
         {/* Glideboard Branding Header */}
         <View className="flex-row items-center px-8 pt-8">
           <Image
@@ -450,15 +458,23 @@ function FullScreenTrophyModal({
           />
           <View className="ml-3">
             <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
-            <Text className="text-orange-500 font-bold text-[10px] tracking-[0.2em] -mt-1">ACHIEVEMENT</Text>
+            <Text className="font-bold text-[10px] tracking-[0.2em] -mt-1" style={{ color: shimmerGold }}>ACHIEVEMENT</Text>
           </View>
         </View>
 
         <View className="flex-1 items-center justify-center px-8">
+          {/* Glowing backdrop for the trophy */}
+          <View className="absolute">
+            <View
+              style={{ width: 200, height: 200, borderRadius: 100, backgroundColor: goldColor, opacity: 0.08 }}
+            />
+          </View>
+
           <View
-            className="w-40 h-40 rounded-full items-center justify-center mb-8 border-2 border-orange-500/20 bg-orange-500/10"
+            className="w-40 h-40 rounded-full items-center justify-center mb-8 border-2"
+            style={{ backgroundColor: 'rgba(212,175,55,0.1)', borderColor: 'rgba(212,175,55,0.2)' }}
           >
-            <IconComponent size={80} color="#f97316" strokeWidth={1.5} />
+            <IconComponent size={86} color={goldColor} fill={goldColor} strokeWidth={1} />
           </View>
 
           <Text className="text-white font-black text-4xl text-center leading-tight mb-2">
@@ -470,15 +486,32 @@ function FullScreenTrophyModal({
           </Text>
 
           <View className="mt-10 items-center">
-            <View className={`px-6 py-2 rounded-full border ${trophy.earned ? 'bg-orange-500/20 border-orange-500/30' : 'bg-gray-800 border-gray-700'}`}>
-              <Text className={`${trophy.earned ? 'text-orange-500' : 'text-gray-500'} font-black tracking-widest text-sm uppercase`}>
+            <View
+              className="px-6 py-2 rounded-full border"
+              style={{
+                backgroundColor: trophy.earned ? 'rgba(212,175,55,0.15)' : 'rgba(75,85,99,0.2)',
+                borderColor: trophy.earned ? 'rgba(212,175,55,0.3)' : 'rgba(75,85,99,0.3)'
+              }}
+            >
+              <Text className="font-black tracking-widest text-sm uppercase" style={{ color: trophy.earned ? shimmerGold : '#6b7280' }}>
                 {trophy.earned ? 'Officially Achieved' : 'Active Goal'}
               </Text>
             </View>
             {trophy.earned && trophy.dateLabel && (
-              <Text className="text-gray-500 mt-2 font-bold">{trophy.dateLabel}</Text>
+              <View className="mt-3 items-center">
+                <Text className="text-gray-500 text-[10px] uppercase font-bold tracking-tighter mb-0.5">Certified Date</Text>
+                <Text className="text-white font-bold text-base">{trophy.dateLabel}</Text>
+              </View>
             )}
           </View>
+        </View>
+
+        {/* Decorative shimmering accents */}
+        <View className="absolute bottom-6 right-8">
+          <Sparkles size={28} color={shimmerGold} opacity={0.4} />
+        </View>
+        <View className="absolute top-24 right-12">
+          <Sparkles size={14} color={shimmerGold} opacity={0.2} />
         </View>
       </Animated.View>
 
@@ -557,7 +590,7 @@ export default function TrophiesScreen() {
   const [chartExercise, setChartExercise] = useState<string | null>(null);
 
   // The trophy card expanded to full screen for sharing (null when closed).
-  const [expandedTrophy, setExpandedTrophy] = useState<TrophyCardProps | null>(null);
+  const [expandedTrophy, setExpandedTrophy] = useState< TrophyCardProps | null >(null);
 
   const handleTrophyPress = useCallback((props: TrophyCardProps) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

@@ -61,18 +61,27 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [appIsReady, setAppIsReady] = useState(false);
 
   useKeepAwake();
 
   useEffect(() => {
-    // Definitive Minimal Boot: just hide the splash and go.
-    // Removes all async bottlenecks that could trigger an Android crash.
-    SplashScreen.hideAsync().catch(() => {});
-
-    // Background init
-    initRemoteLog().catch(() => {});
-    useSettingsStore.getState().loadFromStorage().catch(() => {});
+    async function prepare() {
+      try {
+        await initRemoteLog().catch(() => {});
+        await useSettingsStore.getState().loadFromStorage().catch(() => {});
+      } finally {
+        setAppIsReady(true);
+      }
+    }
+    prepare();
   }, []);
+
+  useEffect(() => {
+    if (appIsReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [appIsReady]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (status: AppStateStatus) => {
@@ -80,6 +89,10 @@ export default function RootLayout() {
     });
     return () => sub.remove();
   }, []);
+
+  if (!appIsReady) {
+    return <View style={{ flex: 1, backgroundColor: '#000' }} />;
+  }
 
   return (
     <RootErrorBoundary>
@@ -131,7 +144,7 @@ class RootErrorBoundary extends React.Component<
             Something went wrong
           </Text>
           <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
-            DEBUG ERROR: {this.state.message}
+            DEBUG ERROR: {String(this.state.message)}
           </Text>
           <Text style={{ color: '#9ca3af', fontSize: 12, marginBottom: 24, textAlign: 'center' }}>
             Please report the message above.
