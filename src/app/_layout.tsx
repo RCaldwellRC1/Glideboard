@@ -65,22 +65,13 @@ export default function RootLayout() {
   useKeepAwake();
 
   useEffect(() => {
-    async function init() {
-      try {
-        const purchaseMode = isStoreConfigured ? 'REAL' : 'SIMULATED';
-        console.log(`[PURCHASES] mode: ${purchaseMode}`);
+    // Definitive Minimal Boot: just hide the splash and go.
+    // Removes all async bottlenecks that could trigger an Android crash.
+    SplashScreen.hideAsync().catch(() => {});
 
-        await initRemoteLog();
-        remoteLog('app_open', { platform: 'mobile' });
-
-        await useSettingsStore.getState().loadFromStorage();
-      } catch (err) {
-        console.warn('[BOOT] Init error:', err);
-      } finally {
-        SplashScreen.hideAsync().catch(() => {});
-      }
-    }
-    init();
+    // Background init
+    initRemoteLog().catch(() => {});
+    useSettingsStore.getState().loadFromStorage().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -96,9 +87,8 @@ export default function RootLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
           <KeyboardProvider>
             {/*
-                CRITICAL STABILITY FIX: autoStart={false}
-                We prevent the hardware sensor probe from running during boot.
-                It is manually started once the Tracker (index.tsx) mounts.
+                HARDWARE ISOLATION: autoStart={false}
+                Ensures we never touch sensors until the user is well past the boot phase.
             */}
             <MotionProvider updateInterval={16} smoothingFactor={0.8} autoStart={false}>
               <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
@@ -144,7 +134,7 @@ class RootErrorBoundary extends React.Component<
             DEBUG ERROR: {this.state.message}
           </Text>
           <Text style={{ color: '#9ca3af', fontSize: 12, marginBottom: 24, textAlign: 'center' }}>
-            Please report the red message above to support.
+            Please report the message above.
           </Text>
           <Pressable
             onPress={() => this.setState({ hasError: false, message: '' })}
