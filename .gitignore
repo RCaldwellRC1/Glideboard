@@ -51,3 +51,12 @@ release.keystore
 .env
 google-play-service-account.json
 google-play-key.json
+
+# Build and IDE
+app/
+build/
+*.apk
+*.aab
+.idea/
+expo_log.txt
+package-lock.json

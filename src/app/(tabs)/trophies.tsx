@@ -446,8 +446,8 @@ function FullScreenTrophyModal({
         entering={ZoomIn.duration(300).springify().damping(18)}
         className={`w-full max-w-md aspect-[3/4] rounded-[40px] border-4 overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
         style={{
-          borderColor: trophy.earned ? goldColor : '#374151',
-          marginTop: 80,
+          borderColor: trophy.earned ? goldColor : '#4b5563',
+          marginTop: 60,
           shadowColor: trophy.earned ? goldColor : '#000',
           shadowOpacity: 0.5,
           shadowRadius: 20
@@ -461,8 +461,8 @@ function FullScreenTrophyModal({
         )}
 
         {/* Glideboard Branding Header */}
-        <View className="items-center px-8 pt-8 w-full">
-          <View className="flex-row items-center justify-center">
+        <View className="pt-8 w-full items-center justify-center">
+          <View className="flex-row items-center">
             <Image
               source={require('../../../icon.png')}
               style={{ width: 44, height: 44, borderRadius: 10 }}

@@ -19,10 +19,12 @@ module.exports = ({ config }) => ({
     ...config.android,
     // Priority: Math.max(CI environment variable, app.json, default 1)
     // Ensures version code only ever goes UP even if CI build number resets.
-    versionCode: Math.max(
-      Number.parseInt(process.env.BUILD_NUMBER, 10) || 0,
-      config.android?.versionCode || 0,
-      1
-    ),
+    versionCode: (() => {
+      const buildNum = Number.parseInt(process.env.BUILD_NUMBER, 10) || 0;
+      const jsonVersion = config.android?.versionCode || 0;
+      const finalVersion = Math.max(buildNum, jsonVersion, 250);
+      console.log(`[BUILD] Build Number: ${buildNum}, JSON Version: ${jsonVersion}, Final Version: ${finalVersion}`);
+      return finalVersion;
+    })(),
   },
 });
