@@ -428,16 +428,24 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   getLastPerformance: (exercise: string, inclineLevel: number) => {
     const state = get();
 
-    // Look through completed workouts (not current workout in progress)
-    // to find the last time this exercise/incline was performed
+    // Directly use the maintained exerciseHistory array, which is updated on every set end.
+    // This is much faster and more reliable than scanning the full workoutHistory.
+    const history = state.exerciseHistory.find(
+      h => h.exercise.trim().toLowerCase() === exercise.trim().toLowerCase() && h.inclineLevel === inclineLevel
+    );
+
+    if (history) {
+      return history;
+    }
+
+    // Fallback: search workoutHistory if exerciseHistory is somehow empty (unlikely with persistence)
     for (let i = state.workoutHistory.length - 1; i >= 0; i--) {
       const workout = state.workoutHistory[i];
       const matchingSets = workout.sets.filter(
-        s => s.exercise === exercise && s.inclineLevel === inclineLevel
+        s => s.exercise.trim().toLowerCase() === exercise.trim().toLowerCase() && s.inclineLevel === inclineLevel
       );
 
       if (matchingSets.length > 0) {
-        // Find the best reps from this workout session
         const bestReps = Math.max(...matchingSets.map(s => s.reps));
         return {
           exercise,

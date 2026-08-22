@@ -417,6 +417,7 @@ function fmtHold(total: number): string {
 }
 
 // Full-screen pop-out for trophies to make them shareable on social media.
+// Full-screen pop-out for trophies to make them shareable on social media.
 function FullScreenTrophyModal({
   trophy,
   onClose
@@ -442,7 +443,7 @@ function FullScreenTrophyModal({
   const rotation = useSharedValue(0);
   useEffect(() => {
     if (trophy.earned) {
-      rotation.value = withRepeat(withTiming(360, { duration: 20000 }), -1, false);
+      rotation.value = withRepeat(withTiming(360, { duration: 25000 }), -1, false);
     } else {
       rotation.value = 0;
     }
@@ -464,7 +465,7 @@ function FullScreenTrophyModal({
         style={{
           borderColor: trophy.earned ? shimmerGold : '#4b5563',
           marginTop: 40,
-          shadowColor: trophy.earned ? shimmerGold : '#000',
+          shadowColor: trophy.earned ? goldColor : '#000',
           shadowOpacity: 0.8,
           shadowRadius: 30,
           elevation: 20,
@@ -482,19 +483,19 @@ function FullScreenTrophyModal({
         {/* Shimmering Starburst Background */}
         {trophy.earned && (
           <Animated.View
-            style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', opacity: 0.15 }, starburstStyle]}
+            style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', opacity: 0.12 }, starburstStyle]}
             pointerEvents="none"
           >
-             <Svg width="600" height="600" viewBox="0 0 100 100">
-                {[...Array(12)].map((_, i) => (
+             <Svg width="800" height="800" viewBox="0 0 100 100">
+                {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
                   <Rect
-                    key={i}
-                    x="48"
+                    key={deg}
+                    x="49"
                     y="-50"
-                    width="4"
+                    width="2"
                     height="200"
                     fill={shimmerGold}
-                    transform={`rotate(${i * 30}, 50, 50)`}
+                    transform={`rotate(${deg}, 50, 50)`}
                   />
                 ))}
              </Svg>
@@ -520,10 +521,9 @@ function FullScreenTrophyModal({
         <View className="flex-1 items-center justify-center px-8">
           {/* Glowing backdrop for the trophy */}
           {trophy.earned && (
-            <View className="absolute">
-               <LinearGradient
-                  colors={[brightGold, 'transparent']}
-                  style={{ width: 300, height: 300, borderRadius: 150, opacity: 0.1 }}
+            <View className="absolute items-center justify-center">
+               <View
+                  style={{ width: 300, height: 300, borderRadius: 150, backgroundColor: brightGold, opacity: 0.08 }}
                 />
             </View>
           )}
