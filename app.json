@@ -3,7 +3,7 @@
     "name": "Glideboard",
     "slug": "glideboard",
     "scheme": "vibecode",
-    "version": "1.2.2",
+    "version": "1.2.4",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -15,12 +15,12 @@
         "NSMotionUsageDescription": "Glideboard uses motion sensors to automatically count your reps as you exercise."
       },
       "bundleIdentifier": "com.robertcaldwell.vibecode",
-      "buildNumber": "43"
+      "buildNumber": "44"
     },
     "android": {
       "edgeToEdgeEnabled": true,
       "package": "com.robertcaldwell.vibecode",
-      "versionCode": 235,
+      "versionCode": 237,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES"
