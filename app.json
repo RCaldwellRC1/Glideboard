@@ -3,7 +3,7 @@
     "name": "Glideboard",
     "slug": "glideboard",
     "scheme": "vibecode",
-    "version": "1.0.44",
+    "version": "1.0.45",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -20,7 +20,7 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "package": "com.robertcaldwell.vibecode",
-      "versionCode": 213,
+      "versionCode": 214,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES"

@@ -140,8 +140,11 @@ class RootErrorBoundary extends React.Component<
           <Text style={{ color: '#fff', fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
             Something went wrong
           </Text>
-          <Text style={{ color: '#9ca3af', fontSize: 14, marginBottom: 24, textAlign: 'center' }}>
-            The app ran into an unexpected error. Please try again.
+          <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
+            DEBUG ERROR: {this.state.message}
+          </Text>
+          <Text style={{ color: '#9ca3af', fontSize: 12, marginBottom: 24, textAlign: 'center' }}>
+            Please report the red message above to support.
           </Text>
           <Pressable
             onPress={() => this.setState({ hasError: false, message: '' })}
