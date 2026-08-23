@@ -774,8 +774,6 @@ export default function TrophiesScreen() {
       d.setHours(0, 0, 0, 0);
       return d.getTime();
     };
-      return d.getTime();
-    };
     // Index 0 = current week, 1 = last week, 2 = two weeks ago, ...
     const weekCounts = new Map<number, number>();
     workoutHistory.forEach(w => {

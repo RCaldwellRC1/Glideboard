@@ -240,13 +240,13 @@ export default function HistoryScreen() {
   const totalReps = allSets.reduce((sum: number, s: WorkoutSet) => sum + s.reps, 0);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ScrollView
-        ref={scrollRef}
-        className="flex-1"
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
-        showsVerticalScrollIndicator={false}
-      >
+    <ScrollView
+      ref={scrollRef}
+      style={{ backgroundColor: theme.background }}
+      className="flex-1"
+      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Title */}
       <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38), color: theme.text }} className="font-bold text-center mt-6">
         Workout
@@ -485,6 +485,5 @@ export default function HistoryScreen() {
         onCancel={() => setEditingSet(null)}
       />
     </ScrollView>
-    </View>
   );
 }
