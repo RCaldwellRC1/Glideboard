@@ -33,7 +33,7 @@ workflows:
           echo "OK: bun $(bun --version) at $(command -v bun)"
 
       - name: Install dependencies
-        script: bun install --frozen-lockfile
+        script: bun install
 
       - name: Expo prebuild (android)
         script: npx expo prebuild --platform android --clean
