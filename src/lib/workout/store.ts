@@ -1,10 +1,28 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import type { Workout, WorkoutSet, ExerciseHistory } from './types';
 import { EXERCISE_GROUPS } from './types';
 import { getExerciseCategory } from './categories';
 import { remoteLog } from '@/lib/remoteLog';
 import { useSettingsStore } from '@/lib/settings/store';
+import { calculateCurrentStreak } from './prs';
+
+/**
+ * Updates the app icon badge to reflect the current workout streak.
+ * Standard "Reward" mechanism to encourage user consistency.
+ */
+async function updateAppIconBadge(history: Workout[]) {
+  try {
+    const streak = calculateCurrentStreak(history);
+    // On Android, badges are often handled by the launcher. Some support
+    // numbers, others just show a dot. expo-notifications handles the heavy lifting.
+    await Notifications.setBadgeCountAsync(streak);
+  } catch (error) {
+    // Fail silently - badges are a nice-to-have "reward" and shouldn't block the app.
+    console.warn('[BADGE] Failed to update icon badge:', error);
+  }
+}
 
 // All built-in exercise names, lowercased, for de-duping custom exercises that
 // have since been promoted to native (e.g. Hammer Curls, Tricep Dips,
@@ -136,6 +154,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       timedDurations: { ...prev.timedDurations, [exercise]: safe },
     }));
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   endTimedSet: (seconds: number) => {
@@ -160,6 +179,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     remoteLog('timed_set_ended', { exercise: state.currentExercise, seconds: held });
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   addCustomExercise: (group: string, name: string) => {
@@ -181,6 +201,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     });
     remoteLog('custom_exercise_added', { group, name: trimmed });
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   renameCustomExercise: (group: string, oldName: string, newName: string) => {
@@ -221,6 +242,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     });
     remoteLog('custom_exercise_renamed', { group, oldName, newName: trimmed });
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   markPRsSeen: (keys: string[]) => {
@@ -229,6 +251,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     if (merged.length === state.seenPRs.length) return;
     set({ seenPRs: merged });
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   startWorkout: () => {
@@ -243,6 +266,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     // Persist immediately so an accidental app-close mid-workout can be
     // recovered and auto-saved on the next launch.
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   endWorkout: (meta) => {
@@ -280,6 +304,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     });
 
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
 
     // Voice counting persists for the whole workout, but each workout should
     // START on Motion (the primary auto-counter) — so reset the mode here, when
@@ -356,6 +381,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }));
 
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   cancelSet: () => {
@@ -392,6 +418,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const safe = Math.min(500, Math.max(1, Math.round(weight)));
     set({ currentWeight: safe });
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   resetReps: () => {
@@ -410,6 +437,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       }),
     }));
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   deleteSet: (workoutId: string, setIndex: number) => {
@@ -423,6 +451,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         .filter(w => w.sets.length > 0),
     }));
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   getLastPerformance: (exercise: string, inclineLevel: number) => {
@@ -521,6 +550,9 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           JSON.stringify(parsed.customExercises ?? {}) !==
           JSON.stringify(pruneNativeDuplicates(parsed.customExercises ?? {}));
         if (recoveredDate || prunedChanged) get().saveToStorage();
+
+        // Update badge on load to ensure home screen matches current data
+        updateAppIconBadge(history);
       }
     } catch (error) {
       console.error('Failed to load workout data:', error);

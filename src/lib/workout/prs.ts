@@ -29,6 +29,45 @@ export function formatTrophyDate(d: Date | string | number): string {
   });
 }
 
+/**
+ * Calculates the current daily workout streak.
+ * A streak stays alive as long as the most recent workout was today OR
+ * yesterday.
+ */
+export function calculateCurrentStreak(workoutHistory: Workout[]): number {
+  if (workoutHistory.length === 0) return 0;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const workoutDays = new Set(
+    workoutHistory.map(w => {
+      const d = new Date(w.date);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    })
+  );
+
+  let streak = 0;
+  const cursor = new Date(today);
+
+  // If there's no workout today, the streak can still be intact through
+  // yesterday, so start counting from yesterday in that case.
+  if (!workoutDays.has(cursor.getTime())) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  // Only count if the starting day (today or yesterday) actually has a workout.
+  if (workoutDays.has(cursor.getTime())) {
+    while (workoutDays.has(cursor.getTime())) {
+      streak++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+  }
+
+  return streak;
+}
+
 function startOfDay(d: Date | string | number): number {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);

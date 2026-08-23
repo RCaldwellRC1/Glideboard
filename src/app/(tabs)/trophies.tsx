@@ -21,6 +21,7 @@ import * as Haptics from 'expo-haptics';
 import {
   useWorkoutStore,
   formatTrophyDate,
+  calculateCurrentStreak,
   getExercisePRDate,
   getFirstWorkoutDate,
   getRepMilestoneDate,
@@ -484,16 +485,16 @@ function FullScreenTrophyModal({
 
         {/* Glideboard Branding Header */}
         <View className="pt-8 w-full items-center justify-center">
-          <View className="flex-row items-center bg-black/40 px-5 py-2 rounded-2xl border border-white/5">
+          <View className="flex-row items-center bg-black/40 px-5 py-2.5 rounded-2xl border border-white/5">
             <Image
               source={require('../../../icon.png')}
-              style={{ width: 42, height: 42, borderRadius: 10 }}
+              style={{ width: 44, height: 44, borderRadius: 10 }}
               contentFit="contain"
             />
             <View className="ml-3">
               <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
-              <Text className={`font-bold text-[10px] tracking-[0.3em] -mt-1 ${trophy.earned ? 'text-yellow-400' : 'text-gray-500'}`}>
-                ACHIEVEMENT
+              <Text className={`font-bold text-[9px] tracking-[0.4em] -mt-1 ${trophy.earned ? 'text-yellow-400' : 'text-gray-500'}`}>
+                OFFICIAL ACHIEVEMENT
               </Text>
             </View>
           </View>
@@ -504,34 +505,34 @@ function FullScreenTrophyModal({
           {trophy.earned && (
             <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                <View
-                  style={{ width: 300, height: 300, borderRadius: 150, backgroundColor: brightGold, opacity: 0.04, borderStyle: 'dashed', borderWidth: 15, borderColor: brightGold }}
+                  style={{ width: 280, height: 300, borderRadius: 150, backgroundColor: brightGold, opacity: 0.03, borderStyle: 'dashed', borderWidth: 10, borderColor: brightGold }}
                 />
             </Animated.View>
           )}
 
           <View
-            className="w-40 h-40 rounded-full items-center justify-center mb-8 border-4 shadow-xl"
+            className="w-36 h-36 rounded-full items-center justify-center mb-6 border-4 shadow-xl"
             style={{
-              backgroundColor: trophy.earned ? 'rgba(253,185,49,0.1)' : 'rgba(75,85,99,0.08)',
-              borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.2)',
+              backgroundColor: trophy.earned ? 'rgba(253,185,49,0.08)' : 'rgba(75,85,99,0.06)',
+              borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.15)',
               shadowColor: trophy.earned ? brightGold : 'transparent',
-              shadowOpacity: 0.4,
-              shadowRadius: 12,
+              shadowOpacity: 0.3,
+              shadowRadius: 10,
             }}
           >
             <IconComponent
-              size={80}
+              size={72}
               color={trophy.earned ? shimmerGold : '#4b5563'}
               fill={trophy.earned ? brightGold : 'transparent'}
               strokeWidth={trophy.earned ? 1.5 : 1}
             />
           </View>
 
-          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-4xl text-center leading-tight mb-2`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-3xl text-center leading-tight mb-2`}>
             {trophy.title}
           </Text>
 
-          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-300' : 'text-gray-600'} text-lg text-center font-semibold px-4 italic`}>
+          <Text adjustsFontSizeToFit numberOfLines={3} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-600'} text-base text-center font-bold px-6 italic leading-snug`}>
             {trophy.description}
           </Text>
 
@@ -539,18 +540,18 @@ function FullScreenTrophyModal({
             <View
               className="px-6 py-2.5 rounded-full border-2"
               style={{
-                backgroundColor: trophy.earned ? 'rgba(253,185,49,0.15)' : 'rgba(75,85,99,0.15)',
-                borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.3)'
+                backgroundColor: trophy.earned ? 'rgba(253,185,49,0.1)' : 'rgba(75,85,99,0.1)',
+                borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.2)'
               }}
             >
-              <Text className="font-black tracking-[0.2em] text-xs uppercase" style={{ color: trophy.earned ? lightGold : '#6b7280' }}>
-                {trophy.earned ? 'Achievement Unlocked' : 'Active Mission'}
+              <Text className="font-black tracking-[0.25em] text-[10px] uppercase" style={{ color: trophy.earned ? lightGold : '#6b7280' }}>
+                {trophy.earned ? 'Milestone Unlocked' : 'Training Mission'}
               </Text>
             </View>
             {trophy.earned && trophy.dateLabel && (
               <View className="mt-4 items-center">
-                <Text className="text-gray-500 text-[9px] uppercase font-black tracking-[0.2em] mb-0.5">First Achieved</Text>
-                <Text className="text-white font-bold text-lg">{trophy.dateLabel}</Text>
+                <Text className="text-gray-600 text-[9px] uppercase font-black tracking-[0.3em] mb-0.5">First Achieved</Text>
+                <Text className="text-white font-bold text-base">{trophy.dateLabel}</Text>
               </View>
             )}
           </View>
@@ -701,33 +702,7 @@ export default function TrophiesScreen() {
     );
 
     // Calculate current streak.
-    // A streak stays alive as long as the most recent workout was today OR
-    // yesterday (you haven't necessarily worked out yet today). We then walk
-    // backwards one calendar day at a time counting consecutive workout days.
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const workoutDays = new Set(
-      workoutHistory.map(w => {
-        const d = new Date(w.date);
-        d.setHours(0, 0, 0, 0);
-        return d.getTime();
-      })
-    );
-
-    let streak = 0;
-    const cursor = new Date(today);
-    // If there's no workout today, the streak can still be intact through
-    // yesterday, so start counting from yesterday in that case.
-    if (!workoutDays.has(cursor.getTime())) {
-      cursor.setDate(cursor.getDate() - 1);
-    }
-    // Only count if the starting day (today or yesterday) actually has a workout.
-    if (workoutDays.has(cursor.getTime())) {
-      while (workoutDays.has(cursor.getTime())) {
-        streak++;
-        cursor.setDate(cursor.getDate() - 1);
-      }
-    }
+    const streak = calculateCurrentStreak(workoutHistory);
 
     // Workouts in the last 7 days (rolling window).
     // This drives the "3 times in one week" badge. We use a rolling 7-day
