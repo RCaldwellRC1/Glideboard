@@ -485,5 +485,6 @@ export default function HistoryScreen() {
       />
 
     </ScrollView>
+    </View>
   );
 }
