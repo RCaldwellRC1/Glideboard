@@ -539,7 +539,7 @@ export default function TrackerScreen() {
           </Pressable>
         )}
 
-        <View className="mx-3 mt-5 bg-gray-900 rounded-2xl p-4 border border-gray-800">
+        <View className="mx-3 mt-5 bg-gray-900 rounded-2xl p-5 border border-gray-800 min-h-[140px] justify-center">
           {targetReps === 0 ? (
             <View>
               <View className="flex-row justify-between items-center mb-4">
@@ -550,12 +550,20 @@ export default function TrackerScreen() {
             </View>
           ) : (
             <View>
-              <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-gray-400 font-bold tracking-widest text-xs uppercase">Goal: Beat {targetReps} reps</Text>
-                <Target size={16} color="#f97316" />
+              <View className="mb-4">
+                <View className="flex-row justify-between items-start">
+                  <View className="flex-1 mr-4">
+                    <Text className="text-gray-400 font-bold tracking-tight text-sm uppercase">Your Highest Reps on</Text>
+                    <Text className="text-orange-500 font-black text-lg uppercase leading-tight mt-0.5">
+                      {currentExercise} {levelLabel}
+                    </Text>
+                    <Text className="text-gray-400 font-bold tracking-tight text-sm uppercase mt-0.5">Let's Beat It!</Text>
+                  </View>
+                  <Target size={24} color="#f97316" />
+                </View>
               </View>
 
-              <View className={`bg-gray-800 rounded-lg flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-10' : 'h-12'}`}>
+              <View className={`bg-gray-800 rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'}`}>
                 {/* Progress Bar Fill */}
                 <View
                   className={`h-full ${currentReps > targetReps ? 'bg-green-500' : 'bg-orange-500'} rounded-l-lg`}
@@ -564,16 +572,20 @@ export default function TrackerScreen() {
 
                 {/* Text overlay */}
                 <View className="absolute inset-0 flex-row items-center justify-center">
-                  <Text numberOfLines={1} className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+                  <Text numberOfLines={1} className={`text-white font-black ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
                     {currentReps} / {targetReps}
                   </Text>
                 </View>
 
                 {/* Target marker line */}
                 <View
-                  className={`absolute w-0.5 bg-white/40 ${largeDisplayMode ? 'h-6' : 'h-8'}`}
+                  className={`absolute w-0.5 bg-white/40 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
                   style={{ left: '100%', marginLeft: -2 }}
                 />
+              </View>
+
+              <View className="items-center mt-3">
+                <Text className="text-gray-500 font-black text-[10px] uppercase tracking-[0.25em]">Every Rep Counts.</Text>
               </View>
 
               {currentReps > targetReps && (

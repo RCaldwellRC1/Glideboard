@@ -466,7 +466,7 @@ function FullScreenTrophyModal({
         className={`w-full max-w-md aspect-[3/4] rounded-[40px] border-[5px] overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
         style={{
           borderColor: trophy.earned ? shimmerGold : '#4b5563',
-          marginTop: 40,
+          marginTop: 20,
           shadowColor: trophy.earned ? goldColor : '#000',
           shadowOpacity: 0.8,
           shadowRadius: 30,
@@ -483,14 +483,16 @@ function FullScreenTrophyModal({
         )}
 
         {/* Glideboard Branding Header */}
-        <View className="pt-10 w-full items-center justify-center">
-          <View className="flex-row items-center bg-black/40 px-6 py-2 rounded-2xl border border-white/5">
-             <View className="w-10 h-10 bg-orange-500 rounded-lg items-center justify-center">
-                <Text className="text-black font-black text-xl">G</Text>
-             </View>
+        <View className="pt-8 w-full items-center justify-center">
+          <View className="flex-row items-center bg-black/40 px-5 py-2 rounded-2xl border border-white/5">
+            <Image
+              source={require('../../../icon.png')}
+              style={{ width: 42, height: 42, borderRadius: 10 }}
+              contentFit="contain"
+            />
             <View className="ml-3">
-              <Text className="text-white font-black text-2xl tracking-tighter">GLIDEBOARD</Text>
-              <Text className={`font-bold text-[11px] tracking-[0.3em] -mt-1 ${trophy.earned ? 'text-yellow-400' : 'text-gray-500'}`}>
+              <Text className="text-white font-black text-xl tracking-tighter">GLIDEBOARD</Text>
+              <Text className={`font-bold text-[10px] tracking-[0.3em] -mt-1 ${trophy.earned ? 'text-yellow-400' : 'text-gray-500'}`}>
                 ACHIEVEMENT
               </Text>
             </View>
@@ -502,69 +504,66 @@ function FullScreenTrophyModal({
           {trophy.earned && (
             <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                <View
-                  style={{ width: 340, height: 340, borderRadius: 170, backgroundColor: brightGold, opacity: 0.05, borderStyle: 'dashed', borderWidth: 20, borderColor: brightGold }}
+                  style={{ width: 300, height: 300, borderRadius: 150, backgroundColor: brightGold, opacity: 0.04, borderStyle: 'dashed', borderWidth: 15, borderColor: brightGold }}
                 />
             </Animated.View>
           )}
 
           <View
-            className="w-48 h-48 rounded-full items-center justify-center mb-10 border-4 shadow-xl"
+            className="w-40 h-40 rounded-full items-center justify-center mb-8 border-4 shadow-xl"
             style={{
-              backgroundColor: trophy.earned ? 'rgba(253,185,49,0.12)' : 'rgba(75,85,99,0.1)',
+              backgroundColor: trophy.earned ? 'rgba(253,185,49,0.1)' : 'rgba(75,85,99,0.08)',
               borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.2)',
               shadowColor: trophy.earned ? brightGold : 'transparent',
-              shadowOpacity: 0.5,
-              shadowRadius: 15,
+              shadowOpacity: 0.4,
+              shadowRadius: 12,
             }}
           >
             <IconComponent
-              size={100}
+              size={80}
               color={trophy.earned ? shimmerGold : '#4b5563'}
               fill={trophy.earned ? brightGold : 'transparent'}
               strokeWidth={trophy.earned ? 1.5 : 1}
             />
           </View>
 
-          <Text className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-5xl text-center leading-tight mb-3`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-4xl text-center leading-tight mb-2`}>
             {trophy.title}
           </Text>
 
-          <Text className={`${trophy.earned ? 'text-gray-300' : 'text-gray-600'} text-2xl text-center font-semibold px-4 italic`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-300' : 'text-gray-600'} text-lg text-center font-semibold px-4 italic`}>
             {trophy.description}
           </Text>
 
-          <View className="mt-12 items-center">
+          <View className="mt-8 items-center">
             <View
-              className="px-8 py-3 rounded-full border-2"
+              className="px-6 py-2.5 rounded-full border-2"
               style={{
-                backgroundColor: trophy.earned ? 'rgba(253,185,49,0.2)' : 'rgba(75,85,99,0.2)',
+                backgroundColor: trophy.earned ? 'rgba(253,185,49,0.15)' : 'rgba(75,85,99,0.15)',
                 borderColor: trophy.earned ? brightGold : 'rgba(75,85,99,0.3)'
               }}
             >
-              <Text className="font-black tracking-[0.2em] text-base uppercase" style={{ color: trophy.earned ? lightGold : '#6b7280' }}>
-                {trophy.earned ? 'Officially Achieved' : 'Active Goal'}
+              <Text className="font-black tracking-[0.2em] text-xs uppercase" style={{ color: trophy.earned ? lightGold : '#6b7280' }}>
+                {trophy.earned ? 'Achievement Unlocked' : 'Active Mission'}
               </Text>
             </View>
             {trophy.earned && trophy.dateLabel && (
               <View className="mt-4 items-center">
-                <Text className="text-gray-500 text-[11px] uppercase font-black tracking-widest mb-0.5">Certified Date</Text>
-                <Text className="text-white font-bold text-xl">{trophy.dateLabel}</Text>
+                <Text className="text-gray-500 text-[9px] uppercase font-black tracking-[0.2em] mb-0.5">First Achieved</Text>
+                <Text className="text-white font-bold text-lg">{trophy.dateLabel}</Text>
               </View>
             )}
           </View>
         </View>
 
-        {/* Decorative shimmering accents using Lucide Sparkles instead of SVG */}
+        {/* Decorative shimmering accents using Lucide Sparkles */}
         {trophy.earned && (
           <>
-            <View className="absolute bottom-8 left-10">
-              <Sparkles size={24} color={shimmerGold} opacity={0.6} />
+            <View className="absolute bottom-10 left-10">
+              <Sparkles size={20} color={shimmerGold} opacity={0.5} />
             </View>
-            <View className="absolute top-32 right-10">
-              <Sparkles size={24} color={shimmerGold} opacity={0.6} />
-            </View>
-            <View className="absolute bottom-32 right-6">
-              <Star size={16} color={shimmerGold} fill={shimmerGold} opacity={0.4} />
+            <View className="absolute top-28 right-10">
+              <Sparkles size={20} color={shimmerGold} opacity={0.5} />
             </View>
           </>
         )}
@@ -572,12 +571,12 @@ function FullScreenTrophyModal({
 
       <Pressable
         onPress={onClose}
-        className="mt-10 bg-gray-900 w-16 h-16 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
+        className="mt-8 bg-gray-900 w-14 h-14 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
       >
-        <X size={32} color="#fff" />
+        <X size={28} color="#fff" />
       </Pressable>
 
-      <Text className="text-gray-500 mt-5 text-sm font-bold uppercase tracking-[0.3em]">Tap to dismiss</Text>
+      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-[0.2em]">Tap to dismiss</Text>
     </View>
   );
 }
