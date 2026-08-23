@@ -62,6 +62,12 @@ export function useTextScaleSubscription(): TextSize {
   return useSettingsStore(s => s.textSize);
 }
 
+// Hook to access the current theme colors throughout the app
+export function useTheme(): ThemeColors {
+  const colorTheme = useSettingsStore(s => s.colorTheme);
+  return THEME_PALETTE[colorTheme] ?? THEME_PALETTE.dark;
+}
+
 export const SENSITIVITY_CONFIG = {
   low: { minAccelChange: 0.6, repCooldown: 1500, label: 'Low (Slow exercises)' },
   medium: { minAccelChange: 0.4, repCooldown: 1200, label: 'Medium (Default)' },
@@ -85,7 +91,39 @@ export const DEFAULT_PACE_SETTINGS: PaceSettings = {
   pauseTime: 2,
 };
 
+// App color theme
+export type ColorTheme = 'light' | 'dark';
+
+export interface ThemeColors {
+  background: string;
+  card: string;
+  text: string;
+  subText: string;
+  border: string;
+  divider: string;
+}
+
+export const THEME_PALETTE: Record<ColorTheme, ThemeColors> = {
+  dark: {
+    background: '#000000',
+    card: '#111827', // gray-900
+    text: '#ffffff',
+    subText: '#9ca3af', // gray-400
+    border: '#1f2937', // gray-800
+    divider: '#1f2937',
+  },
+  light: {
+    background: '#ffffff',
+    card: '#f3f4f6', // gray-100
+    text: '#000000',
+    subText: '#4b5563', // gray-600
+    border: '#e5e7eb', // gray-200
+    divider: '#d1d5db', // gray-300
+  },
+};
+
 interface SettingsState {
+  colorTheme: ColorTheme;
   largeDisplayMode: boolean;
   textSize: TextSize;
   motionSensitivity: MotionSensitivity;
@@ -102,6 +140,7 @@ interface SettingsState {
   isLoaded: boolean;
 
   // Actions
+  setColorTheme: (theme: ColorTheme) => void;
   setLargeDisplayMode: (enabled: boolean) => void;
   setTextSize: (size: TextSize) => void;
   setMotionSensitivity: (sensitivity: MotionSensitivity) => void;
@@ -122,6 +161,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     try {
       const s = get();
       await AsyncStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({
+        colorTheme: s.colorTheme,
         largeDisplayMode: s.largeDisplayMode,
         textSize: s.textSize,
         motionSensitivity: s.motionSensitivity,
@@ -135,6 +175,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
   };
 
   return {
+    colorTheme: 'dark',
     largeDisplayMode: false,
     textSize: 'medium',
     motionSensitivity: 'medium',
@@ -142,6 +183,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
     repModeUserSet: false,
     paceSettings: { ...DEFAULT_PACE_SETTINGS },
     isLoaded: false,
+
+    setColorTheme: (theme: ColorTheme) => {
+      set({ colorTheme: theme });
+      persist();
+    },
 
     setLargeDisplayMode: (enabled: boolean) => {
       set({ largeDisplayMode: enabled });
@@ -183,6 +229,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => {
         if (data) {
           const parsed = JSON.parse(data);
           set({
+            colorTheme: parsed.colorTheme ?? 'dark',
             largeDisplayMode: parsed.largeDisplayMode ?? false,
             textSize: parsed.textSize ?? 'medium',
             motionSensitivity: parsed.motionSensitivity ?? 'medium',

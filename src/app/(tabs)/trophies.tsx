@@ -30,7 +30,7 @@ import {
   getWeeklyStreakEarnedDate,
   CATEGORY_COLORS,
 } from '@/lib/workout';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { useCoachStore, medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS, COACH_PROGRAMS, getProgramProgress, type CoachProgram } from '@/lib/coach';
 import { remoteLog } from '@/lib/remoteLog';
 import { PRChartModal } from '@/components/PRChartModal';
@@ -49,6 +49,7 @@ interface TrophyCardProps {
 }
 
 function TrophyCard({ icon, title, description, earned, isLarge, dateLabel, onPress, isSelectable }: TrophyCardProps) {
+  const theme = useTheme();
   const IconComponent = {
     trophy: Trophy,
     target: Target,
@@ -58,30 +59,25 @@ function TrophyCard({ icon, title, description, earned, isLarge, dateLabel, onPr
 
   const content = (
     <View
-      className={`flex-1 m-1.5 rounded-2xl p-3 items-center ${
-        earned ? 'border-2 border-orange-500 bg-gray-900' : 'border border-gray-800 bg-gray-900/50'
-      }`}
-      style={{ minHeight: isLarge ? 140 : 130 }}
+      style={{ backgroundColor: earned ? theme.card : `${theme.card}88`, borderColor: earned ? '#f97316' : theme.border, minHeight: isLarge ? 140 : 130 }}
+      className={`flex-1 m-1.5 rounded-2xl p-3 items-center ${earned ? 'border-2' : 'border'}`}
     >
       <View
-        className={`rounded-xl items-center justify-center mb-2 ${isLarge ? 'w-12 h-12' : 'w-10 h-10'} ${
-          earned ? 'bg-orange-900/50' : 'bg-gray-800'
-        }`}
+        className={`rounded-xl items-center justify-center mb-2 ${isLarge ? 'w-12 h-12' : 'w-10 h-10'}`}
+        style={{ backgroundColor: earned ? 'rgba(249,115,22,0.1)' : theme.background }}
       >
-        <IconComponent size={isLarge ? 24 : 20} color={earned ? '#f97316' : '#4b5563'} />
+        <IconComponent size={isLarge ? 24 : 20} color={earned ? '#f97316' : theme.subText} />
       </View>
       <Text
-        className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'} ${
-          earned ? 'text-white' : 'text-gray-600'
-        }`}
+        style={{ color: earned ? theme.text : theme.subText }}
+        className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'}`}
         numberOfLines={2}
       >
         {title}
       </Text>
       <Text
-        className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'} ${
-          earned ? 'text-gray-400' : 'text-gray-700'
-        }`}
+        style={{ color: earned ? theme.subText : `${theme.subText}88` }}
+        className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'}`}
         numberOfLines={2}
       >
         {description}
@@ -234,6 +230,7 @@ interface CollapsibleSectionProps {
 // when the content above/below changes height. The chevron rotates to indicate
 // state.
 function CollapsibleSection({ title, isLarge, expanded, onToggle, onMeasure, children }: CollapsibleSectionProps) {
+  const theme = useTheme();
   const rotation = useSharedValue(expanded ? 1 : 0);
 
   useEffect(() => {
@@ -250,9 +247,9 @@ function CollapsibleSection({ title, isLarge, expanded, onToggle, onMeasure, chi
         onPress={onToggle}
         className="flex-row items-center justify-between mx-4 mb-2 active:opacity-70"
       >
-        <Text className={`text-white font-bold ${isLarge ? 'text-xl' : 'text-lg'}`}>{title}</Text>
+        <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-xl' : 'text-lg'}`}>{title}</Text>
         <Animated.View style={chevronStyle}>
-          <ChevronDown size={isLarge ? 26 : 22} color="#9ca3af" />
+          <ChevronDown size={isLarge ? 26 : 22} color={theme.subText} />
         </Animated.View>
       </Pressable>
       {expanded && <View>{children}</View>}
@@ -664,6 +661,7 @@ function TimedTrophyCard({
 // cards that pop out a progress chart.
 export default function TrophiesScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const workoutHistory = useWorkoutStore(s => s.workoutHistory);
   const exerciseHistory = useWorkoutStore(s => s.exerciseHistory);
@@ -946,36 +944,37 @@ export default function TrophiesScreen() {
     <>
     <ScrollView
       ref={scrollRef}
-      className="flex-1 bg-black"
+      style={{ backgroundColor: theme.background }}
+      className="flex-1"
       contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
       <View className="items-center mt-4">
         <Text className={largeDisplayMode ? 'text-4xl' : 'text-5xl'}>🏆</Text>
-        <Text className={`text-white font-bold mt-2 ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>Achievements</Text>
-        <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-base' : 'text-sm'}`}>{earnedCount} trophies earned</Text>
+        <Text style={{ color: theme.text }} className={`font-bold mt-2 ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>Achievements</Text>
+        <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-base' : 'text-sm'}`}>{earnedCount} trophies earned</Text>
       </View>
 
       {/* Your Stats Card */}
-      <View className="mx-4 mt-6 bg-gray-900 rounded-2xl p-4">
-        <Text className={`text-gray-400 mb-3 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Your Stats</Text>
+      <View style={{ backgroundColor: theme.card }} className="mx-4 mt-6 rounded-2xl p-4">
+        <Text style={{ color: theme.subText }} className={`mb-3 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Your Stats</Text>
         <View className="flex-row justify-between items-center py-2">
-          <Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Total Reps</Text>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Total Reps</Text>
           <Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.totalReps}</Text>
         </View>
         <View className="flex-row justify-between items-center py-2">
-          <Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Current Streak</Text>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Current Streak</Text>
           <Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.streak} days</Text>
         </View>
         <View className="flex-row justify-between items-center py-2">
-          <Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Weekly Streak</Text>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Weekly Streak</Text>
           <Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>
             {stats.weeklyStreak} {stats.weeklyStreak === 1 ? 'week' : 'weeks'}
           </Text>
         </View>
         <View className="flex-row justify-between items-center py-2">
-          <Text numberOfLines={1} className={`text-white flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Workouts This Week</Text>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`flex-shrink mr-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Workouts This Week</Text>
           <Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.workoutsThisWeek}</Text>
         </View>
       </View>

@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil } from 'lucide-react-native';
 import { useWorkoutStore, type Workout, type WorkoutSet } from '@/lib/workout';
-import { useSettingsStore, useTextScaleSubscription, TEXT_SIZE_FACTORS } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, TEXT_SIZE_FACTORS, useTheme } from '@/lib/settings';
 import { EditSetModal } from '@/components/EditSetModal';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -155,6 +155,7 @@ interface EditingSet {
 
 export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const [calendarVisible, setCalendarVisible] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -239,11 +240,13 @@ export default function HistoryScreen() {
   const totalReps = allSets.reduce((sum: number, s: WorkoutSet) => sum + s.reps, 0);
 
   return (
-    <ScrollView
-      className="flex-1 bg-black"
-      contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView
+        ref={scrollRef}
+        className="flex-1"
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
+      >
       {/* Title */}
       <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38) }} className="text-white font-bold text-center mt-6">
         Workout

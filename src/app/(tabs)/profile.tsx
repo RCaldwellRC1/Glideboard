@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { File, Directory, Paths } from 'expo-file-system';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog, setRemoteLogUser } from '@/lib/remoteLog';
 import { useUnlockState, useRestoreSubscription } from '@/lib/purchases';
 import { STORE_SETTINGS } from '@/lib/storePlatform';
@@ -82,6 +82,7 @@ function formatMemberSince(isoString: string | null): string {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   useTextScaleSubscription(); // re-render when global text size changes
@@ -331,7 +332,7 @@ export default function ProfileScreen() {
   };
 
   if (!isLoaded) {
-    return <View className="flex-1 bg-black" />;
+    return <View style={{ flex: 1, backgroundColor: theme.background }} />;
   }
 
   // Profile View Mode
@@ -340,19 +341,20 @@ export default function ProfileScreen() {
 
     return (
       <ScrollView
-        className="flex-1 bg-black"
+        style={{ backgroundColor: theme.background }}
+        className="flex-1"
         contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 100 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <Text className={`text-white font-bold text-center mt-6 ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Profile</Text>
+        <Text style={{ color: theme.text }} className={`font-bold text-center mt-6 ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Profile</Text>
 
         {/* Photo */}
         <Pressable
           onPress={showPhotoOptions}
           className="items-center mt-6"
         >
-          <View className={`rounded-full border-4 items-center justify-center bg-gray-900 overflow-hidden border-orange-500 ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
+          <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className={`rounded-full border-4 items-center justify-center overflow-hidden ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
             {profile.photoUri ? (
               <Image
                 source={{ uri: profile.photoUri }}
@@ -360,7 +362,7 @@ export default function ProfileScreen() {
                 resizeMode="cover"
               />
             ) : (
-              <User size={largeDisplayMode ? 50 : 60} color="#6b7280" />
+              <User size={largeDisplayMode ? 50 : 60} color={theme.subText} />
             )}
           </View>
           <Text className={`text-orange-500 mt-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>Tap to change photo</Text>
@@ -368,24 +370,24 @@ export default function ProfileScreen() {
 
         {/* Name and Screen Name */}
         <View className="items-center mt-4 px-4">
-          <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-bold text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>{profile.name}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit className={`text-gray-500 mt-1 text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>@{profile.screenName}</Text>
-          <Text className={`text-gray-600 mt-2 text-center ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`font-bold text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>{profile.name}</Text>
+          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.subText }} className={`mt-1 text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>@{profile.screenName}</Text>
+          <Text style={{ color: theme.subText }} className={`mt-2 text-center ${largeDisplayMode ? 'text-base' : 'text-lg'} opacity-80`}>
             Member since {formatMemberSince(profile.memberSince)}
           </Text>
         </View>
 
         {/* Info Card */}
-        <View className="mx-4 mt-6 bg-gray-900 rounded-2xl p-4">
-          <Text className={`text-gray-500 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER</Text>
-          <Text className={`text-white mt-1 capitalize ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-6 rounded-2xl p-4">
+          <Text style={{ color: theme.subText }} className={`${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER</Text>
+          <Text style={{ color: theme.text }} className={`mt-1 capitalize ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>
             {profile.gender ?? 'Not set'}
           </Text>
 
           {profile.dobVisible && age !== null && (
             <>
-              <Text className={`text-gray-500 mt-4 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>AGE</Text>
-              <Text className={`text-white mt-1 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{age} years old</Text>
+              <Text style={{ color: theme.subText }} className={`mt-4 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>AGE</Text>
+              <Text style={{ color: theme.text }} className={`mt-1 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{age} years old</Text>
             </>
           )}
         </View>
@@ -398,37 +400,40 @@ export default function ProfileScreen() {
         {/* How It Works */}
         <Pressable
           onPress={() => router.push('/how-it-works')}
-          className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+          style={{ backgroundColor: theme.card }}
+          className="mx-4 mt-4 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
         >
           <View className="flex-row items-center">
             <HelpCircle size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
           </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
         </Pressable>
 
         {/* App Settings */}
         <Pressable
           onPress={() => router.push('/app-settings')}
-          className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+          style={{ backgroundColor: theme.card }}
+          className="mx-4 mt-3 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
         >
           <View className="flex-row items-center">
             <Settings size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>App Settings</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>App Settings</Text>
           </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
         </Pressable>
 
         {/* Privacy Policy */}
         <Pressable
           onPress={() => router.push('/privacy-policy')}
-          className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
+          style={{ backgroundColor: theme.card }}
+          className="mx-4 mt-3 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
         >
           <View className="flex-row items-center">
             <Shield size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
           </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
         </Pressable>
 
         {/* Edit Button */}
@@ -442,18 +447,19 @@ export default function ProfileScreen() {
         {/* Troubleshooting Access */}
         <Pressable
           onPress={() => router.push('/diagnostics')}
-          className="mx-4 mt-8 bg-gray-900/50 border border-gray-800 py-4 rounded-xl items-center flex-row justify-center active:opacity-70"
+          style={{ backgroundColor: `${theme.card}80`, borderColor: theme.border }}
+          className="mx-4 mt-8 border py-4 rounded-xl items-center flex-row justify-center active:opacity-70"
         >
           <Activity size={18} color="#f97316" />
-          <Text className="text-gray-400 font-bold ml-2 uppercase tracking-widest text-xs">
+          <Text style={{ color: theme.subText }} className="font-bold ml-2 uppercase tracking-widest text-xs">
             Troubleshoot Counting
           </Text>
         </Pressable>
 
         {/* Version Footer */}
         <View className="mt-4 mb-4 items-center">
-          <Text className="text-gray-700 text-xs font-bold uppercase tracking-widest">
-            Glideboard V1.2.7 (Build 271)
+          <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest opacity-60">
+            Glideboard V1.2.7 (Build 272)
           </Text>
         </View>
       </ScrollView>

@@ -14,7 +14,7 @@ import { FREE_STYLE_GROUP, TIMED_GROUP } from '@/lib/workout/constants';
 import { INCLINE_LEVELS } from '@/lib/workout/types';
 
 import { useHasFullAccess } from '@/lib/purchases';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
 import { useAdaptiveRepStore, useMotionContext } from '@/lib/motion';
 import { useVoiceCounting } from '@/lib/voice';
@@ -51,10 +51,11 @@ function ExerciseDropdown({
 
   return (
     <View className="flex-1 mr-2 relative">
-      <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
+      <Text style={{ color: theme.subText }} className={`mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>EXERCISE</Text>
       <Pressable
         onPress={onToggle}
-        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
+        style={{ backgroundColor: theme.card }}
+        className={`rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
       >
         <Text numberOfLines={1} adjustsFontSizeToFit className={`font-semibold uppercase flex-1 mr-1 ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: valueColor }}>{value}</Text>
         {isOpen ? (
@@ -83,6 +84,7 @@ function ExerciseDropdown({
 
 export default function TrackerScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const [exerciseDropdownOpen, setExerciseDropdownOpen] = useState(false);
   const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
   const [isPaceSetterMode, setIsPaceSetterMode] = useState(false);
@@ -352,7 +354,7 @@ export default function TrackerScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: insets.top + 4, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" scrollEnabled={!exerciseDropdownOpen && !inclineDropdownOpen}>
         {(exerciseDropdownOpen || inclineDropdownOpen) && (
           <Pressable
@@ -525,9 +527,9 @@ export default function TrackerScreen() {
             </Pressable>
           )}
 
-          <View className={`flex-1 ml-2 bg-gray-900 border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`}>
-            <Text className={`text-gray-500 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>SET</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentSet}</Text>
+          <View className={`flex-1 ml-2 border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`} style={{ backgroundColor: theme.card }}>
+            <Text style={{ color: theme.subText }} className={`tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>SET</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentSet}</Text>
           </View>
         </View>
 
@@ -539,30 +541,30 @@ export default function TrackerScreen() {
           </Pressable>
         )}
 
-        <View className="mx-3 mt-5 bg-gray-900 rounded-3xl p-4 border border-gray-800 min-h-[140px] justify-center shadow-lg">
+        <View className="mx-3 mt-5 rounded-3xl p-4 border min-h-[140px] justify-center shadow-lg" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
           {targetReps === 0 ? (
             <View>
               <View className="flex-row justify-between items-center mb-4">
-                <Text className="text-gray-400 font-bold tracking-widest text-xs uppercase">Last Performance</Text>
-                <Target size={16} color="#4b5563" />
+                <Text style={{ color: theme.subText }} className="font-bold tracking-widest text-xs uppercase">Last Performance</Text>
+                <Target size={16} color={theme.subText} />
               </View>
-              <Text className="text-gray-500 italic">No history yet for this exercise.</Text>
+              <Text style={{ color: theme.subText }} className="italic">No history yet for this exercise.</Text>
             </View>
           ) : (
             <View>
               <View className="mb-4">
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 mr-4">
-                    <Text adjustsFontSizeToFit numberOfLines={1} className="text-white font-bold tracking-tight text-xs uppercase">
+                    <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: theme.text }} className="font-bold tracking-tight text-xs uppercase">
                       Highest Reps on <Text className="text-orange-500 font-black">{currentExercise} {levelLabel}</Text>
                     </Text>
-                    <Text className="text-white font-bold tracking-tight text-xs uppercase mt-0.5">Let's Beat It!</Text>
+                    <Text style={{ color: theme.text }} className="font-bold tracking-tight text-xs uppercase mt-0.5">Let's Beat It!</Text>
                   </View>
                   <Target size={24} color="#f97316" />
                 </View>
               </View>
 
-              <View className={`bg-gray-800 rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border border-white/5`}>
+              <View style={{ backgroundColor: theme.background, borderColor: 'rgba(255,255,255,0.05)' }} className={`rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border`}>
                 {/* Progress Bar Fill: Target reps is now mapped to 70% width */}
                 <View
                   className={`h-full ${currentReps > targetReps ? 'bg-green-500' : 'bg-orange-500'} rounded-l-lg`}
@@ -571,7 +573,7 @@ export default function TrackerScreen() {
 
                 {/* Text overlay */}
                 <View className="absolute inset-0 flex-row items-center justify-center">
-                  <Text numberOfLines={1} className={`text-white font-black ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
+                  <Text numberOfLines={1} style={{ color: theme.text }} className={`font-black ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
                     {currentReps} / {targetReps}
                   </Text>
                 </View>
@@ -579,12 +581,12 @@ export default function TrackerScreen() {
                 {/* Target marker line fixed at 70% */}
                 <View
                   className={`absolute w-0.5 bg-white/60 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
-                  style={{ left: '70%', marginLeft: -1 }}
+                  style={{ left: '70%', marginLeft: -1, backgroundColor: theme.text, opacity: 0.6 }}
                 />
               </View>
 
               <View className="items-center mt-3">
-                <Text className="text-white font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
+                <Text style={{ color: theme.text }} className="font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
               </View>
 
               {currentReps > targetReps && (

@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio, ShieldCheck } from 'lucide-react-native';
-import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize } from '@/lib/settings';
+import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio, ShieldCheck, Sun, Moon } from 'lucide-react-native';
+import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize, type ColorTheme } from '@/lib/settings';
 import { DEVICE_NAME } from '@/lib/storePlatform';
 import { useMotionContext } from '@/lib/motion';
 import { useRestoreSubscription, useUnlockState } from '@/lib/purchases';
@@ -150,10 +150,13 @@ function NumberStepper({
 
 export default function AppSettingsScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
 
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   const setLargeDisplayMode = useSettingsStore(s => s.setLargeDisplayMode);
+  const colorTheme = useSettingsStore(s => s.colorTheme);
+  const setColorTheme = useSettingsStore(s => s.setColorTheme);
   const textSize = useSettingsStore(s => s.textSize);
   const setTextSize = useSettingsStore(s => s.setTextSize);
   const motionSensitivity = useSettingsStore(s => s.motionSensitivity);
@@ -189,7 +192,7 @@ export default function AppSettingsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 40 }}
@@ -223,6 +226,36 @@ export default function AppSettingsScreen() {
             <Smartphone size={largeDisplayMode ? 22 : 20} color="#f97316" />
             <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Display Settings</Text>
           </View>
+
+          {/* Theme Toggle — Switch between Light and Dark mode */}
+          <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Color Theme</Text>
+          <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+            Pick a look that matches your environment
+          </Text>
+          <View className="flex-row mt-3 bg-gray-800 rounded-xl p-1 mb-4">
+            {(['dark', 'light'] as ColorTheme[]).map((t) => {
+              const active = colorTheme === t;
+              const Icon = t === 'dark' ? Moon : Sun;
+              return (
+                <Pressable
+                  key={t}
+                  onPress={() => setColorTheme(t)}
+                  className={`flex-1 flex-row items-center justify-center rounded-lg py-2.5 ${active ? 'bg-orange-500' : ''}`}
+                >
+                  <Icon size={18} color={active ? '#000' : '#9ca3af'} />
+                  <Text
+                    className={`font-black ml-2 uppercase tracking-widest ${active ? 'text-black' : 'text-gray-400'} ${
+                      largeDisplayMode ? 'text-sm' : 'text-xs'
+                    }`}
+                  >
+                    {t}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View className="h-px bg-gray-800 my-4" />
 
           <Pressable
             onPress={() => setLargeDisplayMode(!largeDisplayMode)}
