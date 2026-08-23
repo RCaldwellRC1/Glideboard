@@ -627,8 +627,6 @@ function FullScreenTrophyModal({
     </View>
   );
 }
-  );
-}
 
 // A Timed-hold PR card — the exercise name and accents use the Timed category's
 // purple, and it shows the best hold time achieved.
