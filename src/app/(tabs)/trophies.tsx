@@ -464,7 +464,7 @@ function FullScreenTrophyModal({
 
       <Animated.View
         entering={ZoomIn.duration(300).springify().damping(18)}
-        className={`w-full max-w-sm aspect-[4/6] rounded-[40px] border-[3px] overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
+        className={`w-full max-w-sm aspect-[4/4.5] rounded-[40px] border-[3px] overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
         style={{
           borderColor: trophy.earned ? goldColor : '#4b5563',
           shadowColor: trophy.earned ? goldColor : '#000',
@@ -483,7 +483,7 @@ function FullScreenTrophyModal({
         )}
 
         {/* Top Header Section */}
-        <View className="p-5 pb-0">
+        <View className="p-4 pb-0">
           <View className="flex-row items-center justify-center relative h-10">
             {/* Logo in top-left */}
             <View className="absolute left-0">
@@ -505,7 +505,7 @@ function FullScreenTrophyModal({
 
         <View className="flex-1 items-center justify-center px-6">
           {/* Trophy inside a ring */}
-          <View className="items-center justify-center mb-5">
+          <View className="items-center justify-center mb-3">
              {trophy.earned && (
               <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                 <View
@@ -541,7 +541,7 @@ function FullScreenTrophyModal({
             {trophy.title}
           </Text>
 
-          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-600'} text-sm text-center font-bold px-4 mb-5`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-600'} text-sm text-center font-bold px-4 mb-4`}>
             {trophy.description}
           </Text>
 
@@ -556,7 +556,7 @@ function FullScreenTrophyModal({
         </View>
 
         {/* Footer Branding */}
-        <View className="items-center pb-8 px-10">
+        <View className="items-center pb-6 px-10">
            <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-2xl tracking-[0.2em] uppercase italic">
               GLIDEBOARD
            </Text>
@@ -578,7 +578,7 @@ function FullScreenTrophyModal({
 
       <Pressable
         onPress={onClose}
-        className="mt-6 bg-gray-900 w-14 h-14 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
+        className="mt-4 bg-gray-900 w-14 h-14 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
       >
         <X size={28} color="#fff" />
       </Pressable>
