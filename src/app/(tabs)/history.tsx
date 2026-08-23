@@ -248,10 +248,10 @@ export default function HistoryScreen() {
         showsVerticalScrollIndicator={false}
       >
       {/* Title */}
-      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38) }} className="text-white font-bold text-center mt-6">
+      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38), color: theme.text }} className="font-bold text-center mt-6">
         Workout
       </Text>
-      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38) }} className="text-white font-bold text-center">
+      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38), color: theme.text }} className="font-bold text-center">
         History
       </Text>
 
@@ -262,8 +262,8 @@ export default function HistoryScreen() {
       >
         {calendarVisible ? (
           <View className="flex-row items-center justify-center w-full">
-            <ChevronUp size={largeDisplayMode ? 24 : 20} color="#9ca3af" />
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-400 ml-2 text-center flex-shrink">Tap to Show Workout Summaries</Text>
+            <ChevronUp size={largeDisplayMode ? 24 : 20} color={theme.subText} />
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="ml-2 text-center flex-shrink">Tap to Show Workout Summaries</Text>
           </View>
         ) : (
           <>
@@ -275,13 +275,13 @@ export default function HistoryScreen() {
 
       {/* Calendar */}
       {calendarVisible && (
-        <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-3">
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-3">
           {/* Month Navigation */}
           <View className="flex-row items-center justify-between mb-3">
             <Pressable onPress={goToPrevMonth} className="p-2">
               <ChevronLeft size={largeDisplayMode ? 28 : 24} color="#f97316" />
             </Pressable>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 18 : 16) }} className="text-white font-semibold flex-1 text-center mx-1">
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 18 : 16), color: theme.text }} className="font-semibold flex-1 text-center mx-1">
               {MONTHS[month]} {year}
             </Text>
             <Pressable onPress={goToNextMonth} className="p-2">
@@ -297,8 +297,7 @@ export default function HistoryScreen() {
                   allowFontScaling={false}
                   numberOfLines={1}
                   adjustsFontSizeToFit
-                  style={{ fontSize: fs(largeDisplayMode ? 12 : 10) }}
-                  className="text-gray-500"
+                  style={{ fontSize: fs(largeDisplayMode ? 12 : 10), color: theme.subText }}
                 >
                   {day}
                 </Text>
@@ -319,7 +318,7 @@ export default function HistoryScreen() {
                     dayInfo.isToday
                       ? 'bg-orange-500'
                       : selectedDate === dayInfo.dateStr
-                      ? 'bg-gray-700'
+                      ? theme.background === '#ffffff' ? '#e5e7eb' : '#374151'
                       : ''
                   }`}
                 >
@@ -330,8 +329,8 @@ export default function HistoryScreen() {
                       dayInfo.isToday
                         ? 'text-white font-bold'
                         : dayInfo.isCurrentMonth
-                        ? 'text-white'
-                        : 'text-gray-600'
+                        ? theme.text
+                        : theme.subText + '66'
                     }`}
                   >
                     {dayInfo.day}
@@ -355,20 +354,20 @@ export default function HistoryScreen() {
       {!calendarVisible && hasWorkoutsOnSelectedDay && (
         <>
           {/* Day Summary Card */}
-          <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
-            <Text style={{ fontSize: fs(largeDisplayMode ? 18 : 16) }} className="text-gray-400 mb-3">Day Summary</Text>
+          <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
+            <Text style={{ fontSize: fs(largeDisplayMode ? 18 : 16), color: theme.subText }} className="mb-3">Day Summary</Text>
             <View className="flex-row justify-around">
               <View className="items-center">
                 <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 22) }} className="text-orange-500 font-bold">{totalExercises}</Text>
-                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-500 mt-1">Exercises</Text>
+                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="mt-1">Exercises</Text>
               </View>
               <View className="items-center">
                 <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 22) }} className="text-orange-500 font-bold">{totalSets}</Text>
-                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-500 mt-1">Sets</Text>
+                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="mt-1">Sets</Text>
               </View>
               <View className="items-center">
                 <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 22) }} className="text-orange-500 font-bold">{totalReps}</Text>
-                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-500 mt-1">Reps</Text>
+                <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="mt-1">Reps</Text>
               </View>
             </View>
           </View>
@@ -386,26 +385,26 @@ export default function HistoryScreen() {
             return (
               <View key={workout.id} className="mx-4 mt-4">
                 {/* Workout Session Header */}
-                <View className="bg-gray-800 rounded-t-2xl px-4 py-3 flex-row justify-between items-center">
+                <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className="rounded-t-2xl px-4 py-3 flex-row justify-between items-center">
                   <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-orange-500 font-semibold flex-shrink-0 mr-2">
                     Workout {workoutIndex + 1}
                   </Text>
-                  <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 12 : 10) }} className="text-gray-400 flex-shrink-0">
+                  <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 12 : 10), color: theme.subText }} className="flex-shrink-0">
                     {timeStr}
                   </Text>
                 </View>
 
                 {/* Exercise Details for this workout */}
-                <View className="bg-gray-900 rounded-b-2xl p-4">
-                  <Text style={{ fontSize: fs(10) }} className="text-gray-600 mb-3">
+                <View style={{ backgroundColor: theme.card }} className="rounded-b-2xl p-4">
+                  <Text style={{ fontSize: fs(10), color: theme.subText }} className="mb-3 opacity-60">
                     Tap a set to edit or delete its count
                   </Text>
                   {workoutExerciseGroups.map((group, index) => (
-                    <View key={index} className={index > 0 ? 'mt-4 pt-4 border-t border-gray-800' : ''}>
+                    <View key={index} className={index > 0 ? 'mt-4 pt-4 border-t' : ''} style={{ borderTopColor: theme.border }}>
                       <View className="flex-row justify-between items-center mb-2">
                         <Text
-                          style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }}
-                          className="flex-1 mr-2 text-white font-semibold"
+                          style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.text }}
+                          className="flex-1 mr-2 font-semibold"
                           numberOfLines={1}
                         >
                           {group.exercise}
@@ -421,9 +420,10 @@ export default function HistoryScreen() {
                           // Timed holds display their duration and aren't rep-editable.
                           <View
                             key={set.setNumber}
-                            className="bg-gray-800 rounded-lg px-4 py-2 mb-2 self-start flex-row items-center"
+                            style={{ backgroundColor: theme.background === '#ffffff' ? '#f9fafb' : '#1f2937' }}
+                            className="rounded-lg px-4 py-2 mb-2 self-start flex-row items-center"
                           >
-                            <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-300">
+                            <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.text }} className="opacity-80">
                               Set {set.setNumber}: <Text className="font-medium" style={{ color: '#a855f7' }}>{fmtHold(set.durationSeconds ?? 0)}</Text>
                             </Text>
                           </View>
@@ -438,12 +438,13 @@ export default function HistoryScreen() {
                               setNumber: set.setNumber,
                               reps: set.reps,
                             })}
-                            className="bg-gray-800 rounded-lg px-4 py-2 mb-2 self-start flex-row items-center active:opacity-70"
+                            style={{ backgroundColor: theme.background === '#ffffff' ? '#f9fafb' : '#1f2937' }}
+                            className="rounded-lg px-4 py-2 mb-2 self-start flex-row items-center active:opacity-70"
                           >
-                            <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-300">
-                              Set {set.setNumber}: <Text className="text-white font-medium">{set.reps} reps</Text>
+                            <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.text }} className="opacity-80">
+                              Set {set.setNumber}: <Text style={{ color: theme.text }} className="font-medium">{set.reps} reps</Text>
                             </Text>
-                            <Pencil size={largeDisplayMode ? 13 : 12} color="#6b7280" style={{ marginLeft: 8 }} />
+                            <Pencil size={largeDisplayMode ? 13 : 12} color={theme.subText} style={{ marginLeft: 8 }} />
                           </Pressable>
                         )
                       ))}
@@ -459,7 +460,7 @@ export default function HistoryScreen() {
       {/* Empty state when no workout selected */}
       {!calendarVisible && !hasWorkoutsOnSelectedDay && (
         <View className="mx-4 mt-6">
-          <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-gray-500 text-center">
+          <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="text-center">
             No workout recorded on this day
           </Text>
         </View>
@@ -483,7 +484,6 @@ export default function HistoryScreen() {
         }}
         onCancel={() => setEditingSet(null)}
       />
-
     </ScrollView>
     </View>
   );

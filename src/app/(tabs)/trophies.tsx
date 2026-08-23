@@ -456,14 +456,14 @@ function FullScreenTrophyModal({
 
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-4">
-      <Animated.View entering={FadeIn.duration(300)} style={StyleSheet.absoluteFill}>
-        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black" />
+      <Animated.View entering={FadeIn.duration(300)} style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]}>
+        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
       </Animated.View>
 
       {/* Outer Border Gradient Wrapper */}
       <Animated.View
         entering={ZoomIn.duration(400).springify().damping(20)}
-        className="w-full max-w-sm aspect-[4/4.5] rounded-[40px] overflow-hidden shadow-2xl p-[3px]"
+        className="w-full max-w-sm aspect-[4/4.5] rounded-[40px] overflow-hidden shadow-2xl p-[2.5px]"
         style={{
           backgroundColor: trophy.earned ? goldBase : '#4b5563',
           shadowColor: trophy.earned ? goldBase : '#000',
@@ -493,13 +493,13 @@ function FullScreenTrophyModal({
           )}
 
           {/* Top Header Section */}
-          <View className="p-4 pb-0 mt-1">
+          <View className="p-4 pb-0 mt-0.5">
             <View className="flex-row items-center justify-center relative h-10">
               {/* Logo in top-left */}
               <View className="absolute left-1">
                 <Image
                   source={require('../../../icon.png')}
-                  style={{ width: 30, height: 34, borderRadius: 8 }}
+                  style={{ width: 30, height: 30, borderRadius: 8 }}
                   contentFit="contain"
                 />
               </View>
@@ -509,9 +509,9 @@ function FullScreenTrophyModal({
                 <LinearGradient
                    colors={trophy.earned ? [goldDark, goldHighlight, goldDark] : ['#333', '#444']}
                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                   style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 }}
+                   style={{ paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}
                 >
-                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 8, letterSpacing: 1.5, textAlign: 'center' }}>
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 7.5, letterSpacing: 1, textAlign: 'center' }}>
                     {trophy.earned ? 'OFFICIAL ACHIEVEMENT' : 'GOAL LOCKED'}
                   </Text>
                 </LinearGradient>
@@ -520,23 +520,23 @@ function FullScreenTrophyModal({
           </View>
 
           <View className="flex-1 items-center justify-center px-6">
-            {/* Trophy inside a Premium Halo - scaled down slightly */}
-            <View className="items-center justify-center mb-3">
+            {/* Trophy inside a Premium Halo - scaled down for fit */}
+            <View className="items-center justify-center mb-2">
               {trophy.earned && (
                 <>
                    {/* Layered soft halos for depth */}
-                   <View style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: goldBase, opacity: 0.03 }} />
-                   <View style={{ position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: goldBright, opacity: 0.05 }} />
+                   <View style={{ position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: goldBase, opacity: 0.02 }} />
+                   <View style={{ position: 'absolute', width: 170, height: 170, borderRadius: 85, backgroundColor: goldBright, opacity: 0.04 }} />
 
                    <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                       <View
                         style={{
-                          width: 170,
-                          height: 170,
-                          borderRadius: 85,
-                          borderWidth: 1.5,
+                          width: 150,
+                          height: 150,
+                          borderRadius: 75,
+                          borderWidth: 1.2,
                           borderColor: goldBase,
-                          opacity: 0.25,
+                          opacity: 0.2,
                           borderStyle: 'dashed'
                         }}
                       />
@@ -545,17 +545,17 @@ function FullScreenTrophyModal({
               )}
 
               <View
-                className="w-36 h-36 rounded-full items-center justify-center border-2"
+                className="w-32 h-32 rounded-full items-center justify-center border-2"
                 style={{
                   borderColor: trophy.earned ? goldBase : '#222',
                   backgroundColor: 'rgba(10, 10, 10, 0.8)',
                   shadowColor: trophy.earned ? goldBright : '#000',
-                  shadowOpacity: 0.4,
-                  shadowRadius: 12,
+                  shadowOpacity: 0.3,
+                  shadowRadius: 10,
                 }}
               >
                 <IconComponent
-                  size={65}
+                  size={55}
                   color={trophy.earned ? goldHighlight : '#4b5563'}
                   fill={trophy.earned ? goldBase : 'transparent'}
                   strokeWidth={1.5}
@@ -563,22 +563,22 @@ function FullScreenTrophyModal({
               </View>
             </View>
 
-            <Text adjustsFontSizeToFit numberOfLines={1} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-2xl text-center mb-0.5 uppercase tracking-tight`}>
+            <Text adjustsFontSizeToFit numberOfLines={1} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-xl text-center mb-0.5 uppercase tracking-tight`}>
               {trophy.title}
             </Text>
 
-            <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-700'} text-base text-center font-bold px-6 mb-4 italic`}>
+            <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-700'} text-base text-center font-bold px-6 mb-3 italic`}>
               {trophy.description}
             </Text>
 
             {/* Earned Pill with Metallic Border - compact */}
             {trophy.earned && trophy.dateLabel && (
-               <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.15)' }}>
+               <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.12)' }}>
                   <LinearGradient
                     colors={['#1a1405', '#000']}
-                    style={{ paddingHorizontal: 24, paddingVertical: 6, borderRadius: 999 }}
+                    style={{ paddingHorizontal: 20, paddingVertical: 5, borderRadius: 999 }}
                   >
-                    <Text className="text-white font-black text-sm uppercase">
+                    <Text className="text-white font-black text-xs uppercase">
                        EARNED {trophy.dateLabel}
                     </Text>
                   </LinearGradient>
@@ -586,27 +586,27 @@ function FullScreenTrophyModal({
             )}
           </View>
 
-          {/* Footer Branding - pulled down and sized down */}
+          {/* Footer Branding - scaled down */}
           <View className="items-center pb-6 px-10">
-             <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-2xl tracking-[0.2em] uppercase italic" style={{ shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 2, elevation: 5 }}>
+             <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-xl tracking-[0.2em] uppercase italic" style={{ shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 2, elevation: 5 }}>
                 GLIDEBOARD
              </Text>
              {/* Dynamic Horizontal Line */}
              <LinearGradient
                 colors={['transparent', goldBase, goldHighlight, goldBase, 'transparent']}
                 start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-                style={{ height: 1.5, width: '100%', marginTop: 6, opacity: 0.6 }}
+                style={{ height: 1.5, width: '100%', marginTop: 6, opacity: 0.5 }}
              />
           </View>
 
           {/* Decorative Sparkles using Lucide icons */}
           {trophy.earned && (
             <>
-              <View className="absolute bottom-24 left-8">
-                <Sparkles size={20} color={goldBright} opacity={0.6} />
+              <View className="absolute bottom-20 left-6">
+                <Sparkles size={16} color={goldBright} opacity={0.5} />
               </View>
-              <View className="absolute top-48 right-8">
-                <Sparkles size={24} color={goldHighlight} opacity={0.6} />
+              <View className="absolute top-40 right-6">
+                <Sparkles size={18} color={goldHighlight} opacity={0.5} />
               </View>
             </>
           )}
@@ -752,9 +752,6 @@ export default function TrophiesScreen() {
     const streak = calculateCurrentStreak(workoutHistory);
 
     // Workouts in the last 7 days (rolling window).
-    // This drives the "3 times in one week" badge. We use a rolling 7-day
-    // window rather than a Sunday-reset calendar week so the badge reflects
-    // recent activity (e.g. a 10-day streak) instead of dimming every Sunday.
     const sevenDaysAgo = new Date(today);
     sevenDaysAgo.setDate(today.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
@@ -768,11 +765,6 @@ export default function TrophiesScreen() {
     startOfWeek.setDate(today.getDate() - today.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
 
-    // Weekly streak: number of consecutive COMPLETED weeks (before the current,
-    // in-progress week) in which the user did 3+ workouts. The current week
-    // doesn't count toward the streak until it ends, so a fresh streak shows 0
-    // until the first full qualifying week is behind you. A week with fewer
-    // than 3 workouts breaks the chain and resets it to 0.
     const msPerWeek = 7 * 24 * 60 * 60 * 1000;
     const currentWeekStart = startOfWeek.getTime();
     const weekStartOf = (date: string | number | Date) => {
@@ -780,6 +772,8 @@ export default function TrophiesScreen() {
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - d.getDay());
       d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    };
       return d.getTime();
     };
     // Index 0 = current week, 1 = last week, 2 = two weeks ago, ...
