@@ -539,7 +539,7 @@ export default function TrackerScreen() {
           </Pressable>
         )}
 
-        <View className="mx-3 mt-5 bg-gray-900 rounded-3xl p-6 border border-gray-800 min-h-[160px] justify-center shadow-lg">
+        <View className="mx-3 mt-5 bg-gray-900 rounded-3xl p-4 border border-gray-800 min-h-[140px] justify-center shadow-lg">
           {targetReps === 0 ? (
             <View>
               <View className="flex-row justify-between items-center mb-4">
@@ -550,48 +550,47 @@ export default function TrackerScreen() {
             </View>
           ) : (
             <View>
-              <View className="mb-5">
+              <View className="mb-4">
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 mr-4">
-                    <Text className="text-gray-500 font-bold tracking-tight text-sm uppercase">Your Highest Reps on</Text>
-                    <Text adjustsFontSizeToFit numberOfLines={1} className="text-orange-500 font-black text-2xl uppercase leading-tight my-0.5">
-                      {currentExercise} {levelLabel}
+                    <Text adjustsFontSizeToFit numberOfLines={1} className="text-gray-500 font-bold tracking-tight text-xs uppercase">
+                      Highest Reps on <Text className="text-orange-500 font-black">{currentExercise} {levelLabel}</Text>
                     </Text>
-                    <Text className="text-gray-500 font-bold tracking-tight text-sm uppercase">Let's Beat It!</Text>
+                    <Text className="text-gray-500 font-bold tracking-tight text-xs uppercase mt-0.5">Let's Beat It!</Text>
                   </View>
-                  <Target size={28} color="#f97316" />
+                  <Target size={24} color="#f97316" />
                 </View>
               </View>
 
-              <View className={`bg-gray-800 rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-14' : 'h-16'} border border-white/5`}>
-                {/* Progress Bar Fill */}
+              <View className={`bg-gray-800 rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border border-white/5`}>
+                {/* Progress Bar Fill: Target reps is now mapped to 70% width */}
                 <View
                   className={`h-full ${currentReps > targetReps ? 'bg-green-500' : 'bg-orange-500'} rounded-l-lg`}
-                  style={{ width: `${Math.min((currentReps / targetReps) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((currentReps * 70) / targetReps, 100)}%` }}
                 />
 
                 {/* Text overlay */}
                 <View className="absolute inset-0 flex-row items-center justify-center">
-                  <Text numberOfLines={1} className={`text-white font-black ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>
+                  <Text numberOfLines={1} className={`text-white font-black ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
                     {currentReps} / {targetReps}
                   </Text>
                 </View>
 
-                {/* Target marker line */}
+                {/* Target marker line fixed at 70% */}
                 <View
-                  className={`absolute w-0.5 bg-white/40 ${largeDisplayMode ? 'h-10' : 'h-12'}`}
-                  style={{ left: '100%', marginLeft: -2 }}
+                  className={`absolute w-0.5 bg-white/60 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
+                  style={{ left: '70%', marginLeft: -1 }}
                 />
               </View>
 
-              <View className="items-center mt-4">
-                <Text className="text-gray-600 font-black text-[11px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
+              <View className="items-center mt-3">
+                <Text className="text-gray-600 font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
               </View>
 
               {currentReps > targetReps && (
-                <View className="flex-row items-center justify-center mt-3 bg-green-500/10 py-1.5 rounded-full">
-                  <Sparkles size={14} color="#22c55e" />
-                  <Text className="text-green-500 font-bold ml-1.5 text-xs uppercase tracking-widest">New Personal Best!</Text>
+                <View className="flex-row items-center justify-center mt-2.5 bg-green-500/10 py-1 rounded-full">
+                  <Sparkles size={12} color="#22c55e" />
+                  <Text className="text-green-500 font-bold ml-1.5 text-[10px] uppercase tracking-widest">New Personal Best!</Text>
                 </View>
               )}
             </View>

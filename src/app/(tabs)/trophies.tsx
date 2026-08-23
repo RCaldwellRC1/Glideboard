@@ -459,12 +459,12 @@ function FullScreenTrophyModal({
   return (
     <View style={[StyleSheet.absoluteFill, { zIndex: 100 }]} className="items-center justify-center p-4">
       <Animated.View entering={FadeIn.duration(200)} style={StyleSheet.absoluteFill}>
-        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black/98" />
+        <Pressable onPress={onClose} style={StyleSheet.absoluteFill} className="bg-black" />
       </Animated.View>
 
       <Animated.View
         entering={ZoomIn.duration(300).springify().damping(18)}
-        className={`w-full max-w-sm aspect-[5/8] rounded-[40px] border-[3px] overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
+        className={`w-full max-w-sm aspect-[4/6] rounded-[40px] border-[3px] overflow-hidden shadow-2xl ${trophy.earned ? 'bg-gray-900' : 'bg-gray-800'}`}
         style={{
           borderColor: trophy.earned ? goldColor : '#4b5563',
           shadowColor: trophy.earned ? goldColor : '#000',
@@ -475,7 +475,7 @@ function FullScreenTrophyModal({
       >
         {trophy.earned ? (
           <LinearGradient
-            colors={['#000', '#151515']}
+            colors={['#000', '#111']}
             style={StyleSheet.absoluteFill}
           />
         ) : (
@@ -483,20 +483,20 @@ function FullScreenTrophyModal({
         )}
 
         {/* Top Header Section */}
-        <View className="p-6 pb-0">
-          <View className="flex-row items-center justify-center relative h-12">
+        <View className="p-5 pb-0">
+          <View className="flex-row items-center justify-center relative h-10">
             {/* Logo in top-left */}
             <View className="absolute left-0">
                <Image
                 source={require('../../../icon.png')}
-                style={{ width: 36, height: 36, borderRadius: 8 }}
+                style={{ width: 32, height: 32, borderRadius: 8 }}
                 contentFit="contain"
               />
             </View>
 
             {/* Achievement Pill in top-center */}
-            <View className="px-4 py-1 rounded-full border border-orange-500/50 bg-black/40">
-              <Text className="text-orange-500 font-black text-[10px] tracking-[0.2em] uppercase">
+            <View className="px-3 py-1 rounded-full border border-orange-500/50 bg-black/40">
+              <Text className="text-orange-500 font-black text-[9px] tracking-[0.2em] uppercase">
                 {trophy.earned ? 'Achievement Unlocked' : 'Goal Locked'}
               </Text>
             </View>
@@ -505,31 +505,31 @@ function FullScreenTrophyModal({
 
         <View className="flex-1 items-center justify-center px-6">
           {/* Trophy inside a ring */}
-          <View className="items-center justify-center mb-6">
+          <View className="items-center justify-center mb-5">
              {trophy.earned && (
               <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                 <View
                   style={{
-                    width: 240,
-                    height: 240,
-                    borderRadius: 120,
+                    width: 200,
+                    height: 200,
+                    borderRadius: 100,
                     borderWidth: 1,
                     borderColor: goldColor,
-                    opacity: 0.4,
+                    opacity: 0.3,
                     borderStyle: 'dashed'
                   }}
                 />
               </Animated.View>
              )}
              <View
-              className="w-48 h-48 rounded-full items-center justify-center border-2"
+              className="w-40 h-40 rounded-full items-center justify-center border-2"
               style={{
                 borderColor: trophy.earned ? goldColor : '#333',
                 backgroundColor: 'rgba(0,0,0,0.5)',
               }}
             >
               <IconComponent
-                size={90}
+                size={70}
                 color={trophy.earned ? shimmerGold : '#4b5563'}
                 fill={trophy.earned ? brightGold : 'transparent'}
                 strokeWidth={1.5}
@@ -537,18 +537,18 @@ function FullScreenTrophyModal({
             </View>
           </View>
 
-          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-4xl text-center mb-1`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-2xl text-center mb-1`}>
             {trophy.title}
           </Text>
 
-          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-600'} text-lg text-center font-bold px-4 mb-8`}>
+          <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-600'} text-sm text-center font-bold px-4 mb-5`}>
             {trophy.description}
           </Text>
 
           {/* Earned Pill */}
           {trophy.earned && trophy.dateLabel && (
-             <View className="px-8 py-2 rounded-full border border-gray-700 bg-gray-900/80">
-                <Text className="text-white font-bold text-lg">
+             <View className="px-6 py-1.5 rounded-full border border-gray-700 bg-gray-900/80">
+                <Text className="text-white font-bold text-base">
                    Earned {trophy.dateLabel}
                 </Text>
              </View>
@@ -556,21 +556,21 @@ function FullScreenTrophyModal({
         </View>
 
         {/* Footer Branding */}
-        <View className="items-center pb-12 px-10">
-           <Text className="text-[#D4AF37] font-black text-3xl tracking-[0.2em] uppercase italic">
+        <View className="items-center pb-8 px-10">
+           <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-2xl tracking-[0.2em] uppercase italic">
               GLIDEBOARD
            </Text>
-           <View style={{ height: 2, width: '100%', backgroundColor: goldColor, marginTop: 8, opacity: 0.8 }} />
+           <View style={{ height: 1.5, width: '100%', backgroundColor: goldColor, marginTop: 6, opacity: 0.6 }} />
         </View>
 
         {/* Decorative Sparkles */}
         {trophy.earned && (
           <>
-            <View className="absolute bottom-24 left-8">
-              <Sparkles size={20} color={shimmerGold} opacity={0.5} />
+            <View className="absolute bottom-20 left-6">
+              <Sparkles size={16} color={shimmerGold} opacity={0.5} />
             </View>
-            <View className="absolute top-40 right-8">
-              <Sparkles size={20} color={shimmerGold} opacity={0.5} />
+            <View className="absolute top-32 right-6">
+              <Sparkles size={16} color={shimmerGold} opacity={0.5} />
             </View>
           </>
         )}
@@ -578,12 +578,12 @@ function FullScreenTrophyModal({
 
       <Pressable
         onPress={onClose}
-        className="mt-8 bg-gray-900 w-14 h-14 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
+        className="mt-6 bg-gray-900 w-14 h-14 rounded-full items-center justify-center active:bg-gray-800 border-2 border-gray-700 shadow-lg"
       >
         <X size={28} color="#fff" />
       </Pressable>
 
-      <Text className="text-gray-500 mt-4 text-xs font-bold uppercase tracking-[0.2em]">Tap anywhere to dismiss</Text>
+      <Text className="text-gray-500 mt-3 text-xs font-bold uppercase tracking-[0.2em]">Tap anywhere to dismiss</Text>
     </View>
   );
 }
