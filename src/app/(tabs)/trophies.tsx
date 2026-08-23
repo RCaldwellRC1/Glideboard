@@ -501,7 +501,7 @@ function FullScreenTrophyModal({
               {/* Logo in top-left */}
               <View className="absolute left-1">
                 <Image
-                  source={require('../../../../icon.png')}
+                  source={require('../../../icon.png')}
                   style={{ width: 34, height: 34, borderRadius: 8 }}
                   contentFit="contain"
                 />
