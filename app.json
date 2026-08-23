@@ -20,7 +20,7 @@
     "android": {
       "edgeToEdgeEnabled": true,
       "package": "com.robertcaldwell.vibecode",
-      "versionCode": 261,
+      "versionCode": 262,
       "permissions": [
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_MEDIA_IMAGES"
