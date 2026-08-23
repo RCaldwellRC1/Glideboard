@@ -496,13 +496,13 @@ function FullScreenTrophyModal({
           )}
 
           {/* Top Header Section */}
-          <View className="p-4 pb-0 mt-2">
+          <View className="p-4 pb-0 mt-1">
             <View className="flex-row items-center justify-center relative h-10">
               {/* Logo in top-left */}
               <View className="absolute left-1">
                 <Image
                   source={require('../../../icon.png')}
-                  style={{ width: 34, height: 34, borderRadius: 8 }}
+                  style={{ width: 30, height: 34, borderRadius: 8 }}
                   contentFit="contain"
                 />
               </View>
@@ -512,10 +512,10 @@ function FullScreenTrophyModal({
                 <LinearGradient
                    colors={trophy.earned ? [goldDark, goldHighlight, goldDark] : ['#333', '#444']}
                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                   style={{ paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999 }}
+                   style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 }}
                 >
-                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 9, letterSpacing: 2, textAlign: 'center' }}>
-                    {trophy.earned ? 'Achievement Unlocked' : 'Goal Locked'}
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 8, letterSpacing: 1.5, textAlign: 'center' }}>
+                    {trophy.earned ? 'OFFICIAL ACHIEVEMENT' : 'GOAL LOCKED'}
                   </Text>
                 </LinearGradient>
               </View>
@@ -523,23 +523,23 @@ function FullScreenTrophyModal({
           </View>
 
           <View className="flex-1 items-center justify-center px-6">
-            {/* Trophy inside a Premium Halo */}
-            <View className="items-center justify-center mb-4">
+            {/* Trophy inside a Premium Halo - scaled down slightly */}
+            <View className="items-center justify-center mb-3">
               {trophy.earned && (
                 <>
                    {/* Layered soft halos for depth */}
-                   <View style={{ position: 'absolute', width: 260, height: 260, borderRadius: 130, backgroundColor: goldBase, opacity: 0.03 }} />
-                   <View style={{ position: 'absolute', width: 230, height: 230, borderRadius: 115, backgroundColor: goldBright, opacity: 0.05 }} />
+                   <View style={{ position: 'absolute', width: 220, height: 220, borderRadius: 110, backgroundColor: goldBase, opacity: 0.03 }} />
+                   <View style={{ position: 'absolute', width: 190, height: 190, borderRadius: 95, backgroundColor: goldBright, opacity: 0.05 }} />
 
                    <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                       <View
                         style={{
-                          width: 210,
-                          height: 210,
-                          borderRadius: 105,
+                          width: 170,
+                          height: 170,
+                          borderRadius: 85,
                           borderWidth: 1.5,
                           borderColor: goldBase,
-                          opacity: 0.3,
+                          opacity: 0.25,
                           borderStyle: 'dashed'
                         }}
                       />
@@ -548,17 +548,17 @@ function FullScreenTrophyModal({
               )}
 
               <View
-                className="w-44 h-44 rounded-full items-center justify-center border-2"
+                className="w-36 h-36 rounded-full items-center justify-center border-2"
                 style={{
                   borderColor: trophy.earned ? goldBase : '#222',
                   backgroundColor: 'rgba(10, 10, 10, 0.8)',
                   shadowColor: trophy.earned ? goldBright : '#000',
-                  shadowOpacity: 0.5,
-                  shadowRadius: 15,
+                  shadowOpacity: 0.4,
+                  shadowRadius: 12,
                 }}
               >
                 <IconComponent
-                  size={80}
+                  size={65}
                   color={trophy.earned ? goldHighlight : '#4b5563'}
                   fill={trophy.earned ? goldBase : 'transparent'}
                   strokeWidth={1.5}
@@ -566,22 +566,22 @@ function FullScreenTrophyModal({
               </View>
             </View>
 
-            <Text adjustsFontSizeToFit numberOfLines={1} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-4xl text-center mb-1 uppercase tracking-tight`}>
+            <Text adjustsFontSizeToFit numberOfLines={1} className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-2xl text-center mb-0.5 uppercase tracking-tight`}>
               {trophy.title}
             </Text>
 
-            <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-700'} text-lg text-center font-bold px-6 mb-5 italic`}>
+            <Text adjustsFontSizeToFit numberOfLines={2} className={`${trophy.earned ? 'text-gray-400' : 'text-gray-700'} text-base text-center font-bold px-6 mb-4 italic`}>
               {trophy.description}
             </Text>
 
-            {/* Earned Pill with Metallic Border */}
+            {/* Earned Pill with Metallic Border - compact */}
             {trophy.earned && trophy.dateLabel && (
-               <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.2)' }}>
+               <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.15)' }}>
                   <LinearGradient
                     colors={['#1a1405', '#000']}
-                    style={{ paddingHorizontal: 32, paddingVertical: 8, borderRadius: 999 }}
+                    style={{ paddingHorizontal: 24, paddingVertical: 6, borderRadius: 999 }}
                   >
-                    <Text className="text-white font-black text-lg">
+                    <Text className="text-white font-black text-sm uppercase">
                        EARNED {trophy.dateLabel}
                     </Text>
                   </LinearGradient>
@@ -589,16 +589,16 @@ function FullScreenTrophyModal({
             )}
           </View>
 
-          {/* Footer Branding */}
-          <View className="items-center pb-8 px-10">
-             <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-4xl tracking-[0.25em] uppercase italic" style={{ shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 2, elevation: 5 }}>
+          {/* Footer Branding - pulled down and sized down */}
+          <View className="items-center pb-6 px-10">
+             <Text numberOfLines={1} adjustsFontSizeToFit className="text-[#D4AF37] font-black text-2xl tracking-[0.2em] uppercase italic" style={{ shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 2, elevation: 5 }}>
                 GLIDEBOARD
              </Text>
              {/* Dynamic Horizontal Line */}
              <LinearGradient
                 colors={['transparent', goldBase, goldHighlight, goldBase, 'transparent']}
                 start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
-                style={{ height: 2, width: '100%', marginTop: 8, opacity: 0.8 }}
+                style={{ height: 1.5, width: '100%', marginTop: 6, opacity: 0.6 }}
              />
           </View>
 
