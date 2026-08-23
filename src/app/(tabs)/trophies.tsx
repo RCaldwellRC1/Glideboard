@@ -1,6 +1,7 @@
 import React, { useMemo, useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
-import Svg, { Rect } from 'react-native-svg';
+// Remove SVG to prevent 'Svg doesn't exist' native crashes on this hardware
+// import Svg, { Rect } from 'react-native-svg';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -433,24 +434,24 @@ function FullScreenTrophyModal({
     target: Target,
     flame: Flame,
     trending: TrendingUp,
-  }[trophy.icon];
+  }[trophy.icon] || Trophy;
 
   const goldColor = '#D4AF37';
   const shimmerGold = '#FFD700';
   const brightGold = '#FDB931';
   const lightGold = '#FFF9E3';
 
-  // Rotating starburst animation
+  // Rotating animation shared value
   const rotation = useSharedValue(0);
   useEffect(() => {
     if (trophy.earned) {
-      rotation.value = withRepeat(withTiming(360, { duration: 25000 }), -1, false);
+      rotation.value = withRepeat(withTiming(360, { duration: 30000 }), -1, false);
     } else {
       rotation.value = 0;
     }
   }, [trophy.earned]);
 
-  const starburstStyle = useAnimatedStyle(() => ({
+  const rotateStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
   }));
 
@@ -481,35 +482,12 @@ function FullScreenTrophyModal({
           <View style={[StyleSheet.absoluteFill, { backgroundColor: '#111' }]} />
         )}
 
-        {/* Shimmering Starburst Background */}
-        {trophy.earned && (
-          <Animated.View
-            style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', opacity: 0.12 }, starburstStyle]}
-            pointerEvents="none"
-          >
-             <Svg width="800" height="800" viewBox="0 0 100 100">
-                {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
-                  <Rect
-                    key={deg}
-                    x="49"
-                    y="-50"
-                    width="2"
-                    height="200"
-                    fill={shimmerGold}
-                    transform={`rotate(${deg}, 50, 50)`}
-                  />
-                ))}
-             </Svg>
-          </Animated.View>
-        )}
-
         {/* Glideboard Branding Header */}
         <View className="pt-10 w-full items-center justify-center">
           <View className="flex-row items-center bg-black/40 px-6 py-2 rounded-2xl border border-white/5">
-            <Image
-              source={require('../../../icon.png')}
-              style={{ width: 48, height: 44, borderRadius: 10 }}
-            />
+             <View className="w-10 h-10 bg-orange-500 rounded-lg items-center justify-center">
+                <Text className="text-black font-black text-xl">G</Text>
+             </View>
             <View className="ml-3">
               <Text className="text-white font-black text-2xl tracking-tighter">GLIDEBOARD</Text>
               <Text className={`font-bold text-[11px] tracking-[0.3em] -mt-1 ${trophy.earned ? 'text-yellow-400' : 'text-gray-500'}`}>
@@ -520,13 +498,13 @@ function FullScreenTrophyModal({
         </View>
 
         <View className="flex-1 items-center justify-center px-8">
-          {/* Glowing backdrop for the trophy */}
+          {/* Glowing backdrop for the trophy - simplified using Views */}
           {trophy.earned && (
-            <View className="absolute items-center justify-center">
+            <Animated.View style={[{ position: 'absolute' }, rotateStyle]}>
                <View
-                  style={{ width: 300, height: 300, borderRadius: 150, backgroundColor: brightGold, opacity: 0.08 }}
+                  style={{ width: 340, height: 340, borderRadius: 170, backgroundColor: brightGold, opacity: 0.05, borderStyle: 'dashed', borderWidth: 20, borderColor: brightGold }}
                 />
-            </View>
+            </Animated.View>
           )}
 
           <View
@@ -545,11 +523,6 @@ function FullScreenTrophyModal({
               fill={trophy.earned ? brightGold : 'transparent'}
               strokeWidth={trophy.earned ? 1.5 : 1}
             />
-            {trophy.earned && (
-              <View className="absolute -bottom-2">
-                <Sparkles size={32} color={shimmerGold} />
-              </View>
-            )}
           </View>
 
           <Text className={`${trophy.earned ? 'text-white' : 'text-gray-500'} font-black text-5xl text-center leading-tight mb-3`}>
@@ -581,7 +554,7 @@ function FullScreenTrophyModal({
           </View>
         </View>
 
-        {/* Decorative shimmering accents */}
+        {/* Decorative shimmering accents using Lucide Sparkles instead of SVG */}
         {trophy.earned && (
           <>
             <View className="absolute bottom-8 left-10">
