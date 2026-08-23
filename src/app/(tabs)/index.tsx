@@ -553,10 +553,10 @@ export default function TrackerScreen() {
               <View className="mb-4">
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 mr-4">
-                    <Text adjustsFontSizeToFit numberOfLines={1} className="text-gray-500 font-bold tracking-tight text-xs uppercase">
+                    <Text adjustsFontSizeToFit numberOfLines={1} className="text-white font-bold tracking-tight text-xs uppercase">
                       Highest Reps on <Text className="text-orange-500 font-black">{currentExercise} {levelLabel}</Text>
                     </Text>
-                    <Text className="text-gray-500 font-bold tracking-tight text-xs uppercase mt-0.5">Let's Beat It!</Text>
+                    <Text className="text-white font-bold tracking-tight text-xs uppercase mt-0.5">Let's Beat It!</Text>
                   </View>
                   <Target size={24} color="#f97316" />
                 </View>
@@ -584,7 +584,7 @@ export default function TrackerScreen() {
               </View>
 
               <View className="items-center mt-3">
-                <Text className="text-gray-600 font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
+                <Text className="text-white font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
               </View>
 
               {currentReps > targetReps && (
