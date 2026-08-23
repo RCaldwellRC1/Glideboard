@@ -702,6 +702,9 @@ export default function TrophiesScreen() {
 
   // Calculate stats
   const stats = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const totalReps = workoutHistory.reduce(
       (sum, w) => sum + w.sets.reduce((s, set) => s + set.reps, 0),
       0
