@@ -501,20 +501,20 @@ function FullScreenTrophyModal({
               {/* Logo in top-left */}
               <View className="absolute left-1">
                 <Image
-                  source={require('../../../icon.png')}
+                  source={require('../../../../icon.png')}
                   style={{ width: 34, height: 34, borderRadius: 8 }}
                   contentFit="contain"
                 />
               </View>
 
               {/* Achievement Pill in top-center */}
-              <View className="rounded-full p-[1px] bg-white/10 overflow-hidden">
+              <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
                 <LinearGradient
                    colors={trophy.earned ? [goldDark, goldHighlight, goldDark] : ['#333', '#444']}
                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                   className="px-4 py-1.5 rounded-full"
+                   style={{ paddingHorizontal: 16, paddingVertical: 6, borderRadius: 999 }}
                 >
-                  <Text className="text-black font-black text-[9px] tracking-[0.25em] uppercase">
+                  <Text style={{ color: '#000', fontWeight: '900', fontSize: 9, letterSpacing: 2, textAlign: 'center' }}>
                     {trophy.earned ? 'Achievement Unlocked' : 'Goal Locked'}
                   </Text>
                 </LinearGradient>
@@ -576,10 +576,10 @@ function FullScreenTrophyModal({
 
             {/* Earned Pill with Metallic Border */}
             {trophy.earned && trophy.dateLabel && (
-               <View className="rounded-full p-[1px] bg-white/20">
+               <View style={{ borderRadius: 999, padding: 1, backgroundColor: 'rgba(255,255,255,0.2)' }}>
                   <LinearGradient
                     colors={['#1a1405', '#000']}
-                    className="px-8 py-2 rounded-full"
+                    style={{ paddingHorizontal: 32, paddingVertical: 8, borderRadius: 999 }}
                   >
                     <Text className="text-white font-black text-lg">
                        EARNED {trophy.dateLabel}
