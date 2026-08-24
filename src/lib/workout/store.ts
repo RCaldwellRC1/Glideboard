@@ -495,11 +495,16 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       if (data) {
         const parsed = JSON.parse(data);
 
-        const history: Workout[] = parsed.workoutHistory?.map((w: Workout) => ({
-          ...w,
-          date: new Date(w.date),
-          sets: w.sets.map(s => ({ ...s, timestamp: new Date(s.timestamp) })),
-        })) ?? [];
+        const history: Workout[] = parsed.workoutHistory?.map((w: Workout) => {
+          if (!w) return null;
+          return {
+            ...w,
+            date: new Date(w.date),
+            sets: Array.isArray(w.sets)
+              ? w.sets.map(s => ({ ...s, timestamp: new Date(s.timestamp) }))
+              : [],
+          };
+        }).filter(Boolean) ?? [];
 
         // Recover an interrupted workout: if the app was closed mid-workout, the
         // sets the user already completed were saved but never committed to
