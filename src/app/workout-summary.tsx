@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import { useWorkoutStore, type Workout } from '@/lib/workout';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS } from '@/lib/coach';
 import { WorkoutSummary } from '@/components/WorkoutSummary';
 
@@ -23,6 +23,7 @@ function startOfWeek(d: Date): Date {
 // breakdown, so the user can revisit their results.
 export default function WorkoutSummaryScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{
     routineId?: string;
@@ -71,18 +72,18 @@ export default function WorkoutSummaryScreen() {
     : '';
 
   return (
-    <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={() => router.back()} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={largeDisplayMode ? 26 : 30} color="#f97316" />
         </Pressable>
         <View className="flex-1 ml-1">
-          <Text numberOfLines={1} className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
             Workout Summary
           </Text>
           {weekLabel ? (
-            <Text className={`text-gray-500 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>{weekLabel}</Text>
+            <Text style={{ color: theme.subText }} className={`${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-70`}>{weekLabel}</Text>
           ) : null}
         </View>
         {tappedIndex ? (
@@ -98,15 +99,15 @@ export default function WorkoutSummaryScreen() {
         showsVerticalScrollIndicator={false}
       >
         {weekWorkouts.length === 0 ? (
-          <View className="bg-gray-900 rounded-2xl p-5 mt-2">
-            <Text className={`text-gray-400 text-center ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+          <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-5 mt-2">
+            <Text style={{ color: theme.subText }} className={`text-center ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
               The detailed breakdown for this session isn't available. New Coach Routine
               workouts you complete will show their full summary here.
             </Text>
           </View>
         ) : (
           <>
-            <Text className={`text-gray-400 mb-3 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.subText }} className={`mb-3 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
               {weekWorkouts.length} {weekWorkouts.length === 1 ? 'session' : 'sessions'} this week
             </Text>
             {weekWorkouts.map((w, i) => (
@@ -118,12 +119,13 @@ export default function WorkoutSummaryScreen() {
         )}
       </ScrollView>
 
-      <View className="px-4 pt-3 border-t border-gray-800" style={{ paddingBottom: insets.bottom + 12 }}>
+      <View style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }} className="px-4 pt-3 border-t">
         <Pressable
           onPress={() => router.back()}
-          className="py-4 rounded-xl items-center bg-gray-800 active:opacity-80"
+          style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+          className="py-4 rounded-xl items-center active:opacity-60"
         >
-          <Text className={`text-gray-200 font-semibold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>Return</Text>
+          <Text style={{ color: theme.text }} className={`font-semibold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>Return</Text>
         </Pressable>
       </View>
     </View>

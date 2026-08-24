@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, Check, TriangleAlert, ClipboardList, Plus, Trash2, Pencil, NotebookText, CalendarDays } from 'lucide-react-native';
 import { useCoachStore, COACH_ROUTINES, COACH_PROGRAMS, type CoachRoutine } from '@/lib/coach';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
 
 export default function CoachScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   useTextScaleSubscription();
@@ -45,17 +46,17 @@ export default function CoachScreen() {
 
   // While loading, render a neutral screen to avoid flashing the disclaimer.
   if (!isLoaded) {
-    return <View className="flex-1 bg-black" style={{ paddingTop: insets.top }} />;
+    return <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} />;
   }
 
   return (
-    <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={() => router.back()} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={largeDisplayMode ? 26 : 30} color="#f97316" />
         </Pressable>
-        <Text className={`text-white font-bold ml-1 ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
+        <Text style={{ color: theme.text }} className={`font-bold ml-1 ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
           Coach's Routines
         </Text>
       </View>
@@ -71,19 +72,19 @@ export default function CoachScreen() {
             <View className="w-20 h-20 rounded-full bg-red-500/15 items-center justify-center">
               <TriangleAlert size={44} color="#ef4444" />
             </View>
-            <Text className={`text-white font-bold mt-4 text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>
+            <Text style={{ color: theme.text }} className={`font-bold mt-4 text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>
               Please Read Carefully
             </Text>
           </View>
 
-          <View className="bg-gray-900 rounded-2xl p-5 border border-red-500/30">
-            <Text className={`text-gray-200 leading-7 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+          <View style={{ backgroundColor: theme.card, borderColor: 'rgba(239,68,68,0.3)' }} className="rounded-2xl p-5 border">
+            <Text style={{ color: theme.text }} className={`leading-7 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
               Coach's Routines are provided{' '}
-              <Text className="text-red-400 font-bold">for fun and entertainment purposes only</Text>.
-              They are <Text className="font-bold text-white">not</Text> medical advice, a treatment plan,
+              <Text className="text-red-500 font-bold">for fun and entertainment purposes only</Text>.
+              They are <Text style={{ color: theme.text }} className="font-bold">not</Text> medical advice, a treatment plan,
               or a substitute for professional guidance.
               {'\n\n'}
-              <Text className="font-bold text-white">
+              <Text style={{ color: theme.text }} className="font-bold">
                 Consult your physician or a qualified medical professional before starting this — or any —
                 exercise routine.
               </Text>{' '}
@@ -91,7 +92,7 @@ export default function CoachScreen() {
               warning sign.
               {'\n\n'}
               By continuing, you confirm that you are voluntarily participating and that you{' '}
-              <Text className="font-bold text-white">assume all risk</Text> of injury. You agree that the app
+              <Text style={{ color: theme.text }} className="font-bold">assume all risk</Text> of injury. You agree that the app
               and its creators are not responsible or liable for any injury, harm, or loss that may result.
             </Text>
           </View>
@@ -102,13 +103,12 @@ export default function CoachScreen() {
             className="flex-row items-start mt-6 px-1 active:opacity-70"
           >
             <View
-              className={`w-7 h-7 rounded-md items-center justify-center mr-3 mt-0.5 ${
-                checked ? 'bg-orange-500' : 'bg-gray-800 border border-gray-600'
-              }`}
+              style={{ backgroundColor: checked ? '#f97316' : theme.divider, borderColor: theme.border }}
+              className={`w-7 h-7 rounded-md items-center justify-center mr-3 mt-0.5 ${!checked ? 'border' : ''}`}
             >
               {checked && <Check size={18} color="#fff" />}
             </View>
-            <Text className={`text-gray-200 flex-1 leading-6 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.text }} className={`flex-1 leading-6 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-90`}>
               I have read and understand this disclaimer, I have (or will) consult my physician, and I agree
               to the terms above.
             </Text>
@@ -117,14 +117,15 @@ export default function CoachScreen() {
           <Pressable
             onPress={handleAcknowledge}
             disabled={!checked}
-            className={`mt-6 py-4 rounded-xl items-center ${checked ? 'bg-orange-500 active:opacity-80' : 'bg-gray-800'}`}
+            style={{ backgroundColor: checked ? '#f97316' : theme.divider }}
+            className={`mt-6 py-4 rounded-xl items-center ${checked ? 'active:opacity-80' : ''}`}
           >
-            <Text className={`font-bold ${checked ? 'text-white' : 'text-gray-600'} ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+            <Text style={{ color: checked ? '#fff' : theme.subText }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
               I Acknowledge & Continue
             </Text>
           </Pressable>
 
-          <Text className={`text-gray-600 text-center mt-3 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+          <Text style={{ color: theme.subText }} className={`text-center mt-3 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-60`}>
             Your acknowledgment and the date are saved to your account.
           </Text>
         </ScrollView>
@@ -135,13 +136,13 @@ export default function CoachScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 40 }}
           showsVerticalScrollIndicator={false}
         >
-          <Text className={`text-gray-400 mb-4 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+          <Text style={{ color: theme.subText }} className={`mb-4 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
             Coach-built programs to follow along with. Pick one to get started.
           </Text>
 
           {/* Multi-week programs (several workouts you rotate through) */}
           {COACH_PROGRAMS.length > 0 && (
-            <Text className={`text-gray-500 font-semibold mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.subText }} className={`font-semibold mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
               PROGRAMS
             </Text>
           )}
@@ -149,26 +150,27 @@ export default function CoachScreen() {
             <Pressable
               key={program.id}
               onPress={() => router.push(`/coach-program?id=${program.id}`)}
-              className="bg-gray-900 rounded-2xl p-4 mb-3 border border-emerald-500/40 flex-row items-center active:opacity-80"
+              style={{ backgroundColor: theme.card, borderColor: 'rgba(16,185,129,0.3)' }}
+              className="rounded-2xl p-4 mb-3 border flex-row items-center active:opacity-80"
             >
-              <View className="w-12 h-12 rounded-xl bg-emerald-900/40 items-center justify-center mr-3">
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#dcfce7' : 'rgba(16,185,129,0.2)' }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
                 <CalendarDays size={26} color="#10b981" />
               </View>
               <View className="flex-1 mr-2">
-                <Text className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
                   {program.title}
                 </Text>
-                <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
                   {program.subtitle}
                 </Text>
               </View>
-              <ChevronRight size={largeDisplayMode ? 22 : 24} color="#6b7280" />
+              <ChevronRight size={largeDisplayMode ? 22 : 24} color={theme.subText} />
             </Pressable>
           ))}
 
           {/* Single routines */}
           {COACH_ROUTINES.length > 0 && (
-            <Text className={`text-gray-500 font-semibold mt-4 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.subText }} className={`font-semibold mt-4 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
               ROUTINES
             </Text>
           )}
@@ -176,26 +178,27 @@ export default function CoachScreen() {
             <Pressable
               key={routine.id}
               onPress={() => router.push(`/coach-routine?id=${routine.id}`)}
-              className="bg-gray-900 rounded-2xl p-4 mb-3 border border-orange-500/40 flex-row items-center active:opacity-80"
+              style={{ backgroundColor: theme.card, borderColor: 'rgba(249,115,22,0.3)' }}
+              className="rounded-2xl p-4 mb-3 border flex-row items-center active:opacity-80"
             >
-              <View className="w-12 h-12 rounded-xl bg-orange-900/40 items-center justify-center mr-3">
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#ffedd5' : 'rgba(249,115,22,0.2)' }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
                 <ClipboardList size={26} color="#f97316" />
               </View>
               <View className="flex-1 mr-2">
-                <Text className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
                   {routine.title}
                 </Text>
-                <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
                   {routine.subtitle}
                 </Text>
               </View>
-              <ChevronRight size={largeDisplayMode ? 22 : 24} color="#6b7280" />
+              <ChevronRight size={largeDisplayMode ? 22 : 24} color={theme.subText} />
             </Pressable>
           ))}
 
           {/* User-built routines saved on this device */}
           {customRoutines.length > 0 && (
-            <Text className={`text-gray-500 font-semibold mt-4 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.subText }} className={`font-semibold mt-4 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
               YOUR ROUTINES
             </Text>
           )}
@@ -203,16 +206,17 @@ export default function CoachScreen() {
             <Pressable
               key={routine.id}
               onPress={() => router.push(`/coach-routine?id=${routine.id}`)}
-              className="bg-gray-900 rounded-2xl p-4 mb-3 border border-sky-500/40 flex-row items-center active:opacity-80"
+              style={{ backgroundColor: theme.card, borderColor: 'rgba(56,189,248,0.3)' }}
+              className="rounded-2xl p-4 mb-3 border flex-row items-center active:opacity-80"
             >
-              <View className="w-12 h-12 rounded-xl bg-sky-900/40 items-center justify-center mr-3">
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e0f2fe' : 'rgba(56,189,248,0.2)' }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
                 <NotebookText size={26} color="#38bdf8" />
               </View>
               <View className="flex-1 mr-2">
-                <Text className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
                   {routine.title}
                 </Text>
-                <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
                   {routine.subtitle}
                 </Text>
               </View>
@@ -230,7 +234,7 @@ export default function CoachScreen() {
                   hitSlop={12}
                   className="p-2 active:opacity-60"
                 >
-                  <Trash2 size={largeDisplayMode ? 20 : 22} color="#6b7280" />
+                  <Trash2 size={largeDisplayMode ? 20 : 22} color={theme.subText} />
                 </Pressable>
               </View>
             </Pressable>
@@ -239,7 +243,8 @@ export default function CoachScreen() {
           {/* Build your own */}
           <Pressable
             onPress={() => router.push('/coach-build')}
-            className="mt-2 rounded-2xl p-4 border-2 border-dashed border-orange-500/50 flex-row items-center justify-center active:opacity-80"
+            style={{ borderColor: 'rgba(249,115,22,0.5)' }}
+            className="mt-2 rounded-2xl p-4 border-2 border-dashed flex-row items-center justify-center active:opacity-80"
           >
             <Plus size={largeDisplayMode ? 20 : 22} color="#f97316" />
             <Text className={`text-orange-500 font-bold ml-2 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
@@ -252,19 +257,20 @@ export default function CoachScreen() {
       {/* Delete confirmation */}
       <Modal visible={pendingDelete !== null} transparent animationType="fade" onRequestClose={() => setPendingDelete(null)}>
         <View className="flex-1 bg-black/70 items-center justify-center px-8">
-          <View className="w-full bg-gray-900 rounded-2xl p-6 border border-gray-700">
-            <Text className={`text-white font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
+          <View style={{ backgroundColor: theme.card, borderColor: theme.border }} className="w-full rounded-2xl p-6 border">
+            <Text style={{ color: theme.text }} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
               Delete routine?
             </Text>
-            <Text className={`text-gray-400 text-center mt-2 leading-6 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text style={{ color: theme.subText }} className={`text-center mt-2 leading-6 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-80`}>
               "{pendingDelete?.title}" will be removed from this device, along with its trophies. This can't be undone.
             </Text>
             <View className="flex-row mt-6">
               <Pressable
                 onPress={() => setPendingDelete(null)}
-                className="flex-1 mr-2 py-3.5 rounded-xl items-center bg-gray-800 active:opacity-80"
+                style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+                className="flex-1 mr-2 py-3.5 rounded-xl items-center active:opacity-80"
               >
-                <Text className={`text-gray-200 font-semibold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>Cancel</Text>
+                <Text style={{ color: theme.text }} className={`font-semibold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={() => {

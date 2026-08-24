@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, ChevronRight, ChevronDown, ClipboardList, CalendarDays, CheckCircle2 } from 'lucide-react-native';
 import { getProgram, useCoachStore } from '@/lib/coach';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
 
 export default function CoachProgramScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const programId = params.id ?? '';
@@ -35,8 +36,8 @@ export default function CoachProgramScreen() {
 
   if (!program) {
     return (
-      <View className="flex-1 bg-black items-center justify-center" style={{ paddingTop: insets.top }}>
-        <Text className="text-white text-lg">Program not found.</Text>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} className="items-center justify-center">
+        <Text style={{ color: theme.text }} className="text-lg">Program not found.</Text>
         <Pressable onPress={() => router.back()} className="mt-4 px-5 py-3 bg-orange-500 rounded-xl">
           <Text className="text-white font-semibold">Go Back</Text>
         </Pressable>
@@ -49,13 +50,13 @@ export default function CoachProgramScreen() {
     completions.filter(c => c.routineId === routineId).length;
 
   return (
-    <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={() => router.back()} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={largeDisplayMode ? 26 : 30} color="#f97316" />
         </Pressable>
-        <Text numberOfLines={1} className={`text-white font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-2xl'}`}>
+        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-2xl'}`}>
           {program.title}
         </Text>
       </View>
@@ -66,15 +67,15 @@ export default function CoachProgramScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Program summary chip */}
-        <View className="flex-row items-center bg-emerald-900/20 border border-emerald-500/30 rounded-2xl p-4 mb-4">
-          <View className="w-12 h-12 rounded-xl bg-emerald-900/40 items-center justify-center mr-3">
+        <View style={{ backgroundColor: theme.background === '#ffffff' ? '#d1fae5' : 'rgba(16,185,129,0.2)', borderColor: 'rgba(16,185,129,0.3)' }} className="flex-row items-center border rounded-2xl p-4 mb-4">
+          <View style={{ backgroundColor: theme.background === '#ffffff' ? '#ffffff' : 'rgba(16,185,129,0.4)' }} className="w-12 h-12 rounded-xl items-center justify-center mr-3">
             <CalendarDays size={26} color="#10b981" />
           </View>
           <View className="flex-1">
-            <Text className={`text-emerald-400 font-semibold ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+            <Text className={`text-emerald-500 font-semibold ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
               {program.subtitle}
             </Text>
-            <Text className={`text-gray-400 mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+            <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-70`}>
               Rotate through the {program.workouts.length} workouts below each week.
             </Text>
           </View>
@@ -83,25 +84,26 @@ export default function CoachProgramScreen() {
         {/* Collapsible overview (schedule, rules, week progression) */}
         <Pressable
           onPress={() => setOverviewOpen(o => !o)}
-          className="flex-row items-center justify-between bg-gray-900 rounded-2xl px-4 py-3.5 active:opacity-80"
+          style={{ backgroundColor: theme.card }}
+          className="flex-row items-center justify-between rounded-2xl px-4 py-3.5 active:opacity-80"
         >
-          <Text className={`text-white font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+          <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
             Program details & weekly schedule
           </Text>
           {overviewOpen
-            ? <ChevronDown size={largeDisplayMode ? 20 : 22} color="#9ca3af" />
-            : <ChevronRight size={largeDisplayMode ? 20 : 22} color="#9ca3af" />}
+            ? <ChevronDown size={largeDisplayMode ? 20 : 22} color={theme.subText} />
+            : <ChevronRight size={largeDisplayMode ? 20 : 22} color={theme.subText} />}
         </Pressable>
         {overviewOpen && (
-          <View className="bg-gray-900/60 rounded-2xl px-4 py-4 mt-2">
-            <Text className={`text-gray-200 leading-7 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+          <View style={{ backgroundColor: `${theme.card}80` }} className="rounded-2xl px-4 py-4 mt-2">
+            <Text style={{ color: theme.text }} className={`leading-7 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-90`}>
               {program.overview}
             </Text>
           </View>
         )}
 
         {/* Workout list */}
-        <Text className={`text-gray-500 font-semibold mt-5 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+        <Text style={{ color: theme.subText }} className={`font-semibold mt-5 mb-2 tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
           WORKOUTS
         </Text>
         {program.workouts.map((workout) => {
@@ -110,16 +112,17 @@ export default function CoachProgramScreen() {
             <Pressable
               key={workout.id}
               onPress={() => router.push(`/coach-routine?id=${workout.id}`)}
-              className="bg-gray-900 rounded-2xl p-4 mb-3 border border-orange-500/40 flex-row items-center active:opacity-80"
+              style={{ backgroundColor: theme.card, borderColor: 'rgba(249,115,22,0.3)' }}
+              className="rounded-2xl p-4 mb-3 border flex-row items-center active:opacity-80"
             >
-              <View className="w-11 h-11 rounded-xl bg-orange-900/40 items-center justify-center mr-3">
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#ffedd5' : 'rgba(249,115,22,0.2)' }} className="w-11 h-11 rounded-xl items-center justify-center mr-3">
                 <ClipboardList size={24} color="#f97316" />
               </View>
               <View className="flex-1 mr-2">
-                <Text className={`text-white font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
                   {workout.title}
                 </Text>
-                <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+                <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-70`}>
                   {workout.subtitle}
                 </Text>
                 {done > 0 && (
@@ -131,12 +134,12 @@ export default function CoachProgramScreen() {
                   </View>
                 )}
               </View>
-              <ChevronRight size={largeDisplayMode ? 22 : 24} color="#6b7280" />
+              <ChevronRight size={largeDisplayMode ? 22 : 24} color={theme.subText} />
             </Pressable>
           );
         })}
 
-        <Text className={`text-gray-600 text-center mt-3 leading-5 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+        <Text style={{ color: theme.subText }} className={`text-center mt-3 leading-5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-60`}>
           Not sure where to start? Do Workout 1 on day one, then work down the list across the week.
         </Text>
       </ScrollView>

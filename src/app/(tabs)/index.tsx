@@ -542,7 +542,18 @@ export default function TrackerScreen() {
           </Pressable>
         )}
 
-        <View className="mx-3 mt-5 rounded-3xl p-4 border min-h-[140px] justify-center shadow-lg" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
+        <View
+          style={{
+            backgroundColor: theme.card,
+            borderColor: theme.border,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: theme.background === '#ffffff' ? 0.08 : 0,
+            shadowRadius: 12,
+            elevation: theme.background === '#ffffff' ? 3 : 0
+          }}
+          className="mx-3 mt-5 rounded-3xl p-4 border min-h-[140px] justify-center"
+        >
           {targetReps === 0 ? (
             <View>
               <View className="flex-row justify-between items-center mb-4">
@@ -565,10 +576,12 @@ export default function TrackerScreen() {
                 </View>
               </View>
 
-              <View style={{ backgroundColor: theme.background, borderColor: 'rgba(255,255,255,0.05)' }} className={`rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border`}>
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937', borderColor: 'rgba(0,0,0,0.05)' }} className={`rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border`}>
                 {/* Progress Bar Fill: Target reps is now mapped to 70% width */}
-                <View
-                  className={`h-full ${currentReps > targetReps ? 'bg-green-500' : 'bg-orange-500'} rounded-l-lg`}
+                <LinearGradient
+                  colors={currentReps > targetReps ? ['#22c55e', '#16a34a'] : ['#f97316', '#ea580c']}
+                  start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
+                  className="h-full rounded-l-lg"
                   style={{ width: `${Math.min((currentReps * 70) / targetReps, 100)}%` }}
                 />
 
@@ -581,13 +594,13 @@ export default function TrackerScreen() {
 
                 {/* Target marker line fixed at 70% */}
                 <View
-                  className={`absolute w-0.5 bg-white/60 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
-                  style={{ left: '70%', marginLeft: -1, backgroundColor: theme.text, opacity: 0.6 }}
+                  className={`absolute w-0.5 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
+                  style={{ left: '70%', marginLeft: -1, backgroundColor: theme.text, opacity: 0.3 }}
                 />
               </View>
 
               <View className="items-center mt-3">
-                <Text style={{ color: theme.text }} className="font-black text-[9px] uppercase tracking-[0.3em]">Every Rep Counts.</Text>
+                <Text style={{ color: theme.text }} className="font-black text-[9px] uppercase tracking-[0.3em] opacity-80">Every Rep Counts.</Text>
               </View>
 
               {currentReps > targetReps && (

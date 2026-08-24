@@ -281,19 +281,20 @@ export default function ProfileScreen() {
       return (
         <Pressable
           onPress={() => router.push('/unlock')}
-          className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4 border border-orange-500/40 active:opacity-80"
+          style={{ backgroundColor: theme.card, borderColor: 'rgba(249,115,22,0.4)' }}
+          className="mx-4 mt-4 rounded-2xl p-4 border active:opacity-80"
         >
           <View className="flex-row items-center">
             <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text numberOfLines={1} className={`text-white font-semibold ml-2 flex-shrink ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
+            <Text numberOfLines={1} style={{ color: theme.text }} className={`font-semibold ml-2 flex-shrink ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
               Glideboard Pro
             </Text>
             <View className="ml-auto bg-orange-500/15 px-2 py-0.5 rounded-full flex-shrink-0">
-              <Text className={`text-orange-400 font-semibold ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>ACTIVE</Text>
+              <Text className={`text-orange-500 font-semibold ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>ACTIVE</Text>
             </View>
-            <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" className="ml-1" />
+            <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} className="ml-1" />
           </View>
-          <Text className={`text-gray-500 mt-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+          <Text style={{ color: theme.subText }} className={`mt-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
             Full access · renews automatically · manage or cancel in your {STORE_SETTINGS}
           </Text>
         </Pressable>
@@ -303,27 +304,28 @@ export default function ProfileScreen() {
       <View className="mx-4 mt-4">
         <Pressable
           onPress={() => router.push('/unlock')}
-          className="bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between border border-orange-500/40 active:opacity-80"
+          style={{ backgroundColor: theme.card, borderColor: 'rgba(249,115,22,0.4)' }}
+          className="rounded-2xl p-4 flex-row items-center justify-between border active:opacity-80"
         >
           <View className="flex-row items-center flex-1">
             <CalendarClock size={largeDisplayMode ? 22 : 20} color="#f97316" />
             <View className="ml-3 flex-1">
-              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white font-semibold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`font-semibold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>
                 Start Subscription
               </Text>
-              <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+              <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
                 Full access · from $1.19/mo
               </Text>
             </View>
           </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
+          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
         </Pressable>
 
         <Pressable
           onPress={handleRestore}
           className="mt-2 py-1 items-center active:opacity-60"
         >
-          <Text className={`text-gray-500 font-medium underline ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+          <Text style={{ color: theme.subText }} className={`font-medium underline ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-60`}>
             Already a member? Restore purchase
           </Text>
         </Pressable>
@@ -459,7 +461,7 @@ export default function ProfileScreen() {
         {/* Version Footer */}
         <View className="mt-4 mb-4 items-center">
           <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest opacity-60">
-            Glideboard V1.2.7 (Build 279)
+            Glideboard V1.2.7 (Build 280)
           </Text>
         </View>
       </ScrollView>

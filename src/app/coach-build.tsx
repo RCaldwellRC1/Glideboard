@@ -9,7 +9,7 @@ import { useCoachStore, createCustomRoutine, type CustomRoutineExercise } from '
 import {
   EXERCISE_GROUPS, useWorkoutStore, FREE_STYLE_GROUP, TIMED_GROUP, CATEGORY_COLORS,
 } from '@/lib/workout';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
 
 const MIN_SETS = 1;
@@ -21,6 +21,7 @@ const DEFAULT_REPS = 15;
 
 export default function CoachBuildScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   useTextScaleSubscription();
@@ -92,13 +93,13 @@ export default function CoachBuildScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       {/* Header */}
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={() => router.back()} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={largeDisplayMode ? 26 : 30} color="#f97316" />
         </Pressable>
-        <Text className={`text-white font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-2xl'}`}>
+        <Text style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-2xl'}`}>
           {isEditing ? 'Edit Routine' : 'Build Your Own Routine'}
         </Text>
       </View>
@@ -110,50 +111,51 @@ export default function CoachBuildScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Name */}
-        <Text className={`text-gray-400 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+        <Text style={{ color: theme.subText }} className={`mb-2 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
           Routine name
         </Text>
         <TextInput
           value={name}
           onChangeText={(t) => { setName(t); if (error) setError(null); }}
           placeholder="e.g. My Push Day"
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={theme.subText}
           maxLength={40}
-          className={`bg-gray-900 rounded-xl px-4 text-white border border-gray-700 ${largeDisplayMode ? 'py-3 text-base' : 'py-4 text-lg'}`}
+          style={{ backgroundColor: theme.card, color: theme.text, borderColor: theme.border }}
+          className={`rounded-xl px-4 border ${largeDisplayMode ? 'py-3 text-base' : 'py-4 text-lg'}`}
           returnKeyType="done"
         />
 
         {/* Exercises */}
-        <Text className={`text-gray-400 mt-6 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+        <Text style={{ color: theme.subText }} className={`mt-6 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
           Exercises {exercises.length > 0 ? `(${exercises.length})` : ''}
         </Text>
 
         {exercises.length === 0 && (
-          <View className="bg-gray-900/60 rounded-2xl p-6 items-center border border-gray-800">
-            <NotebookText size={32} color="#6b7280" />
-            <Text className={`text-gray-500 text-center mt-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
+          <View style={{ backgroundColor: `${theme.card}99`, borderColor: theme.divider }} className="rounded-2xl p-6 items-center border">
+            <NotebookText size={32} color={theme.subText} />
+            <Text style={{ color: theme.subText }} className={`text-center mt-2 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-60`}>
               No exercises yet. Add one to get started.
             </Text>
           </View>
         )}
 
         {exercises.map((ex, i) => (
-          <View key={`${ex.exercise}-${i}`} className="bg-gray-900 rounded-2xl p-4 mb-3 border border-gray-700">
+          <View key={`${ex.exercise}-${i}`} style={{ backgroundColor: theme.card, borderColor: theme.border }} className="rounded-2xl p-4 mb-3 border">
             <View className="flex-row items-start">
               <View className="w-7 h-7 rounded-full bg-orange-500/20 items-center justify-center mr-3 mt-0.5">
                 <Text className={`text-orange-500 font-bold ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>{i + 1}</Text>
               </View>
               <View className="flex-1 mr-2">
-                <Text className={`text-white font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>{ex.exercise}</Text>
-                <Text className={`text-gray-500 mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>{ex.group}</Text>
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>{ex.exercise}</Text>
+                <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-70`}>{ex.group}</Text>
               </View>
               {/* Reorder + remove */}
               <View className="flex-row items-center">
                 <Pressable onPress={() => moveExercise(i, -1)} disabled={i === 0} hitSlop={8} className="p-1 active:opacity-60">
-                  <ChevronUp size={largeDisplayMode ? 18 : 20} color={i === 0 ? '#374151' : '#9ca3af'} />
+                  <ChevronUp size={largeDisplayMode ? 18 : 20} color={i === 0 ? theme.divider : theme.subText} />
                 </Pressable>
                 <Pressable onPress={() => moveExercise(i, 1)} disabled={i === exercises.length - 1} hitSlop={8} className="p-1 active:opacity-60">
-                  <ChevronDown size={largeDisplayMode ? 18 : 20} color={i === exercises.length - 1 ? '#374151' : '#9ca3af'} />
+                  <ChevronDown size={largeDisplayMode ? 18 : 20} color={i === exercises.length - 1 ? theme.divider : theme.subText} />
                 </Pressable>
                 <Pressable onPress={() => removeExercise(i)} hitSlop={8} className="p-1 ml-1 active:opacity-60">
                   <Trash2 size={largeDisplayMode ? 18 : 20} color="#ef4444" />
@@ -188,7 +190,8 @@ export default function CoachBuildScreen() {
         {/* Add exercise */}
         <Pressable
           onPress={() => setPickerOpen(true)}
-          className="mt-1 rounded-2xl p-4 border-2 border-dashed border-orange-500/50 flex-row items-center justify-center active:opacity-80"
+          style={{ borderColor: 'rgba(249,115,22,0.5)' }}
+          className="mt-1 rounded-2xl p-4 border-2 border-dashed flex-row items-center justify-center active:opacity-80"
         >
           <Plus size={largeDisplayMode ? 20 : 22} color="#f97316" />
           <Text className={`text-orange-500 font-bold ml-2 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
@@ -196,13 +199,13 @@ export default function CoachBuildScreen() {
           </Text>
         </Pressable>
 
-        <Text className={`text-gray-600 mt-4 leading-5 ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
+        <Text style={{ color: theme.subText }} className={`mt-4 leading-5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-60`}>
           You'll pick the incline level for each exercise when you run the routine — not now.
         </Text>
       </ScrollView>
 
       {/* Footer save bar */}
-      <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 bg-black border-t border-gray-800" style={{ paddingBottom: insets.bottom + 12 }}>
+      <View style={{ borderTopColor: theme.border, backgroundColor: theme.background, paddingBottom: insets.bottom + 12 }} className="absolute left-0 right-0 bottom-0 px-4 pt-3 border-t">
         {error && (
           <Text className={`text-red-400 text-center mb-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>{error}</Text>
         )}
@@ -213,6 +216,17 @@ export default function CoachBuildScreen() {
           <Text className={`text-white font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>{isEditing ? 'Save Changes' : 'Save Routine'}</Text>
         </Pressable>
       </View>
+
+      {/* Exercise picker */}
+      <ExercisePickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={addExercise}
+        isLarge={largeDisplayMode}
+      />
+    </View>
+  );
+}
 
       {/* Exercise picker */}
       <ExercisePickerModal
