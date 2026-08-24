@@ -372,7 +372,7 @@ export default function ProfileScreen() {
         {/* Footer */}
         <View className="mt-8 items-center">
           <Text style={{ color: theme.subText }} className="text-xs opacity-50 font-bold uppercase tracking-widest">
-            Glideboard V1.2.7 (Build 285)
+            Glideboard V1.2.7 (Build 286)
           </Text>
         </View>
       </ScrollView>
@@ -477,6 +477,7 @@ export default function ProfileScreen() {
             display="spinner"
             onChange={onDateChange}
             maximumDate={new Date()}
+            minimumDate={new Date(1900, 0, 1)}
           />
         )}
 
