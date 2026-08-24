@@ -372,7 +372,7 @@ export default function ProfileScreen() {
         {/* Footer */}
         <View className="mt-8 items-center">
           <Text style={{ color: theme.subText }} className="text-xs opacity-50 font-bold uppercase tracking-widest">
-            Glideboard V1.2.7 (Build 284)
+            Glideboard V1.2.7 (Build 285)
           </Text>
         </View>
       </ScrollView>
@@ -474,8 +474,9 @@ export default function ProfileScreen() {
           <DateTimePicker
             value={profile.dateOfBirth ? new Date(profile.dateOfBirth) : new Date(2000, 0, 1)}
             mode="date"
-            display="default"
+            display="spinner"
             onChange={onDateChange}
+            maximumDate={new Date()}
           />
         )}
 
