@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio, ShieldCheck, Sun, Moon } from 'lucide-react-native';
-import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize, type ColorTheme } from '@/lib/settings';
+import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize, type ColorTheme, useTheme } from '@/lib/settings';
 import { DEVICE_NAME } from '@/lib/storePlatform';
 import { useMotionContext } from '@/lib/motion';
 import { useRestoreSubscription, useUnlockState } from '@/lib/purchases';
@@ -16,6 +16,7 @@ import { Alert } from 'react-native';
  * problem, not the rep-counting thresholds.
  */
 function MotionSensorStatusCard({ isLarge }: { isLarge: boolean }) {
+  const theme = useTheme();
   const { motion, diagnostics, restart } = useMotionContext();
   const { x, y, z } = motion.accelerationIncludingGravity;
   const magnitude = Math.sqrt(x * x + y * y + z * z);
@@ -46,14 +47,14 @@ function MotionSensorStatusCard({ isLarge }: { isLarge: boolean }) {
   const barPercent = Math.max(0, Math.min(100, (magnitude / 20) * 100));
 
   return (
-    <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+    <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
       <View className="flex-row items-center mb-3">
         <Radio size={isLarge ? 22 : 20} color="#f97316" />
-        <Text className={`text-gray-400 ml-2 ${isLarge ? 'text-lg' : 'text-base'}`}>Sensor Status</Text>
+        <Text style={{ color: theme.subText }} className={`ml-2 ${isLarge ? 'text-lg' : 'text-base'}`}>Sensor Status</Text>
       </View>
 
       <View className="flex-row items-center justify-between py-2">
-        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Status</Text>
+        <Text style={{ color: theme.text }} className={isLarge ? 'text-base' : 'text-sm'}>Status</Text>
         <View className="flex-row items-center">
           <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: statusColor }} />
           <Text className={`font-semibold ${isLarge ? 'text-base' : 'text-sm'}`} style={{ color: statusColor }}>
@@ -63,29 +64,29 @@ function MotionSensorStatusCard({ isLarge }: { isLarge: boolean }) {
       </View>
 
       <View className="flex-row items-center justify-between py-2">
-        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Sensor in use</Text>
-        <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>{sourceLabel}</Text>
+        <Text style={{ color: theme.text }} className={isLarge ? 'text-base' : 'text-sm'}>Sensor in use</Text>
+        <Text style={{ color: theme.subText }} className={isLarge ? 'text-base' : 'text-sm'}>{sourceLabel}</Text>
       </View>
 
       <View className="flex-row items-center justify-between py-2">
-        <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Update rate</Text>
-        <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>{diagnostics.sampleRateHz} Hz</Text>
+        <Text style={{ color: theme.text }} className={isLarge ? 'text-base' : 'text-sm'}>Update rate</Text>
+        <Text style={{ color: theme.subText }} className={isLarge ? 'text-base' : 'text-sm'}>{diagnostics.sampleRateHz} Hz</Text>
       </View>
 
       <View className="py-2">
         <View className="flex-row items-center justify-between mb-2">
-          <Text className={`text-white ${isLarge ? 'text-base' : 'text-sm'}`}>Live movement</Text>
-          <Text className={`text-gray-400 ${isLarge ? 'text-base' : 'text-sm'}`}>
+          <Text style={{ color: theme.text }} className={isLarge ? 'text-base' : 'text-sm'}>Live movement</Text>
+          <Text style={{ color: theme.subText }} className={isLarge ? 'text-base' : 'text-sm'}>
             {magnitude.toFixed(1)} · peak {peak.toFixed(1)}
           </Text>
         </View>
-        <View className="h-2 bg-gray-800 rounded-full overflow-hidden">
+        <View style={{ backgroundColor: theme.border }} className="h-2 rounded-full overflow-hidden">
           <View
             className="h-2 rounded-full"
-            style={{ width: `${barPercent}%`, backgroundColor: diagnostics.isHealthy ? '#f97316' : '#4b5563' }}
+            style={{ width: `${barPercent}%`, backgroundColor: diagnostics.isHealthy ? '#f97316' : theme.subText }}
           />
         </View>
-        <Text className={`text-gray-500 mt-2 ${isLarge ? 'text-sm' : 'text-xs'}`}>
+        <Text style={{ color: theme.subText }} className={`mt-2 ${isLarge ? 'text-sm' : 'text-xs'} opacity-70`}>
           Shake your device — the bar should move. Resting flat reads about 9.8.
         </Text>
       </View>
@@ -98,7 +99,8 @@ function MotionSensorStatusCard({ isLarge }: { isLarge: boolean }) {
 
       <Pressable
         onPress={() => { setPeak(0); restart(); }}
-        className="flex-row items-center justify-center mt-3 bg-gray-800 rounded-xl py-3 active:opacity-70"
+        style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+        className="flex-row items-center justify-center mt-3 rounded-xl py-3 active:opacity-70"
       >
         <RefreshCw size={isLarge ? 18 : 16} color="#f97316" />
         <Text className={`text-orange-500 font-semibold ml-2 ${isLarge ? 'text-base' : 'text-sm'}`}>
@@ -124,24 +126,27 @@ function NumberStepper({
   onChange: (value: number) => void;
   isLarge: boolean;
 }) {
+  const theme = useTheme();
   return (
     <View className="flex-row items-center justify-between py-3">
-      <Text className={`text-white flex-1 ${isLarge ? 'text-lg' : 'text-base'}`}>{label}</Text>
+      <Text style={{ color: theme.text }} className={`flex-1 ${isLarge ? 'text-lg' : 'text-base'}`}>{label}</Text>
       <View className="flex-row items-center">
         <Pressable
           onPress={() => onChange(Math.max(min, value - 1))}
-          className="w-10 h-10 bg-gray-800 rounded-lg items-center justify-center active:opacity-70"
+          style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+          className="w-10 h-10 rounded-lg items-center justify-center active:opacity-70"
         >
-          <ChevronDown size={20} color={value <= min ? '#4b5563' : '#f97316'} />
+          <ChevronDown size={20} color={value <= min ? theme.border : '#f97316'} />
         </Pressable>
         <View className="w-14 items-center">
           <Text className={`text-orange-500 font-bold ${isLarge ? 'text-2xl' : 'text-xl'}`}>{value}s</Text>
         </View>
         <Pressable
           onPress={() => onChange(Math.min(max, value + 1))}
-          className="w-10 h-10 bg-gray-800 rounded-lg items-center justify-center active:opacity-70"
+          style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+          className="w-10 h-10 rounded-lg items-center justify-center active:opacity-70"
         >
-          <ChevronUp size={20} color={value >= max ? '#4b5563' : '#f97316'} />
+          <ChevronUp size={20} color={value >= max ? theme.border : '#f97316'} />
         </Pressable>
       </View>
     </View>
@@ -166,6 +171,9 @@ export default function AppSettingsScreen() {
   const paceSettings = useSettingsStore(s => s.paceSettings);
   const setPaceSettings = useSettingsStore(s => s.setPaceSettings);
   const loadSettings = useSettingsStore(s => s.loadFromStorage);
+
+  const factor = TEXT_SIZE_FACTORS[textSize] ?? 1;
+  const fs = (base: number) => Math.round(base * factor);
 
   const { data: unlock } = useUnlockState();
   const restore = useRestoreSubscription();
@@ -214,25 +222,26 @@ export default function AppSettingsScreen() {
             numberOfLines={1}
             adjustsFontSizeToFit
             allowFontScaling={false}
-            className={`text-white font-bold flex-1 text-center mr-16 ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}
+            style={{ color: theme.text }}
+            className={`font-bold flex-1 text-center mr-16 ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}
           >
             App Settings
           </Text>
         </View>
 
         {/* Display Settings */}
-        <View className="mx-4 mt-6 bg-gray-900 rounded-2xl p-4">
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-6 rounded-2xl p-4">
           <View className="flex-row items-center mb-3">
             <Smartphone size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Display Settings</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Display Settings</Text>
           </View>
 
           {/* Theme Toggle — Switch between Light and Dark mode */}
-          <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Color Theme</Text>
-          <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+          <Text style={{ color: theme.text }} className={largeDisplayMode ? 'text-lg' : 'text-base'}>Color Theme</Text>
+          <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
             Pick a look that matches your environment
           </Text>
-          <View className="flex-row mt-3 bg-gray-800 rounded-xl p-1 mb-4">
+          <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-row mt-3 rounded-xl p-1 mb-4">
             {(['dark', 'light'] as ColorTheme[]).map((t) => {
               const active = colorTheme === t;
               const Icon = t === 'dark' ? Moon : Sun;
@@ -242,11 +251,13 @@ export default function AppSettingsScreen() {
                   onPress={() => setColorTheme(t)}
                   className={`flex-1 flex-row items-center justify-center rounded-lg py-2.5 ${active ? 'bg-orange-500' : ''}`}
                 >
-                  <Icon size={18} color={active ? '#000' : '#9ca3af'} />
+                  <Icon size={18} color={active ? '#000' : theme.subText} />
                   <Text
-                    className={`font-black ml-2 uppercase tracking-widest ${active ? 'text-black' : 'text-gray-400'} ${
-                      largeDisplayMode ? 'text-sm' : 'text-xs'
-                    }`}
+                    className={`font-black ml-2 uppercase tracking-widest ${active ? 'text-black' : ''}`}
+                    style={{
+                      color: active ? '#000' : theme.subText,
+                      fontSize: fs(largeDisplayMode ? 14 : 12)
+                    }}
                   >
                     {t}
                   </Text>
@@ -255,21 +266,21 @@ export default function AppSettingsScreen() {
             })}
           </View>
 
-          <View className="h-px bg-gray-800 my-4" />
+          <View style={{ backgroundColor: theme.divider }} className="h-px my-4" />
 
           <Pressable
             onPress={() => setLargeDisplayMode(!largeDisplayMode)}
             className="flex-row items-center justify-between"
           >
             <View className="flex-1 mr-4">
-              <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Compact Mode</Text>
-              <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+              <Text style={{ color: theme.text }} className={largeDisplayMode ? 'text-lg' : 'text-base'}>Compact Mode</Text>
+              <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
                 Shrinks text and spacing to fit more on screen — handy if your {DEVICE_NAME} uses larger system display settings
               </Text>
             </View>
             <View
               className={`w-14 h-8 rounded-full items-center justify-center ${
-                largeDisplayMode ? 'bg-orange-500' : 'bg-gray-700'
+                largeDisplayMode ? 'bg-orange-500' : theme.background === '#ffffff' ? 'bg-gray-300' : 'bg-gray-700'
               }`}
             >
               <View
@@ -282,12 +293,12 @@ export default function AppSettingsScreen() {
 
           {/* Text Size — scales the font on every screen. Medium matches the
               app's original sizing, so it's the safe default. */}
-          <View className="h-px bg-gray-800 my-4" />
-          <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Text Size</Text>
-          <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+          <View style={{ backgroundColor: theme.divider }} className="h-px my-4" />
+          <Text style={{ color: theme.text }} className={largeDisplayMode ? 'text-lg' : 'text-base'}>Text Size</Text>
+          <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
             Adjusts text across the whole app for easier reading
           </Text>
-          <View className="flex-row mt-3 bg-gray-800 rounded-xl p-1">
+          <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-row mt-3 rounded-xl p-1">
             {(['small', 'medium', 'large'] as TextSize[]).map((size) => {
               const active = textSize === size;
               return (
@@ -297,9 +308,11 @@ export default function AppSettingsScreen() {
                   className={`flex-1 items-center justify-center rounded-lg py-2.5 ${active ? 'bg-orange-500' : ''}`}
                 >
                   <Text
-                    className={`font-semibold ${active ? 'text-black' : 'text-gray-300'} ${
-                      size === 'small' ? 'text-sm' : size === 'large' ? 'text-xl' : 'text-base'
-                    }`}
+                    className={`font-semibold ${active ? 'text-black' : ''}`}
+                    style={{
+                      color: active ? '#000' : theme.subText,
+                      fontSize: fs(size === 'small' ? 14 : size === 'large' ? 20 : 16)
+                    }}
                   >
                     {TEXT_SIZE_LABELS[size]}
                   </Text>
@@ -310,10 +323,10 @@ export default function AppSettingsScreen() {
         </View>
 
         {/* Rep Counting Mode */}
-        <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
           <View className="flex-row items-center mb-3">
             <Mic size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Rep Counting Mode</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Rep Counting Mode</Text>
           </View>
 
           <Pressable
@@ -321,8 +334,8 @@ export default function AppSettingsScreen() {
             className="flex-row items-center justify-between"
           >
             <View className="flex-1 mr-4">
-              <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Voice Counting</Text>
-              <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+              <Text style={{ color: theme.text }} className={largeDisplayMode ? 'text-lg' : 'text-base'}>Voice Counting</Text>
+              <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
                 {repCountingMode === 'voice'
                   ? 'Say "1", "2", "3"... out loud to count reps'
                   : 'Turn on to count reps with your voice instead of auto-counting'}
@@ -330,7 +343,7 @@ export default function AppSettingsScreen() {
             </View>
             <View
               className={`w-14 h-8 rounded-full items-center justify-center ${
-                repCountingMode === 'voice' ? 'bg-orange-500' : 'bg-gray-700'
+                repCountingMode === 'voice' ? 'bg-orange-500' : theme.background === '#ffffff' ? 'bg-gray-300' : 'bg-gray-700'
               }`}
             >
               <View
@@ -342,8 +355,8 @@ export default function AppSettingsScreen() {
           </Pressable>
 
           {repCountingMode === 'motion' && (
-            <View className="mt-3 bg-gray-800 rounded-xl px-3 py-2">
-              <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+            <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="mt-3 rounded-xl px-3 py-2">
+              <Text style={{ color: theme.subText }} className={largeDisplayMode ? 'text-sm' : 'text-xs'}>
                 Auto-counting is on — the accelerometer counts reps automatically. Toggle Voice Counting above to switch.
               </Text>
             </View>
@@ -351,16 +364,16 @@ export default function AppSettingsScreen() {
         </View>
 
         {/* Subscription Section */}
-        <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
           <View className="flex-row items-center mb-3">
             <ShieldCheck size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Subscription</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Subscription</Text>
           </View>
 
           <View className="flex-row items-center justify-between py-2">
             <View className="flex-1 mr-4">
-              <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Restore Purchase</Text>
-              <Text className={`text-gray-500 mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+              <Text style={{ color: theme.text }} className={largeDisplayMode ? 'text-lg' : 'text-base'}>Restore Purchase</Text>
+              <Text style={{ color: theme.subText }} className={`mt-1 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
                 If you have an active subscription but it's not showing, tap below to refresh your status from the store.
               </Text>
             </View>
@@ -368,7 +381,8 @@ export default function AppSettingsScreen() {
 
           <Pressable
             onPress={handleRestore}
-            className="flex-row items-center justify-center mt-3 bg-gray-800 rounded-xl py-3 active:opacity-70"
+            style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+            className="flex-row items-center justify-center mt-3 rounded-xl py-3 active:opacity-70"
           >
             {restore.isPending ? (
               <ActivityIndicator color="#f97316" />
@@ -395,13 +409,13 @@ export default function AppSettingsScreen() {
 
         {/* Motion Settings - only show when motion mode is active */}
         {repCountingMode === 'motion' && (
-          <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+          <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
             <View className="flex-row items-center mb-3">
               <Activity size={largeDisplayMode ? 22 : 20} color="#f97316" />
-              <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Motion Sensitivity</Text>
+              <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Motion Sensitivity</Text>
             </View>
 
-            <Text className={`text-gray-500 mb-3 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+            <Text style={{ color: theme.subText }} className={`mb-3 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
               Adjust based on your exercise speed
             </Text>
 
@@ -409,12 +423,13 @@ export default function AppSettingsScreen() {
               <Pressable
                 key={level}
                 onPress={() => setMotionSensitivity(level)}
+                style={{ backgroundColor: motionSensitivity === level ? 'rgba(249,115,22,0.1)' : theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
                 className={`flex-row items-center justify-between py-3 px-3 rounded-lg mb-2 ${
-                  motionSensitivity === level ? 'bg-orange-500/20 border border-orange-500' : 'bg-gray-800'
+                  motionSensitivity === level ? 'border border-orange-500' : ''
                 }`}
               >
-                <Text className={`${largeDisplayMode ? 'text-base' : 'text-sm'} ${
-                  motionSensitivity === level ? 'text-orange-500 font-semibold' : 'text-white'
+                <Text style={{ color: motionSensitivity === level ? '#f97316' : theme.text }} className={`${largeDisplayMode ? 'text-base' : 'text-sm'} ${
+                  motionSensitivity === level ? 'font-semibold' : ''
                 }`}>
                   {SENSITIVITY_CONFIG[level].label}
                 </Text>
@@ -427,17 +442,17 @@ export default function AppSettingsScreen() {
         )}
 
         {/* Pace Settings */}
-        <View className="mx-4 mt-4 bg-gray-900 rounded-2xl p-4">
+        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
           <View className="flex-row items-center mb-3">
             <Timer size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Pace Settings</Text>
+            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Pace Settings</Text>
           </View>
 
-          <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>
+          <Text style={{ color: theme.subText }} className={`mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
             Configure your Pace-Setter Timer phases
           </Text>
 
-          <View className="border-t border-gray-800 mt-2">
+          <View style={{ borderTopColor: theme.divider }} className="border-t mt-2">
             <NumberStepper
               label="Delay to Start New Timer"
               value={paceSettings.delayToStart}
@@ -446,7 +461,7 @@ export default function AppSettingsScreen() {
               onChange={(v) => updatePaceSetting('delayToStart', v)}
               isLarge={largeDisplayMode}
             />
-            <View className="border-t border-gray-800" />
+            <View style={{ borderTopColor: theme.divider }} className="border-t" />
             <NumberStepper
               label="Lift Timer"
               value={paceSettings.liftTime}
@@ -455,7 +470,7 @@ export default function AppSettingsScreen() {
               onChange={(v) => updatePaceSetting('liftTime', v)}
               isLarge={largeDisplayMode}
             />
-            <View className="border-t border-gray-800" />
+            <View style={{ borderTopColor: theme.divider }} className="border-t" />
             <NumberStepper
               label="Hold at Top"
               value={paceSettings.holdTime}
@@ -464,7 +479,7 @@ export default function AppSettingsScreen() {
               onChange={(v) => updatePaceSetting('holdTime', v)}
               isLarge={largeDisplayMode}
             />
-            <View className="border-t border-gray-800" />
+            <View style={{ borderTopColor: theme.divider }} className="border-t" />
             <NumberStepper
               label="Down Timer"
               value={paceSettings.downTime}
@@ -473,7 +488,7 @@ export default function AppSettingsScreen() {
               onChange={(v) => updatePaceSetting('downTime', v)}
               isLarge={largeDisplayMode}
             />
-            <View className="border-t border-gray-800" />
+            <View style={{ borderTopColor: theme.divider }} className="border-t" />
             <NumberStepper
               label="Pause Time before Next Rep"
               value={paceSettings.pauseTime}
@@ -491,7 +506,7 @@ export default function AppSettingsScreen() {
             onPress={() => router.push('/diagnostics')}
             className="px-4 py-2 active:opacity-60"
           >
-            <Text className="text-gray-600 text-xs font-bold uppercase tracking-widest underline">
+            <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest underline opacity-60">
               Need help? Troubleshoot counting
             </Text>
           </Pressable>
