@@ -3,6 +3,7 @@ import { View, Text, Pressable, ScrollView, TextInput, Keyboard, Modal } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useWorkoutStore } from '@/lib/workout/store';
 import {
