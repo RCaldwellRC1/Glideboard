@@ -148,103 +148,47 @@ export default function ProfileScreen() {
 
       // Verify immediately
       const verified = await AsyncStorage.getItem(PROFILE_STORAGE_KEY);
-      if (verified === jsonValue) {
-        console.log('[PROFILE] Persistence verified successfully');
-      } else {
-        console.warn('[PROFILE] Verification failed - saved data mismatch');
+      if (verified) {
+        setProfile(JSON.parse(verified));
+        setIsEditing(false);
+        remoteLog('profile_updated', { hasPhoto: !!profile.photoUri });
       }
-
-      setProfile(profileToSave);
-      setIsEditing(false);
-      setRemoteLogUser(profileToSave.screenName);
-      remoteLog('profile_saved', { name: profileToSave.name, screenName: profileToSave.screenName, gender: profileToSave.gender });
     } catch (error) {
       console.error('[PROFILE] Failed to save profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert('Save Failed', 'Please try again.');
     }
-  };
-
-  const updateField = <K extends keyof UserProfile>(field: K, value: UserProfile[K]) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Update and immediately save photo to storage. `photoUri` should already be
-  // a persistent uri (or null to remove). Cleans up the previously stored file.
-  const updatePhoto = async (photoUri: string | null) => {
-    const previousUri = profile.photoUri;
-    const updatedProfile = {
-      ...profile,
-      photoUri,
-      memberSince: profile.memberSince ?? new Date().toISOString(),
-    };
-    setProfile(updatedProfile);
-    try {
-      await AsyncStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(updatedProfile));
-      // Only remove the old file once the new value is safely saved.
-      if (previousUri && previousUri !== photoUri) {
-        deletePersistedPhoto(previousUri);
-      }
-    } catch (error) {
-      console.error('Failed to save photo:', error);
-    }
-  };
-
-  const clearDateOfBirth = () => {
-    updateField('dateOfBirth', null);
-  };
-
-  const handleDateChange = (event: unknown, selectedDate?: Date) => {
-    setShowDatePicker(Platform.OS === 'ios');
-    if (selectedDate) {
-      updateField('dateOfBirth', selectedDate.toISOString());
-    }
-  };
-
-  const formatDate = (isoString: string | null): string => {
-    if (!isoString) return 'Select date';
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-    });
   };
 
   const pickImage = async () => {
-    // Request permission
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow access to your photo library to add a profile photo.');
-      return;
-    }
-
-    // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: false,
-      quality: 0.8,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
     });
 
-    if (!result.canceled && result.assets[0]) {
-      const selectedUri = result.assets[0].uri;
-      Alert.alert(
-        'Save Profile Photo?',
-        'Would you like to save this image as your profile picture?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Save',
-            onPress: async () => {
-              const persistedUri = await persistProfilePhoto(selectedUri);
-              updatePhoto(persistedUri);
-            }
-          },
-        ]
-      );
+    if (!result.canceled) {
+      const sourceUri = result.assets[0].uri;
+      const persistentUri = await persistProfilePhoto(sourceUri);
+      deletePersistedPhoto(profile.photoUri);
+      setProfile({ ...profile, photoUri: persistentUri });
     }
   };
 
-  const showPhotoOptions = () => {
+  const updatePhoto = async (uri: string | null) => {
+    if (!uri) deletePersistedPhoto(profile.photoUri);
+    setProfile({ ...profile, photoUri: uri });
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setProfile({ ...profile, dateOfBirth: selectedDate.toISOString() });
+    }
+  };
+
+  const handlePhotoPress = () => {
+    if (!isEditing) return;
     Alert.alert(
       'Profile Photo',
       'Choose an option',
@@ -295,7 +239,7 @@ export default function ProfileScreen() {
             <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} className="ml-1" />
           </View>
           <Text style={{ color: theme.subText }} className={`mt-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
-            Full access · renews automatically · manage or cancel in your {STORE_SETTINGS}
+            Full access - renews automatically - manage or cancel in your {STORE_SETTINGS}
           </Text>
         </Pressable>
       );
@@ -314,7 +258,7 @@ export default function ProfileScreen() {
                 Start Subscription
               </Text>
               <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-xs'} opacity-70`}>
-                Full access · from $1.19/mo
+                Full access - from $1.19/mo
               </Text>
             </View>
           </View>
@@ -351,316 +295,208 @@ export default function ProfileScreen() {
         {/* Header */}
         <Text style={{ color: theme.text }} className={`font-bold text-center mt-6 ${largeDisplayMode ? 'text-3xl' : 'text-4xl'}`}>Profile</Text>
 
-        {/* Photo */}
-        <Pressable
-          onPress={showPhotoOptions}
-          className="items-center mt-6"
-        >
-          <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className={`rounded-full border-4 items-center justify-center overflow-hidden ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
-            {profile.photoUri ? (
-              <Image
-                source={{ uri: profile.photoUri }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <User size={largeDisplayMode ? 50 : 60} color={theme.subText} />
-            )}
+        {/* User Card */}
+        <View className="mx-4 mt-6">
+          <View style={{ backgroundColor: theme.card }} className="rounded-3xl p-6 items-center">
+            <Pressable onPress={handlePhotoPress} className="relative">
+              {profile.photoUri ? (
+                <Image source={{ uri: profile.photoUri }} className="w-24 h-24 rounded-full" />
+              ) : (
+                <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className="w-24 h-24 rounded-full items-center justify-center">
+                  <User size={48} color={theme.subText} />
+                </View>
+              )}
+            </Pressable>
+
+            <Text style={{ color: theme.text }} className={`font-bold mt-4 ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>{profile.name || 'Set Name'}</Text>
+            <Text style={{ color: theme.subText }} className={`mt-1 opacity-70 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>@{profile.screenName || 'username'}</Text>
+
+            <View className="flex-row mt-6 w-full border-t border-gray-800 pt-6">
+              <View className="flex-1 items-center">
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>{age || '--'}</Text>
+                <Text style={{ color: theme.subText }} className={`text-xs mt-1 uppercase tracking-widest opacity-60`}>Age</Text>
+              </View>
+              <View style={{ backgroundColor: theme.divider }} className="w-px h-10" />
+              <View className="flex-1 items-center">
+                <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>{profile.gender || '--'}</Text>
+                <Text style={{ color: theme.subText }} className={`text-xs mt-1 uppercase tracking-widest opacity-60`}>Gender</Text>
+              </View>
+            </View>
           </View>
-          <Text className={`text-orange-500 mt-2 ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>Tap to change photo</Text>
-        </Pressable>
-
-        {/* Name and Screen Name */}
-        <View className="items-center mt-4 px-4">
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`font-bold text-center ${largeDisplayMode ? 'text-2xl' : 'text-3xl'}`}>{profile.name}</Text>
-          <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.subText }} className={`mt-1 text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>@{profile.screenName}</Text>
-          <Text style={{ color: theme.subText }} className={`mt-2 text-center ${largeDisplayMode ? 'text-base' : 'text-lg'} opacity-80`}>
-            Member since {formatMemberSince(profile.memberSince)}
-          </Text>
         </View>
 
-        {/* Info Card */}
-        <View style={{ backgroundColor: theme.card }} className="mx-4 mt-6 rounded-2xl p-4">
-          <Text style={{ color: theme.subText }} className={`${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER</Text>
-          <Text style={{ color: theme.text }} className={`mt-1 capitalize ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>
-            {profile.gender ?? 'Not set'}
-          </Text>
-
-          {profile.dobVisible && age !== null && (
-            <>
-              <Text style={{ color: theme.subText }} className={`mt-4 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>AGE</Text>
-              <Text style={{ color: theme.text }} className={`mt-1 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{age} years old</Text>
-            </>
-          )}
-        </View>
-
-        {/* Membership status. Always tappable so there's always a path to the
-            subscription screen where the user can start a paid membership or
-            restore a purchase (required by both Apple and Google Play). */}
+        {/* Membership Section */}
         {renderMembershipCard()}
 
-        {/* How It Works */}
-        <Pressable
-          onPress={() => router.push('/how-it-works')}
-          style={{ backgroundColor: theme.card }}
-          className="mx-4 mt-4 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
-        >
-          <View className="flex-row items-center">
-            <HelpCircle size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
+        {/* App Info List */}
+        <View className="mx-4 mt-6">
+          <View style={{ backgroundColor: theme.card }} className="rounded-2xl overflow-hidden">
+            <Pressable
+              onPress={() => setIsEditing(true)}
+              className="flex-row items-center p-4 border-b border-gray-800 active:bg-gray-800"
+            >
+              <User size={20} color="#f97316" />
+              <Text style={{ color: theme.text }} className="ml-3 flex-1 font-medium">Edit Personal Info</Text>
+              <ChevronRight size={20} color="#6b7280" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push('/app-settings')}
+              className="flex-row items-center p-4 border-b border-gray-800 active:bg-gray-800"
+            >
+              <Settings size={20} color="#f97316" />
+              <Text style={{ color: theme.text }} className="ml-3 flex-1 font-medium">App Settings</Text>
+              <ChevronRight size={20} color="#6b7280" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push('/how-it-works')}
+              className="flex-row items-center p-4 border-b border-gray-800 active:bg-gray-800"
+            >
+              <HelpCircle size={20} color="#f97316" />
+              <Text style={{ color: theme.text }} className="ml-3 flex-1 font-medium">How it Works</Text>
+              <ChevronRight size={20} color="#6b7280" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push('/privacy-policy')}
+              className="flex-row items-center p-4 active:bg-gray-800"
+            >
+              <Shield size={20} color="#f97316" />
+              <Text style={{ color: theme.text }} className="ml-3 flex-1 font-medium">Privacy Policy</Text>
+              <ChevronRight size={20} color="#6b7280" />
+            </Pressable>
           </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
-        </Pressable>
+        </View>
 
-        {/* App Settings */}
-        <Pressable
-          onPress={() => router.push('/app-settings')}
-          style={{ backgroundColor: theme.card }}
-          className="mx-4 mt-3 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
-        >
-          <View className="flex-row items-center">
-            <Settings size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>App Settings</Text>
-          </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
-        </Pressable>
-
-        {/* Privacy Policy */}
-        <Pressable
-          onPress={() => router.push('/privacy-policy')}
-          style={{ backgroundColor: theme.card }}
-          className="mx-4 mt-3 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
-        >
-          <View className="flex-row items-center">
-            <Shield size={largeDisplayMode ? 22 : 20} color="#f97316" />
-            <Text style={{ color: theme.subText }} className={`ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
-          </View>
-          <ChevronRight size={largeDisplayMode ? 22 : 20} color={theme.subText} />
-        </Pressable>
-
-        {/* Edit Button */}
-        <Pressable
-          onPress={() => setIsEditing(true)}
-          className="mx-4 mt-6 border-2 border-orange-500 py-4 rounded-xl items-center active:opacity-80"
-        >
-          <Text className={`text-orange-500 font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
-        </Pressable>
-
-        {/* Troubleshooting Access */}
-        <Pressable
-          onPress={() => router.push('/diagnostics')}
-          style={{ backgroundColor: `${theme.card}80`, borderColor: theme.border }}
-          className="mx-4 mt-8 border py-4 rounded-xl items-center flex-row justify-center active:opacity-70"
-        >
-          <Activity size={18} color="#f97316" />
-          <Text style={{ color: theme.subText }} className="font-bold ml-2 uppercase tracking-widest text-xs">
-            Troubleshoot Counting
-          </Text>
-        </Pressable>
-
-        {/* Version Footer */}
-        <View className="mt-4 mb-4 items-center">
-          <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest opacity-60">
-            Glideboard V1.2.7 (Build 281)
+        {/* Footer */}
+        <View className="mt-8 items-center">
+          <Text style={{ color: theme.subText }} className="text-xs opacity-50 font-bold uppercase tracking-widest">
+            Glideboard V1.2.7 (Build 282)
           </Text>
         </View>
       </ScrollView>
     );
   }
 
-  // Edit Profile Mode
+  // Profile Edit Mode
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-black"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ paddingTop: insets.top }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1, backgroundColor: theme.background }}
     >
-      {/* Top Header Bar - ensures user can always save/cancel without scrolling */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-800">
-        <Pressable
-          onPress={() => {
-            loadProfile();
-            setIsEditing(false);
-          }}
-          hitSlop={12}
-          className="active:opacity-60 py-1 pr-4"
-        >
-          <Text className={`text-gray-400 font-medium ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Cancel</Text>
-        </Pressable>
-
-        <Text className={`text-white font-bold italic ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Edit Profile</Text>
-
-        <Pressable
-          onPress={saveProfile}
-          hitSlop={12}
-          className="active:opacity-60 py-1 pl-4"
-        >
-          <Text className={`text-orange-500 font-bold ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Save</Text>
-        </Pressable>
-      </View>
-
       <ScrollView
-        className="flex-1 bg-black"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 140 }}
+        className="flex-1"
+        contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
       >
-        {/* Photo */}
-        <Pressable onPress={showPhotoOptions} className="items-center mt-8">
-        <View className={`rounded-full border-2 border-dashed border-orange-500 items-center justify-center overflow-hidden ${largeDisplayMode ? 'w-28 h-28' : 'w-32 h-32'}`}>
-          {profile.photoUri ? (
-            <Image
-              source={{ uri: profile.photoUri }}
-              className="w-full h-full"
-              resizeMode="cover"
+        <Text style={{ color: theme.text }} className="text-3xl font-bold mt-6 mb-2">Edit Profile</Text>
+        <Text style={{ color: theme.subText }} className="text-base mb-8">Personalize your experience</Text>
+
+        {/* Photo Upload */}
+        <View className="items-center mb-8">
+          <Pressable onPress={handlePhotoPress} className="relative">
+            <View style={{ backgroundColor: theme.card }} className="w-24 h-24 rounded-full items-center justify-center overflow-hidden">
+              {profile.photoUri ? (
+                <Image source={{ uri: profile.photoUri }} className="w-full h-full" />
+              ) : (
+                <User size={48} color={theme.subText} />
+              )}
+            </View>
+            <View className="absolute bottom-0 right-0 bg-orange-500 w-8 h-8 rounded-full items-center justify-center border-2 border-black">
+              <ImageIcon size={16} color="white" />
+            </View>
+          </Pressable>
+        </View>
+
+        {/* Input Fields */}
+        <View className="space-y-4">
+          <View>
+            <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest ml-1 mb-2">Display Name</Text>
+            <TextInput
+              value={profile.name}
+              onChangeText={(t) => setProfile({ ...profile, name: t })}
+              placeholder="e.g. John Doe"
+              placeholderTextColor={theme.subText}
+              style={{ backgroundColor: theme.card, color: theme.text }}
+              className="px-4 py-4 rounded-xl text-lg font-medium"
             />
-          ) : (
-            <ImageIcon size={largeDisplayMode ? 32 : 40} color="#f97316" />
-          )}
-        </View>
-        <Text className={`text-orange-500 mt-3 ${largeDisplayMode ? 'text-base' : 'text-lg'}`}>
-          {profile.photoUri ? 'Change Photo' : 'Add Photo'}
-        </Text>
-      </Pressable>
+          </View>
 
-      {/* Membership — visible right here on first open so users can
-          subscribe without finishing the profile first. */}
-      {renderMembershipCard()}
+          <View className="mt-4">
+            <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest ml-1 mb-2">Screen Name</Text>
+            <TextInput
+              value={profile.screenName}
+              onChangeText={(t) => setProfile({ ...profile, screenName: t })}
+              placeholder="e.g. johndoe123"
+              placeholderTextColor={theme.subText}
+              autoCapitalize="none"
+              style={{ backgroundColor: theme.card, color: theme.text }}
+              className="px-4 py-4 rounded-xl text-lg font-medium"
+            />
+          </View>
 
-      {/* How It Works */}
-      <Pressable
-        onPress={() => router.push('/how-it-works')}
-        className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
-      >
-        <View className="flex-row items-center">
-          <HelpCircle size={largeDisplayMode ? 22 : 20} color="#f97316" />
-          <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>How It Works</Text>
-        </View>
-        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
-      </Pressable>
-
-      {/* Privacy Policy */}
-      <Pressable
-        onPress={() => router.push('/privacy-policy')}
-        className="mx-4 mt-3 bg-gray-900 rounded-2xl p-4 flex-row items-center justify-between active:opacity-80"
-      >
-        <View className="flex-row items-center">
-          <Shield size={largeDisplayMode ? 22 : 20} color="#f97316" />
-          <Text className={`text-gray-400 ml-2 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>Privacy Policy</Text>
-        </View>
-        <ChevronRight size={largeDisplayMode ? 22 : 20} color="#6b7280" />
-      </Pressable>
-
-      {/* Form */}
-      <View className="px-4 mt-6">
-        {/* Name */}
-        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>NAME *</Text>
-        <TextInput
-          className={`bg-gray-900 text-white px-4 py-3 rounded-xl mb-4 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}
-          value={profile.name}
-          onChangeText={(text) => updateField('name', text)}
-          placeholder="Enter your name"
-          placeholderTextColor="#6b7280"
-        />
-
-        {/* Screen Name */}
-        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>SCREEN NAME *</Text>
-        <TextInput
-          className={`bg-gray-900 text-white px-4 py-3 rounded-xl mb-4 ${largeDisplayMode ? 'text-lg' : 'text-base'}`}
-          value={profile.screenName}
-          onChangeText={(text) => updateField('screenName', text)}
-          placeholder="Enter screen name"
-          placeholderTextColor="#6b7280"
-          autoCapitalize="none"
-        />
-
-        {/* Date of Birth */}
-        <View className="flex-row items-center justify-between mb-2">
-          <Text numberOfLines={1} className={`text-gray-500 flex-shrink mr-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>DATE OF BIRTH (OPTIONAL)</Text>
-          <View className="flex-row items-center flex-shrink-0">
+          <View className="mt-4">
+            <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest ml-1 mb-2">Date of Birth</Text>
             <Pressable
-              onPress={clearDateOfBirth}
-              className="flex-row items-center bg-gray-800 px-3 py-1 rounded-lg mr-3"
+              onPress={() => setShowDatePicker(true)}
+              style={{ backgroundColor: theme.card }}
+              className="px-4 py-4 rounded-xl flex-row items-center justify-between"
             >
-              <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>× Clear</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => updateField('dobVisible', !profile.dobVisible)}
-              className="flex-row items-center"
-            >
-              <View
-                className={`w-6 h-6 rounded items-center justify-center mr-2 ${
-                  profile.dobVisible ? 'bg-orange-500' : 'bg-gray-800'
-                }`}
-              >
-                {profile.dobVisible && <Check size={16} color="#fff" />}
-              </View>
-              <Text className={`text-gray-400 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>Visible</Text>
+              <Text style={{ color: profile.dateOfBirth ? theme.text : theme.subText }} className="text-lg font-medium">
+                {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Select date'}
+              </Text>
+              <CalendarClock size={20} color="#6b7280" />
             </Pressable>
           </View>
+
+          <View className="mt-4">
+            <Text style={{ color: theme.subText }} className="text-xs font-bold uppercase tracking-widest ml-1 mb-2">Gender</Text>
+            <View className="flex-row">
+              {(['male', 'female'] as const).map((g) => (
+                <Pressable
+                  key={g}
+                  onPress={() => setProfile({ ...profile, gender: g })}
+                  className={`flex-1 flex-row items-center justify-center py-4 rounded-xl mr-2 ${profile.gender === g ? 'bg-orange-500' : 'bg-gray-900'}`}
+                  style={{ backgroundColor: profile.gender === g ? '#f97316' : theme.card }}
+                >
+                  <Text className={`font-bold capitalize ${profile.gender === g ? 'text-white' : 'text-gray-400'}`}>
+                    {g}
+                  </Text>
+                  {profile.gender === g && <Check size={16} color="white" className="ml-2" />}
+                </Pressable>
+              ))}
+            </View>
+          </View>
         </View>
-        <Pressable
-          onPress={() => setShowDatePicker(true)}
-          className="bg-gray-900 px-4 py-3 rounded-xl mb-4"
-        >
-          <Text className={`text-white ${largeDisplayMode ? 'text-lg' : 'text-base'}`}>{formatDate(profile.dateOfBirth)}</Text>
-        </Pressable>
 
         {showDatePicker && (
           <DateTimePicker
             value={profile.dateOfBirth ? new Date(profile.dateOfBirth) : new Date(2000, 0, 1)}
             mode="date"
-            display="spinner"
-            onChange={handleDateChange}
-            maximumDate={new Date()}
-            minimumDate={new Date(1900, 0, 1)}
-            themeVariant="dark"
+            display="default"
+            onChange={onDateChange}
           />
         )}
 
-        {/* Gender */}
-        <Text className={`text-gray-500 mb-2 ${largeDisplayMode ? 'text-sm' : 'text-xs'}`}>GENDER *</Text>
-        <View className="flex-row mb-6">
+        <View className="mt-12 space-y-3">
           <Pressable
-            onPress={() => updateField('gender', 'male')}
-            className={`flex-1 py-3 rounded-xl items-center mr-2 ${
-              profile.gender === 'male' ? 'bg-orange-500' : 'bg-gray-900'
-            }`}
+            onPress={saveProfile}
+            className="bg-orange-500 py-4 rounded-2xl items-center shadow-lg shadow-orange-500/30 active:opacity-80"
           >
-            <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Male</Text>
+            <Text className="text-white font-bold text-xl">Save Profile</Text>
           </Pressable>
-          <Pressable
-            onPress={() => updateField('gender', 'female')}
-            className={`flex-1 py-3 rounded-xl items-center ml-2 ${
-              profile.gender === 'female' ? 'bg-orange-500' : 'bg-gray-900'
-            }`}
-          >
-            <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Female</Text>
-          </Pressable>
+
+          {profile.screenName && (
+            <Pressable
+              onPress={() => setIsEditing(false)}
+              className="py-4 items-center active:opacity-60"
+            >
+              <Text style={{ color: theme.subText }} className="font-semibold">Cancel</Text>
+            </Pressable>
+          )}
         </View>
-
-        {/* Buttons */}
-        <Pressable
-          onPress={saveProfile}
-          className="bg-orange-500 py-4 rounded-xl items-center mb-4 active:opacity-80"
-        >
-          <Text className={`text-white font-semibold ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Save Changes</Text>
-        </Pressable>
-
-        {profile.memberSince && (
-          <Pressable
-            onPress={() => {
-              loadProfile();
-              setIsEditing(false);
-            }}
-            className="bg-gray-900 py-4 rounded-xl items-center active:opacity-80"
-          >
-            <Text className={`text-gray-400 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>Cancel</Text>
-          </Pressable>
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }

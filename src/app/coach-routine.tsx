@@ -73,7 +73,7 @@ export default function CoachRoutineScreen() {
   }, [coachLoaded]);
 
   if (!routine) {
-    // Custom routines live in the coach store — don't flash "not found" while it
+    // Custom routines live in the coach store - don't flash "not found" while it
     // is still loading from the device.
     if (!coachLoaded) {
       return <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} />;
@@ -144,7 +144,7 @@ export default function CoachRoutineScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Routine Preview — list of exercises (no instructions, no setup).
+// Routine Preview - list of exercises (no instructions, no setup).
 // Reused by the disclaimer/instructions screen and the warmup-complete screen.
 // ---------------------------------------------------------------------------
 
@@ -192,7 +192,7 @@ function RoutinePreview({
       group,
       exercise,
       sets: 2,
-      repRangeLabel: '10–15 Reps',
+      repRangeLabel: '10-15 Reps',
     };
     setSteps([...steps, newStep]);
     setShowPicker(false);
@@ -210,7 +210,7 @@ function RoutinePreview({
           <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
         </Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
-          Preview · {routine.title}
+          Preview - {routine.title}
         </Text>
         <Pressable
           onPress={() => setIsEditing(!isEditing)}
@@ -257,7 +257,7 @@ function RoutinePreview({
             <View className="flex-1">
               <Text style={{ color: theme.text }} className={`font-semibold ${isLarge ? 'text-base' : 'text-lg'}`}>{s.exercise}</Text>
               <Text style={{ color: theme.subText }} className={`mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-70`}>
-                {s.group} · {s.repRangeLabel}
+                {s.group} - {s.repRangeLabel}
               </Text>
             </View>
 
@@ -438,7 +438,7 @@ function InstructionsView({
 }
 
 // ---------------------------------------------------------------------------
-// Runner — guided, auto-advancing. Reuses the Tracker's motion/voice counting.
+// Runner - guided, auto-advancing. Reuses the Tracker's motion/voice counting.
 // ---------------------------------------------------------------------------
 
 function RunnerView({
@@ -479,7 +479,7 @@ function RunnerView({
   // every exercise behaves identically. Length comes from the user's pace setting.
   const getReadySeconds = Math.max(0, Math.round(paceSettings.delayToStart));
   // Motion counting still needs a short window to read a steady baseline once the
-  // set begins — but the actual positioning is handled by the get-ready countdown
+  // set begins - but the actual positioning is handled by the get-ready countdown
   // above, so keep this brief to avoid making the user wait twice.
   const setupDelayMs = 900;
 
@@ -754,7 +754,7 @@ function RunnerView({
     cancelSet();
     setShowConfirmModal(false);
     setPendingSetSummary(null);
-    // No advanceAfterSet() — setsDone is unchanged, so the same set is next up.
+    // No advanceAfterSet() - setsDone is unchanged, so the same set is next up.
   }, [adaptiveResetToIdle, cancelSet]);
 
   // Start a set, but first give the user a visible "get into position" countdown.
@@ -820,7 +820,7 @@ function RunnerView({
                 style={{ color: theme.text }}
                 className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
               >
-                Preview{'\n'}Routine
+                Preview{"\n"}Routine
               </Text>
             </Pressable>
             <Pressable
@@ -831,7 +831,7 @@ function RunnerView({
                 numberOfLines={2}
                 className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
               >
-                Begin{'\n'}Routine
+                Begin{"\n"}Routine
               </Text>
             </Pressable>
           </View>
@@ -874,7 +874,7 @@ function RunnerView({
         <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 border-2 border-orange-500">
           <View className="flex-row items-center justify-between mb-1">
             <Text style={{ color: theme.subText }} className={isLarge ? 'text-xs' : 'text-sm'}>
-              Exercise {stepIndex + 1} of {totalSteps} · {step?.group}
+              Exercise {stepIndex + 1} of {totalSteps} - {step?.group}
             </Text>
             <Pressable
               onPress={skipExercise}
@@ -898,7 +898,7 @@ function RunnerView({
                 {step?.repRangeLabel}
               </Text>
               <Text style={{ color: theme.subText }} className={`mt-2 ${isLarge ? 'text-xs' : 'text-sm'} opacity-70`}>
-                Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets} {isSetActive ? '· in progress' : ''}
+                Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets} {isSetActive ? '- in progress' : ''}
               </Text>
             </View>
 
@@ -976,14 +976,14 @@ function RunnerView({
             ) : (
               <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4">
                 <Text className={`text-green-500 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Listening — count your reps out loud
+                  Listening - count your reps out loud
                 </Text>
               </View>
             )}
           </View>
         )}
 
-        {/* Rep counter — doubles as the "get into position" countdown before a set */}
+        {/* Rep counter - doubles as the "get into position" countdown before a set */}
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className={`mt-4 border-2 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[150px]' : 'min-h-[180px]'}`}>
           {getReadyLeft !== null ? (
             <>
@@ -1040,7 +1040,7 @@ function RunnerView({
 }
 
 // ---------------------------------------------------------------------------
-// Completion — confetti + trophy (plus a Mr. Olympia finale on the 12th)
+// Completion - confetti + trophy (plus a Mr. Olympia finale on the 12th)
 // ---------------------------------------------------------------------------
 
 function CompleteView({
@@ -1113,7 +1113,7 @@ function CompleteView({
             </Text>
             <Text style={{ color: theme.subText }} className={`text-center mt-2 leading-6 ${isLarge ? 'text-base' : 'text-lg'} opacity-90`}>
               That's all 12 sessions. You earned the Mr. Olympia trophy. You are stronger than when you
-              started — be proud of the work you put in.
+              started - be proud of the work you put in.
             </Text>
           </>
         ) : (
@@ -1122,10 +1122,10 @@ function CompleteView({
               Routine Complete!
             </Text>
             <Text className={`font-semibold text-center mt-2 ${isLarge ? 'text-lg' : 'text-xl'}`} style={{ color: tierColor }}>
-              {MEDAL_LABELS[tier]} earned · Session #{completion.index}
+              {MEDAL_LABELS[tier]} earned - Session #{completion.index}
             </Text>
             <Text style={{ color: theme.subText }} className={`text-center mt-2 leading-6 ${isLarge ? 'text-base' : 'text-lg'} opacity-90`}>
-              Great work. Your trophy has been added to your shelf. Keep it up — consistency is what builds
+              Great work. Your trophy has been added to your shelf. Keep it up - consistency is what builds
               strength.
             </Text>
           </>
@@ -1151,7 +1151,7 @@ function CompleteView({
 }
 
 // ---------------------------------------------------------------------------
-// Summary — the full breakdown of the workout just completed.
+// Summary - the full breakdown of the workout just completed.
 // ---------------------------------------------------------------------------
 
 function SummaryView({
@@ -1175,7 +1175,7 @@ function SummaryView({
         </Text>
         {completion && (
           <Text className={`font-semibold ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: tierColor }}>
-            {MEDAL_LABELS[tier]} · #{completion.index}
+            {MEDAL_LABELS[tier]} - #{completion.index}
           </Text>
         )}
       </View>
@@ -1187,7 +1187,7 @@ function SummaryView({
       >
         <WorkoutSummary workout={workout} isLarge={isLarge} accentColor={tierColor} />
         <Text style={{ color: theme.subText }} className={`text-center mt-4 ${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>
-          Nice work. This summary is saved — you can revisit it any time from the Trophies page.
+          Nice work. This summary is saved - you can revisit it any time from the Trophies page.
         </Text>
       </ScrollView>
 

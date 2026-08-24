@@ -129,7 +129,7 @@ export default function CoachProgramScreen() {
                   <View className="flex-row items-center mt-1.5">
                     <CheckCircle2 size={largeDisplayMode ? 13 : 15} color="#22c55e" />
                     <Text className={`text-green-500 ml-1 font-medium ${largeDisplayMode ? 'text-xs' : 'text-sm'}`}>
-                      Completed {done}×
+                      Completed {done}x
                     </Text>
                   </View>
                 )}
@@ -146,4 +146,3 @@ export default function CoachProgramScreen() {
     </View>
   );
 }
-

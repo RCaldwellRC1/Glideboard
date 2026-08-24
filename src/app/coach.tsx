@@ -83,14 +83,14 @@ export default function CoachScreen() {
               <Text className="text-red-500 font-bold">for fun and entertainment purposes only</Text>.
               They are <Text style={{ color: theme.text }} className="font-bold">not</Text> medical advice, a treatment plan,
               or a substitute for professional guidance.
-              {'\n\n'}
+              {"\n\n"}
               <Text style={{ color: theme.text }} className="font-bold">
-                Consult your physician or a qualified medical professional before starting this — or any —
+                Consult your physician or a qualified medical professional before starting this - or any -
                 exercise routine.
-              </Text>{' '}
+              </Text>{" "}
               Stop immediately and seek help if you feel pain, dizziness, shortness of breath, or any other
               warning sign.
-              {'\n\n'}
+              {"\n\n"}
               By continuing, you confirm that you are voluntarily participating and that you{' '}
               <Text style={{ color: theme.text }} className="font-bold">assume all risk</Text> of injury. You agree that the app
               and its creators are not responsible or liable for any injury, harm, or loss that may result.

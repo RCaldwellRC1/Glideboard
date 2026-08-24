@@ -99,7 +99,7 @@ export default function CoachBuildScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={largeDisplayMode ? 26 : 30} color="#f97316" />
         </Pressable>
-        <Text style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-2xl'}`}>
+        <Text style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>
           {isEditing ? 'Edit Routine' : 'Build Your Own Routine'}
         </Text>
       </View>
@@ -200,7 +200,7 @@ export default function CoachBuildScreen() {
         </Pressable>
 
         <Text style={{ color: theme.subText }} className={`mt-4 leading-5 ${largeDisplayMode ? 'text-xs' : 'text-sm'} opacity-60`}>
-          You'll pick the incline level for each exercise when you run the routine — not now.
+          You'll pick the incline level for each exercise when you run the routine - not now.
         </Text>
       </ScrollView>
 
@@ -228,19 +228,8 @@ export default function CoachBuildScreen() {
   );
 }
 
-      {/* Exercise picker */}
-      <ExercisePickerModal
-        visible={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        onPick={addExercise}
-        isLarge={largeDisplayMode}
-      />
-    </View>
-  );
-}
-
 // ---------------------------------------------------------------------------
-// Stepper — a labeled -/+ number control (no keyboard needed).
+// Stepper - a labeled -/+ number control (no keyboard needed).
 // ---------------------------------------------------------------------------
 
 function Stepper({
@@ -254,20 +243,21 @@ function Stepper({
   onChange: (v: number) => void;
   isLarge: boolean;
 }) {
+  const theme = useTheme();
   const dec = () => onChange(Math.max(min, value - step));
   const inc = () => onChange(Math.min(max, value + step));
   return (
     <View className="flex-1">
-      <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>{label}</Text>
-      <View className="flex-row items-center bg-gray-800 rounded-xl overflow-hidden">
+      <Text style={{ color: theme.subText }} className={`mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>{label}</Text>
+      <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-row items-center rounded-xl overflow-hidden">
         <Pressable
           onPress={dec}
           disabled={value <= min}
           className={`px-3 ${isLarge ? 'py-2.5' : 'py-3'} active:opacity-70`}
         >
-          <Minus size={isLarge ? 18 : 20} color={value <= min ? '#4b5563' : '#f97316'} />
+          <Minus size={isLarge ? 18 : 20} color={value <= min ? theme.divider : '#f97316'} />
         </Pressable>
-        <Text className={`flex-1 text-center text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>
+        <Text style={{ color: theme.text }} className={`flex-1 text-center font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>
           {value}
         </Text>
         <Pressable
@@ -275,7 +265,7 @@ function Stepper({
           disabled={value >= max}
           className={`px-3 ${isLarge ? 'py-2.5' : 'py-3'} active:opacity-70`}
         >
-          <Plus size={isLarge ? 18 : 20} color={value >= max ? '#4b5563' : '#f97316'} />
+          <Plus size={isLarge ? 18 : 20} color={value >= max ? theme.divider : '#f97316'} />
         </Pressable>
       </View>
     </View>
@@ -283,7 +273,7 @@ function Stepper({
 }
 
 // ---------------------------------------------------------------------------
-// Exercise picker — categorized list, tap to add.
+// Exercise picker - categorized list, tap to add.
 //
 // Shows the built-in exercises AND the user's own custom ones (which live in the
 // same `customExercises` store the Tracker's EXERCISE dropdown reads), plus a
@@ -303,6 +293,7 @@ function ExercisePickerModal({
   isLarge: boolean;
 }) {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const customExercises = useWorkoutStore(s => s.customExercises);
   const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
 
@@ -326,10 +317,10 @@ function ExercisePickerModal({
     // allowing e.g. "Squats" under Free Style would silently lose it later.
     const clash = EXERCISE_GROUPS.find(g => g.exercises.some(e => e.toLowerCase() === lower));
     if (clash) {
-      return `"${name}" already exists under ${clash.name} — pick it from there.`;
+      return `"${name}" already exists under ${clash.name} - pick it from there.`;
     }
 
-    // If they retyped one of their existing exercises, just use that one —
+    // If they retyped one of their existing exercises, just use that one -
     // matching on the stored spelling so the name stays consistent everywhere.
     const existing = (customExercises[group] ?? []).find(e => e.toLowerCase() === lower);
     if (existing) {
@@ -345,11 +336,11 @@ function ExercisePickerModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-gray-950 rounded-t-3xl border-t border-gray-800" style={{ maxHeight: '85%', paddingBottom: insets.bottom }}>
+        <View style={{ backgroundColor: theme.card, borderTopColor: theme.border, paddingBottom: insets.bottom }} className="rounded-t-3xl border-t">
           <View className="flex-row items-center px-4 pt-4 pb-2">
-            <Text className={`text-white font-bold flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>Choose an Exercise</Text>
+            <Text style={{ color: theme.text }} className={`font-bold flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>Choose an Exercise</Text>
             <Pressable onPress={onClose} hitSlop={12} className="p-1 active:opacity-60">
-              <X size={largeSize(isLarge)} color="#9ca3af" />
+              <X size={largeSize(isLarge)} color={theme.subText} />
             </Pressable>
           </View>
           <ScrollView
@@ -373,20 +364,22 @@ function ExercisePickerModal({
                     <Pressable
                       key={`${section.name}-${exercise}`}
                       onPress={() => onPick(section.name, exercise)}
-                      className="flex-row items-center bg-gray-900 rounded-xl px-4 py-3 mb-2 active:opacity-70"
+                      style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                      className="flex-row items-center rounded-xl px-4 py-3 mb-2 active:opacity-70"
                     >
-                      <Text className={`text-white flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}>{exercise}</Text>
+                      <Text style={{ color: theme.text }} className={`flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}>{exercise}</Text>
                       <Plus size={isLarge ? 18 : 20} color="#f97316" />
                     </Pressable>
                   ))}
 
-                  {/* The user's own exercises, in the section's colour — same
+                  {/* The user's own exercises, in the section's colour - same
                       treatment as the Tracker's EXERCISE dropdown. */}
                   {mine.map(exercise => (
                     <Pressable
                       key={`${section.name}-custom-${exercise}`}
                       onPress={() => onPick(section.name, exercise)}
-                      className="flex-row items-center bg-gray-900 rounded-xl px-4 py-3 mb-2 active:opacity-70"
+                      style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                      className="flex-row items-center rounded-xl px-4 py-3 mb-2 active:opacity-70"
                     >
                       <Text
                         className={`flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}
@@ -408,9 +401,9 @@ function ExercisePickerModal({
               );
             })}
 
-            <Text className={`text-gray-600 leading-5 ${isLarge ? 'text-xs' : 'text-sm'}`}>
+            <Text style={{ color: theme.subText }} className={`leading-5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>
               Anything you create here is also added to the EXERCISE dropdown on the Tracker
-              screen. {TIMED_GROUP} holds aren't available in routines — they run a countdown
+              screen. {TIMED_GROUP} holds aren't available in routines - they run a countdown
               instead of counting reps toward a target.
             </Text>
           </ScrollView>
@@ -430,6 +423,7 @@ function CreateExerciseRow({
   isLarge: boolean;
   onCreate: (group: string, name: string) => string | null;
 }) {
+  const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -457,15 +451,15 @@ function CreateExerciseRow({
     return (
       <View>
         <View
-          className="flex-row items-center bg-gray-900 rounded-xl px-4 py-3 mb-2 border"
-          style={{ borderColor: color }}
+          style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937', borderColor: color }}
+          className="flex-row items-center rounded-xl px-4 py-3 mb-2 border"
         >
           <TextInput
             value={text}
             onChangeText={(t) => { setText(t); if (error) setError(null); }}
             autoFocus
             placeholder="Name your exercise"
-            placeholderTextColor="#6b7280"
+            placeholderTextColor={theme.subText}
             maxLength={40}
             returnKeyType="done"
             autoCapitalize="words"
@@ -481,7 +475,7 @@ function CreateExerciseRow({
             hitSlop={12}
             className="ml-3 active:opacity-60"
           >
-            <X size={isLarge ? 18 : 20} color="#9ca3af" />
+            <X size={isLarge ? 18 : 20} color={theme.subText} />
           </Pressable>
         </View>
         {error && (
