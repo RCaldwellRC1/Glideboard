@@ -196,8 +196,13 @@ export default function HistoryScreen() {
   // Create map of ALL workouts by date (multiple workouts per day)
   const workoutsByDate = useMemo(() => {
     const map = new Map<string, Workout[]>();
+    if (!workoutHistory) return map;
+
     workoutHistory.forEach(workout => {
+      if (!workout || !workout.date) return;
       const date = new Date(workout.date);
+      if (isNaN(date.getTime())) return;
+
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
       const existing = map.get(dateStr) ?? [];
       existing.push(workout);
@@ -234,11 +239,11 @@ export default function HistoryScreen() {
   const hasWorkoutsOnSelectedDay = selectedWorkouts.length > 0;
 
   // Combine all sets from all workouts on the selected day
-  const allSets = selectedWorkouts.flatMap(w => w.sets);
+  const allSets = selectedWorkouts.flatMap(w => (w && Array.isArray(w.sets)) ? w.sets : []);
   const exerciseGroups = groupSetsByExercise(allSets);
   const totalExercises = exerciseGroups.length;
   const totalSets = allSets.length;
-  const totalReps = allSets.reduce((sum: number, s: WorkoutSet) => sum + s.reps, 0);
+  const totalReps = allSets.reduce((sum: number, s: WorkoutSet) => sum + (s?.reps ?? 0), 0);
 
   return (
     <ScrollView
@@ -375,13 +380,16 @@ export default function HistoryScreen() {
 
           {/* Individual Workout Sessions */}
           {selectedWorkouts.map((workout, workoutIndex) => {
+            if (!workout) return null;
             const workoutDate = new Date(workout.date);
-            const timeStr = workoutDate.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            });
-            const workoutExerciseGroups = groupSetsByExercise(workout.sets);
+            const timeStr = isNaN(workoutDate.getTime())
+              ? '--:--'
+              : workoutDate.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                });
+            const workoutExerciseGroups = groupSetsByExercise(workout.sets ?? []);
 
             return (
               <View key={workout.id} className="mx-4 mt-4">
