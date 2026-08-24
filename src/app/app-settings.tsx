@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Smartphone, Mic, Activity, Check, Timer, ChevronUp, ChevronDown, RefreshCw, Radio, ShieldCheck, Sun, Moon } from 'lucide-react-native';
-import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, type MotionSensitivity, type PaceSettings, type TextSize, type ColorTheme, useTheme } from '@/lib/settings';
+import { useSettingsStore, SENSITIVITY_CONFIG, TEXT_SIZE_LABELS, TEXT_SIZE_FACTORS, type MotionSensitivity, type PaceSettings, type TextSize, type ColorTheme, useTheme } from '@/lib/settings';
 import { DEVICE_NAME } from '@/lib/storePlatform';
 import { useMotionContext } from '@/lib/motion';
 import { useRestoreSubscription, useUnlockState } from '@/lib/purchases';
