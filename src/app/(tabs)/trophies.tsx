@@ -263,6 +263,7 @@ function CollapsibleSection({ title, isLarge, expanded, onToggle, onMeasure, chi
 function CoachTrophyCard({
   index, completedAt, isLarge, onPress,
 }: { index: number; completedAt: string; isLarge: boolean; onPress: () => void }) {
+  const theme = useTheme();
   const tier = medalTierForIndex(index);
   const color = MEDAL_COLORS[tier];
   const isFinale = tier === 'olympia';
@@ -275,8 +276,8 @@ function CoachTrophyCard({
   return (
     <Pressable
       onPress={onPress}
-      className={`flex-1 m-1.5 rounded-2xl p-3 items-center border-2 bg-gray-900 active:opacity-70`}
-      style={{ minHeight: isLarge ? 140 : 130, borderColor: isFinale ? '#fde047' : color }}
+      className={`flex-1 m-1.5 rounded-2xl p-3 items-center border-2 active:opacity-70`}
+      style={{ minHeight: isLarge ? 140 : 130, borderColor: isFinale ? '#fde047' : color, backgroundColor: theme.card }}
     >
       <View
         className={`rounded-xl items-center justify-center mb-2 ${isLarge ? 'w-12 h-12' : 'w-10 h-10'}`}
@@ -284,13 +285,13 @@ function CoachTrophyCard({
       >
         <IconComponent size={isLarge ? 26 : 22} color={color} />
       </View>
-      <Text className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'} text-white`} numberOfLines={2}>
+      <Text style={{ color: theme.text }} className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'}`} numberOfLines={2}>
         {isFinale ? 'Mr. Olympia' : `${MEDAL_LABELS[tier]}`}
       </Text>
-      <Text className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'} text-gray-400`} numberOfLines={1}>
+      <Text style={{ color: theme.subText }} className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'}`} numberOfLines={1}>
         Session #{index}
       </Text>
-      <Text className={`text-center mt-0.5 ${isLarge ? 'text-xs' : 'text-xs'} text-gray-600`} numberOfLines={1}>
+      <Text style={{ color: theme.subText }} className={`text-center mt-0.5 ${isLarge ? 'text-xs' : 'text-xs'} opacity-60`} numberOfLines={1}>
         {dateLabel}
       </Text>
       <Text className={`text-center mt-1 ${isLarge ? 'text-xs' : 'text-xs'}`} style={{ color }} numberOfLines={1}>
@@ -630,11 +631,12 @@ function FullScreenTrophyModal({
 function TimedTrophyCard({
   exercise, seconds, dateLabel, isLarge,
 }: { exercise: string; seconds: number; dateLabel?: string | null; isLarge: boolean }) {
+  const theme = useTheme();
   const color = CATEGORY_COLORS.timed;
   return (
     <View
-      className="flex-1 m-1.5 rounded-2xl p-3 items-center bg-gray-900"
-      style={{ minHeight: isLarge ? 140 : 130, borderWidth: 2, borderColor: color }}
+      className="flex-1 m-1.5 rounded-2xl p-3 items-center"
+      style={{ minHeight: isLarge ? 140 : 130, borderWidth: 2, borderColor: color, backgroundColor: theme.card }}
     >
       <View
         className={`rounded-xl items-center justify-center mb-2 ${isLarge ? 'w-12 h-12' : 'w-10 h-10'}`}
@@ -642,10 +644,10 @@ function TimedTrophyCard({
       >
         <Clock size={isLarge ? 24 : 20} color={color} />
       </View>
-      <Text className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'}`} style={{ color }} numberOfLines={2}>
+      <Text style={{ color: theme.text }} className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-sm'}`} numberOfLines={2}>
         {exercise}
       </Text>
-      <Text className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'} text-gray-300`} numberOfLines={1}>
+      <Text style={{ color: theme.subText }} className={`text-center mt-1 ${isLarge ? 'text-sm' : 'text-xs'}`} numberOfLines={1}>
         Best time {fmtHold(seconds)}
       </Text>
       {dateLabel ? (

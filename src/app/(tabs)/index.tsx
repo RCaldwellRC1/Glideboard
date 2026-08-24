@@ -47,6 +47,7 @@ function ExerciseDropdown({
   onRenameCustom: (group: string, oldName: string, newName: string) => void;
   onOpenCoach: () => void;
 }) {
+  const theme = useTheme();
   const valueColor = categoryColor(getExerciseCategory(value, customExercises));
 
   return (
