@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { Check, X, Sparkles, RotateCcw } from 'lucide-react-native';
+import { useTheme } from '@/lib/settings';
 
 interface RepConfirmationModalProps {
   visible: boolean;
@@ -31,6 +32,7 @@ export function RepConfirmationModal({
   onFinishFeedback,
   isLarge = false,
 }: RepConfirmationModalProps) {
+  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<TextInput>(null);
 
@@ -99,7 +101,8 @@ export function RepConfirmationModal({
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="bg-gray-900 rounded-3xl w-full max-w-sm p-6"
+            style={{ backgroundColor: theme.card }}
+            className="rounded-3xl w-full max-w-sm p-6"
           >
             {showingFeedback ? (
               /* ---- Learning feedback state ---- */
@@ -107,10 +110,10 @@ export function RepConfirmationModal({
                 <View className="w-16 h-16 rounded-full bg-orange-500/15 items-center justify-center mb-4">
                   <Sparkles size={isLarge ? 28 : 32} color="#f97316" />
                 </View>
-                <Text className={`text-white text-center font-bold mb-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
+                <Text style={{ color: theme.text }} className={`text-center font-bold mb-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
                   Got it — dialing it in
                 </Text>
-                <Text className={`text-gray-400 text-center ${isLarge ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`text-center ${isLarge ? 'text-sm' : 'text-base'}`}>
                   {learningMessage}
                 </Text>
                 <Pressable
@@ -130,16 +133,16 @@ export function RepConfirmationModal({
                   onPress={onDismiss}
                   className="absolute top-4 right-4 w-8 h-8 items-center justify-center"
                 >
-                  <X size={24} color="#6b7280" />
+                  <X size={24} color={theme.subText} />
                 </Pressable>
 
                 {/* Header */}
-                <Text numberOfLines={1} adjustsFontSizeToFit className={`text-white text-center font-bold mb-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`text-center font-bold mb-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
                   Enter your Rep count
                 </Text>
 
                 {/* Auto count hint */}
-                <Text className={`text-gray-500 text-center mb-4 ${isLarge ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`text-center mb-4 ${isLarge ? 'text-sm' : 'text-base'} opacity-80`}>
                   We counted {autoCount} reps
                 </Text>
 
@@ -153,8 +156,9 @@ export function RepConfirmationModal({
                     returnKeyType="done"
                     onSubmitEditing={handleConfirm}
                     placeholder="0"
-                    placeholderTextColor="#6b7280"
-                    className={`text-orange-500 font-bold text-center bg-gray-800 rounded-xl px-6 py-3 ${isLarge ? 'text-4xl min-w-[150px]' : 'text-5xl min-w-[168px]'}`}
+                    placeholderTextColor={theme.subText}
+                    style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                    className={`text-orange-500 font-bold text-center rounded-xl px-6 py-3 ${isLarge ? 'text-4xl min-w-[150px]' : 'text-5xl min-w-[168px]'}`}
                   />
                 </View>
 
@@ -173,7 +177,8 @@ export function RepConfirmationModal({
                 {onRedo && (
                   <Pressable
                     onPress={handleRedo}
-                    className="mt-3 rounded-xl py-3 flex-row items-center justify-center border border-red-500/60 active:opacity-70"
+                    style={{ borderColor: 'rgba(239,68,68,0.4)' }}
+                    className="mt-3 rounded-xl py-3 flex-row items-center justify-center border active:opacity-70"
                   >
                     <RotateCcw size={isLarge ? 16 : 18} color="#f87171" />
                     <Text className={`text-red-400 font-semibold ml-2 ${isLarge ? 'text-sm' : 'text-base'}`}>
@@ -187,7 +192,7 @@ export function RepConfirmationModal({
                   onPress={onDismiss}
                   className="py-2 mt-1 items-center active:opacity-70"
                 >
-                  <Text className={`text-gray-500 ${isLarge ? 'text-sm' : 'text-base'}`}>
+                  <Text style={{ color: theme.subText }} className={`${isLarge ? 'text-sm' : 'text-base'} opacity-60`}>
                     Skip
                   </Text>
                 </Pressable>

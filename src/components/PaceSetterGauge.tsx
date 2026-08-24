@@ -6,7 +6,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { useSettingsStore, type PaceSettings } from '@/lib/settings';
+import { useSettingsStore, type PaceSettings, useTheme } from '@/lib/settings';
 
 type Phase = 'DELAY' | 'LIFT' | 'HOLD' | 'DOWN' | 'PAUSE';
 
@@ -41,6 +41,7 @@ export function PaceSetterGauge({
   isFirstSet = true,
   onSetStarted,
 }: PaceSetterGaugeProps) {
+  const theme = useTheme();
   const [currentPhase, setCurrentPhase] = useState<Phase>('PAUSE');
   const [phaseTimeRemaining, setPhaseTimeRemaining] = useState(0);
   const [isInDelay, setIsInDelay] = useState(false);
@@ -201,9 +202,9 @@ export function PaceSetterGauge({
   const phaseLabel = PHASE_LABELS[currentPhase];
 
   return (
-    <View className={`border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[140px]' : 'min-h-[160px]'}`}>
+    <View style={{ backgroundColor: theme.card }} className={`border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[140px]' : 'min-h-[160px]'}`}>
       {/* Header */}
-      <Text allowFontScaling={false} className={`text-gray-500 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>PACE-SETTER</Text>
+      <Text allowFontScaling={false} style={{ color: theme.subText }} className={`tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>PACE-SETTER</Text>
 
       {/* Phase Indicator - smaller text to prevent wrapping */}
       <View className="flex-row items-center justify-center mt-1">
@@ -228,7 +229,7 @@ export function PaceSetterGauge({
       </View>
 
       {/* Progress Bar */}
-      <View className={`w-full bg-gray-800 rounded-full overflow-hidden mt-2 ${isLarge ? 'h-3' : 'h-4'}`}>
+      <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className={`w-full rounded-full overflow-hidden mt-2 ${isLarge ? 'h-3' : 'h-4'}`}>
         <Animated.View
           className="h-full rounded-full"
           style={[
@@ -249,7 +250,7 @@ export function PaceSetterGauge({
               className="w-1.5 h-1.5 rounded-full mr-0.5"
               style={{ backgroundColor: PHASE_COLORS[phase] }}
             />
-            <Text allowFontScaling={false} className={`text-gray-400 ${isLarge ? 'text-[8px]' : 'text-[10px]'}`}>
+            <Text allowFontScaling={false} style={{ color: theme.subText }} className={isLarge ? 'text-[8px]' : 'text-[10px]'}>
               {phase === 'LIFT' ? `${paceSettings.liftTime}s` :
                phase === 'HOLD' ? `${paceSettings.holdTime}s` :
                phase === 'DOWN' ? `${paceSettings.downTime}s` :
@@ -261,7 +262,7 @@ export function PaceSetterGauge({
 
       {/* Rep Counter (smaller) */}
       <View className="flex-row items-center mt-1">
-        <Text allowFontScaling={false} className={`text-gray-500 ${isLarge ? 'text-xs' : 'text-sm'}`}>Reps: </Text>
+        <Text allowFontScaling={false} style={{ color: theme.subText }} className={isLarge ? 'text-xs' : 'text-sm'}>Reps: </Text>
         <Text allowFontScaling={false} numberOfLines={1} className={`text-orange-500 font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>{currentReps}</Text>
       </View>
     </View>

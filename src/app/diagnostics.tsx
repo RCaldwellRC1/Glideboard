@@ -6,12 +6,13 @@ import {
   ChevronLeft, CheckCircle2, XCircle, Activity, Info, Send, AlertTriangle, RefreshCw
 } from 'lucide-react-native';
 import { useMotionContext } from '@/lib/motion';
-import { useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
+import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { remoteLog } from '@/lib/remoteLog';
 import * as Device from 'expo-device';
 
 export default function DiagnosticsScreen() {
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
   const router = useRouter();
   const { motion, diagnostics, restart } = useMotionContext();
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
@@ -108,32 +109,32 @@ export default function DiagnosticsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-black">
-      <View style={{ paddingTop: insets.top + 10 }} className="px-4 pb-4 border-b border-gray-900 flex-row items-center">
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={{ paddingTop: insets.top + 10, borderBottomColor: theme.border }} className="px-4 pb-4 border-b flex-row items-center">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 active:opacity-60">
           <ChevronLeft size={28} color="#f97316" />
         </Pressable>
-        <Text className="text-white font-bold text-xl ml-2">Troubleshoot Counting</Text>
+        <Text style={{ color: theme.text }} className="font-bold text-xl ml-2">Troubleshoot Counting</Text>
       </View>
 
       <ScrollView className="flex-1 px-4 pt-6" showsVerticalScrollIndicator={false}>
         {/* Hardware Status */}
-        <View className="bg-gray-900 rounded-2xl p-4 mb-6">
-          <Text className="text-gray-400 font-bold mb-4 uppercase tracking-widest text-xs">1. Hardware Check</Text>
+        <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 mb-6">
+          <Text style={{ color: theme.subText }} className="font-bold mb-4 uppercase tracking-widest text-xs opacity-80">1. Hardware Check</Text>
 
-          <View className="flex-row items-center justify-between py-2 border-b border-gray-800">
-            <Text className="text-white text-base">Motion Sensor</Text>
+          <View style={{ borderBottomColor: theme.divider }} className="flex-row items-center justify-between py-2 border-b">
+            <Text style={{ color: theme.text }} className="text-base">Motion Sensor</Text>
             <StatusIcon check={diagnostics.accelerometerAvailable} />
           </View>
 
-          <View className="flex-row items-center justify-between py-2 border-b border-gray-800">
-            <Text className="text-white text-base">Data Stream</Text>
+          <View style={{ borderBottomColor: theme.divider }} className="flex-row items-center justify-between py-2 border-b">
+            <Text style={{ color: theme.text }} className="text-base">Data Stream</Text>
             <StatusIcon check={diagnostics.isHealthy} />
           </View>
 
           <View className="mt-4 flex-row items-start">
-            <Info size={16} color="#9ca3af" style={{ marginTop: 2 }} />
-            <Text className="text-gray-500 text-sm ml-2 flex-1">
+            <Info size={16} color={theme.subText} style={{ marginTop: 2 }} />
+            <Text style={{ color: theme.subText }} className="text-sm ml-2 flex-1 opacity-70">
               If these are green, your phone's hardware is working correctly.
             </Text>
           </View>
@@ -147,7 +148,8 @@ export default function DiagnosticsScreen() {
 
           <Pressable
             onPress={restart}
-            className="mt-4 flex-row items-center justify-center bg-gray-800 py-3 rounded-xl active:bg-gray-700"
+            style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+            className="mt-4 flex-row items-center justify-center py-3 rounded-xl active:opacity-60"
           >
             <RefreshCw size={16} color="#f97316" />
             <Text className="text-orange-500 font-bold ml-2">Restart Sensors</Text>
@@ -155,21 +157,21 @@ export default function DiagnosticsScreen() {
         </View>
 
         {/* Wiggle Test */}
-        <View className="bg-gray-900 rounded-2xl p-4 mb-6">
-          <Text className="text-gray-400 font-bold mb-4 uppercase tracking-widest text-xs">2. The Wiggle Test</Text>
-          <Text className="text-gray-200 mb-4">
+        <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 mb-6">
+          <Text style={{ color: theme.subText }} className="font-bold mb-4 uppercase tracking-widest text-xs opacity-80">2. The Wiggle Test</Text>
+          <Text style={{ color: theme.text }} className="mb-4 opacity-90">
             Place your phone on the board and give it a shake. The bar below should react.
           </Text>
 
-          <View className="h-4 bg-gray-800 rounded-full overflow-hidden mb-2">
+          <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="h-4 rounded-full overflow-hidden mb-2">
             <View
               className="h-full bg-orange-500 rounded-full"
               style={{ width: `${Math.min(100, (magnitude / 20) * 100)}%` }}
             />
           </View>
           <View className="flex-row justify-between">
-            <Text className="text-gray-600 text-xs">STILL</Text>
-            <Text className="text-gray-600 text-xs">ACTIVE</Text>
+            <Text style={{ color: theme.subText }} className="text-xs opacity-60">STILL</Text>
+            <Text style={{ color: theme.subText }} className="text-xs opacity-60">ACTIVE</Text>
           </View>
 
           {wigglePeak < 10.5 && magnitude < 10.5 && (
@@ -181,12 +183,12 @@ export default function DiagnosticsScreen() {
         </View>
 
         {/* Rep Test */}
-        <View className="bg-gray-900 rounded-2xl p-4 mb-6">
-          <Text className="text-gray-400 font-bold mb-4 uppercase tracking-widest text-xs">3. One-Rep Test</Text>
+        <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 mb-6">
+          <Text style={{ color: theme.subText }} className="font-bold mb-4 uppercase tracking-widest text-xs opacity-80">3. One-Rep Test</Text>
 
           {repTestState === 'idle' && (
             <>
-              <Text className="text-gray-200 mb-4">
+              <Text style={{ color: theme.text }} className="mb-4 opacity-90">
                 Let's test one actual rep. Tap start, then do one slow, controlled glide of the board.
               </Text>
               <Pressable
@@ -201,21 +203,21 @@ export default function DiagnosticsScreen() {
           {repTestState === 'testing' && (
             <View className="items-center py-6">
               <ActivityIndicator color="#f97316" size="large" />
-              <Text className="text-white font-bold text-xl mt-4">DO ONE REP NOW</Text>
-              <Text className="text-gray-500 mt-2">I'm watching for movement...</Text>
+              <Text style={{ color: theme.text }} className="font-bold text-xl mt-4">DO ONE REP NOW</Text>
+              <Text style={{ color: theme.subText }} className="mt-2 opacity-70">I'm watching for movement...</Text>
             </View>
           )}
 
           {repTestState === 'result' && testResult && (
             <View>
-              <Text className="text-white font-bold text-lg mb-2">Test Results:</Text>
+              <Text style={{ color: theme.text }} className="font-bold text-lg mb-2">Test Results:</Text>
               <View className="flex-row mb-4">
-                <View className="flex-1 bg-gray-800 p-3 rounded-xl mr-2">
-                  <Text className="text-gray-500 text-xs uppercase font-bold">Strength</Text>
-                  <Text className="text-white text-xl font-bold">{testResult.peak.toFixed(2)}</Text>
+                <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className="flex-1 p-3 rounded-xl mr-2">
+                  <Text style={{ color: theme.subText }} className="text-xs uppercase font-bold opacity-60">Strength</Text>
+                  <Text style={{ color: theme.text }} className="text-xl font-bold">{testResult.peak.toFixed(2)}</Text>
                 </View>
-                <View className="flex-1 bg-gray-800 p-3 rounded-xl">
-                  <Text className="text-gray-500 text-xs uppercase font-bold">Verdict</Text>
+                <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className="flex-1 p-3 rounded-xl">
+                  <Text style={{ color: theme.subText }} className="text-xs uppercase font-bold opacity-60">Verdict</Text>
                   <Text className={testResult.peak > 0.4 ? "text-green-500 text-xl font-bold" : "text-red-500 text-xl font-bold"}>
                     {testResult.peak > 0.4 ? "GOOD" : "TOO WEAK"}
                   </Text>
@@ -223,26 +225,27 @@ export default function DiagnosticsScreen() {
               </View>
 
               {testResult.peak <= 0.4 && (
-                <Text className="text-gray-400 text-sm italic mb-4">
+                <Text style={{ color: theme.subText }} className="text-sm italic mb-4 opacity-70">
                   Tip: Your movement was very smooth. Try setting "Motion Sensitivity" to HIGH in settings.
                 </Text>
               )}
 
               <Pressable
                 onPress={startRepTest}
-                className="border border-gray-700 py-3 rounded-xl items-center active:bg-gray-800"
+                style={{ borderColor: theme.divider }}
+                className="border py-3 rounded-xl items-center active:opacity-60"
               >
-                <Text className="text-gray-400 font-bold">Retry Test</Text>
+                <Text style={{ color: theme.subText }} className="font-bold">Retry Test</Text>
               </Pressable>
             </View>
           )}
         </View>
 
         {/* Tips & Battery */}
-        <View className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 mb-6">
+        <View style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.2)' }} className="border rounded-2xl p-4 mb-6">
           <Text className="text-orange-400 font-bold mb-2 uppercase tracking-widest text-xs">Important Tip</Text>
-          <Text className="text-gray-300 leading-5">
-            If your Android tablet is in <Text className="text-white font-bold">"Battery Saver"</Text> mode,
+          <Text style={{ color: theme.text }} className="leading-5 opacity-90">
+            If your Android tablet is in <Text className="font-bold">"Battery Saver"</Text> mode,
             it may slow down or disable the motion sensors to save power.
             Turn off Battery Saver for the best counting accuracy.
           </Text>
@@ -250,13 +253,14 @@ export default function DiagnosticsScreen() {
 
         {/* Send Report */}
         <View className="mt-4 mb-20">
-          <Text className="text-gray-500 text-xs text-center mb-4 px-6">
+          <Text style={{ color: theme.subText }} className="text-xs text-center mb-4 px-6 opacity-60">
             Still having trouble? Send a technical report and we'll look into it for you.
           </Text>
           <Pressable
             onPress={sendReport}
             disabled={isSending}
-            className={`flex-row items-center justify-center py-4 rounded-2xl ${isSending ? 'bg-gray-800' : 'bg-gray-800 active:bg-gray-700'}`}
+            style={{ backgroundColor: theme.card }}
+            className="flex-row items-center justify-center py-4 rounded-2xl active:opacity-60"
           >
             {isSending ? (
               <ActivityIndicator color="#f97316" />

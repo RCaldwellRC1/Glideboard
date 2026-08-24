@@ -2,24 +2,27 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Activity, Calendar, Trophy, User } from 'lucide-react-native';
 import { useClientOnlyValue } from '@/lib/useClientOnlyValue';
+import { useTheme } from '@/lib/settings';
 
 export default function TabLayout() {
+  const theme = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: '#f97316',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarInactiveTintColor: theme.subText,
         tabBarStyle: {
-          backgroundColor: '#000',
-          borderTopColor: '#1f2937',
-          borderTopWidth: 0.5,
+          backgroundColor: theme.background,
+          borderTopColor: theme.border,
+          borderTopWidth: 1,
           height: 85,
           paddingTop: 8,
         },
         headerStyle: {
-          backgroundColor: '#000',
+          backgroundColor: theme.background,
         },
-        headerTintColor: '#fff',
+        headerTintColor: theme.text,
         headerShown: useClientOnlyValue(false, false),
       }}>
       <Tabs.Screen

@@ -8,6 +8,7 @@ import {
   TIMED_GROUP,
   categoryColor,
 } from '@/lib/workout';
+import { useTheme } from '@/lib/settings';
 
 interface ExercisePickerModalProps {
   visible: boolean;
@@ -36,6 +37,7 @@ function AddExerciseSlot({
   isLarge: boolean;
   color?: string;
 }) {
+  const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
 
@@ -51,13 +53,13 @@ function AddExerciseSlot({
 
   if (editing) {
     return (
-      <View className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'} bg-gray-800`}>
+      <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'}`}>
         <TextInput
           value={text}
           onChangeText={setText}
           autoFocus
           placeholder="Type exercise name"
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={theme.subText}
           returnKeyType="done"
           autoCapitalize="words"
           onSubmitEditing={commit}
@@ -78,7 +80,8 @@ function AddExerciseSlot({
     <Pressable
       delayLongPress={2000}
       onLongPress={() => setEditing(true)}
-      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} flex-row items-center active:bg-gray-800`}
+      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} flex-row items-center active:opacity-60`}
+      style={{ backgroundColor: theme.card }}
     >
       <Plus size={isLarge ? 14 : 16} color={color} />
       <Text className={`italic ml-2 ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: `${color}b3` }}>
@@ -105,6 +108,7 @@ function CustomExerciseRow({
   isLarge: boolean;
   color?: string;
 }) {
+  const theme = useTheme();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(exercise);
 
@@ -119,13 +123,13 @@ function CustomExerciseRow({
 
   if (editing) {
     return (
-      <View className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'} bg-gray-800`}>
+      <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className={`flex-row items-center px-4 ${isLarge ? 'py-2' : 'py-2.5'}`}>
         <TextInput
           value={text}
           onChangeText={setText}
           autoFocus
           placeholder="Exercise name"
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={theme.subText}
           returnKeyType="done"
           autoCapitalize="words"
           onSubmitEditing={commit}
@@ -148,7 +152,8 @@ function CustomExerciseRow({
         setText(exercise);
         setEditing(true);
       }}
-      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} active:bg-gray-800`}
+      className={`px-4 ${isLarge ? 'py-2.5' : 'py-3'} active:opacity-60`}
+      style={{ backgroundColor: theme.card }}
     >
       <Text
         className={`font-semibold ${isLarge ? 'text-base' : 'text-lg'}`}
@@ -181,6 +186,7 @@ export function ExercisePickerModal({
   title = 'Select Category',
   showCoachRoutines = true,
 }: ExercisePickerModalProps) {
+  const theme = useTheme();
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
   useEffect(() => {
@@ -208,23 +214,24 @@ export function ExercisePickerModal({
         onPress={onClose}
       >
         <View
-          className="bg-gray-900 rounded-3xl w-full max-w-lg overflow-hidden border border-gray-800"
+          style={{ backgroundColor: theme.card, borderColor: theme.border }}
+          className="rounded-3xl w-full max-w-lg overflow-hidden border"
           onStartShouldSetResponder={() => true}
           onResponderTerminationRequest={() => false}
         >
-          <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-800">
+          <View style={{ borderBottomColor: theme.divider }} className="flex-row items-center justify-between px-6 py-4 border-b">
             <View className="flex-row items-center">
               {expandedGroup !== null && (
                 <Pressable onPress={() => setExpandedGroup(null)} hitSlop={12} className="mr-3">
                   <ChevronLeft size={24} color="#f97316" />
                 </Pressable>
               )}
-              <Text className="text-white font-bold text-xl">
+              <Text style={{ color: theme.text }} className="font-bold text-xl">
                 {expandedGroup === null ? title : expandedGroup}
               </Text>
             </View>
             <Pressable onPress={onClose} hitSlop={12}>
-              <X size={24} color="#6b7280" />
+              <X size={24} color={theme.subText} />
             </Pressable>
           </View>
 
@@ -241,7 +248,8 @@ export function ExercisePickerModal({
                   <Pressable
                     key={group.name}
                     onPress={() => setExpandedGroup(group.name)}
-                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
+                    style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:opacity-60 mb-1"
                   >
                     <Text className="text-xl font-bold" style={{ color: group.color }}>
                       {group.name}
@@ -250,13 +258,14 @@ export function ExercisePickerModal({
                   </Pressable>
                 ))}
 
-                <View className="my-2 mx-6 border-t border-gray-800" />
+                <View style={{ borderTopColor: theme.divider }} className="my-2 mx-6 border-t" />
 
                 {customCats.map((group) => (
                   <Pressable
                     key={group.name}
                     onPress={() => setExpandedGroup(group.name)}
-                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800 mb-1"
+                    style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                    className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:opacity-60 mb-1"
                   >
                     <Text className="text-xl font-bold" style={{ color: group.color }}>
                       {group.name}
@@ -267,13 +276,14 @@ export function ExercisePickerModal({
 
                 {showCoachRoutines && onOpenCoach && (
                   <>
-                    <View className="my-2 mx-6 border-t border-gray-800" />
+                    <View style={{ borderTopColor: theme.divider }} className="my-2 mx-6 border-t" />
                     <Pressable
                       onPress={() => {
                         onClose();
                         onOpenCoach();
                       }}
-                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:bg-gray-800"
+                      style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                      className="mx-4 px-4 py-4 rounded-xl flex-row items-center justify-between active:opacity-60"
                     >
                       <View className="flex-row items-center flex-1 mr-2">
                         <ClipboardList size={22} color="#22c55e" />
@@ -294,16 +304,17 @@ export function ExercisePickerModal({
                     onPress={() => {
                       onSelect(exercise, activeGroup.name);
                     }}
-                    className="px-8 py-4 active:bg-orange-500/10"
+                    className="px-8 py-4 active:opacity-60"
+                    style={{ backgroundColor: theme.card }}
                   >
-                    <Text className="text-xl text-white font-medium">
+                    <Text style={{ color: theme.text }} className="text-xl font-medium">
                       {exercise}
                     </Text>
                   </Pressable>
                 ))}
 
                 {isCustomCategory && groupCustom.length === 0 ? (
-                  <Text className="px-8 py-4 italic text-gray-500 text-base">
+                  <Text style={{ color: theme.subText }} className="px-8 py-4 italic text-base">
                     {expandedGroup === TIMED_GROUP
                       ? 'Add a hold like “Plank” or “Wall Sit”.'
                       : 'Add your own lift or calisthenic move.'}

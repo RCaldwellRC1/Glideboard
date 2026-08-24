@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import { Dumbbell, Delete, Check } from 'lucide-react-native';
 import { categoryColor } from '@/lib/workout';
+import { useTheme } from '@/lib/settings';
 
 // Free-weight work can be anything from a 1 lb dumbbell to a 300+ lb barbell, so
 // a dropdown doesn't fit. This shows the current weight in the same slot the
@@ -22,6 +23,7 @@ function KeypadModal({
   onSubmit: (weight: number) => void;
   isLarge: boolean;
 }) {
+  const theme = useTheme();
   // Empty string = "haven't typed anything yet"; we show the current weight as a
   // dimmed placeholder until the first digit is pressed.
   const [text, setText] = useState('');
@@ -55,7 +57,11 @@ function KeypadModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable onPress={onClose} className="flex-1 bg-black/80 justify-center items-center px-6">
-        <Pressable onPress={(e) => e.stopPropagation()} className="bg-gray-900 rounded-3xl w-full max-w-sm p-6">
+        <Pressable
+          onPress={(e) => e.stopPropagation()}
+          style={{ backgroundColor: theme.card }}
+          className="rounded-3xl w-full max-w-sm p-6"
+        >
           {/* Header */}
           <View className="flex-row items-center justify-center mb-1">
             <Dumbbell size={isLarge ? 18 : 20} color={RED} />
@@ -70,10 +76,10 @@ function KeypadModal({
               numberOfLines={1}
               adjustsFontSizeToFit
               className={`font-bold ${isLarge ? 'text-5xl' : 'text-6xl'}`}
-              style={{ color: text === '' ? '#6b7280' : RED }}
+              style={{ color: text === '' ? theme.subText : RED }}
             >
               {display}
-              <Text className={`${isLarge ? 'text-2xl' : 'text-3xl'} text-gray-500`}> lb</Text>
+              <Text style={{ color: theme.subText }} className={isLarge ? 'text-2xl' : 'text-3xl'}> lb</Text>
             </Text>
           </View>
 
@@ -84,9 +90,10 @@ function KeypadModal({
                 <Pressable
                   key={d}
                   onPress={() => pressDigit(d)}
-                  className={`flex-1 mx-1.5 bg-gray-800 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
+                  style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+                  className={`flex-1 mx-1.5 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
                 >
-                  <Text className={`text-white font-bold ${isLarge ? 'text-2xl' : 'text-3xl'}`}>{d}</Text>
+                  <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-2xl' : 'text-3xl'}`}>{d}</Text>
                 </Pressable>
               ))}
             </View>
@@ -96,15 +103,17 @@ function KeypadModal({
           <View className="flex-row justify-between mb-1">
             <Pressable
               onPress={backspace}
-              className={`flex-1 mx-1.5 bg-gray-800 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
+              style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+              className={`flex-1 mx-1.5 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
             >
-              <Delete size={isLarge ? 22 : 26} color="#9ca3af" />
+              <Delete size={isLarge ? 22 : 26} color={theme.subText} />
             </Pressable>
             <Pressable
               onPress={() => pressDigit('0')}
-              className={`flex-1 mx-1.5 bg-gray-800 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
+              style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+              className={`flex-1 mx-1.5 rounded-2xl items-center justify-center active:opacity-60 ${isLarge ? 'py-4' : 'py-5'}`}
             >
-              <Text className={`text-white font-bold ${isLarge ? 'text-2xl' : 'text-3xl'}`}>0</Text>
+              <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-2xl' : 'text-3xl'}`}>0</Text>
             </Pressable>
             <Pressable
               onPress={submit}
@@ -129,14 +138,16 @@ export function WeightInput({
   onSelect: (weight: number) => void;
   isLarge: boolean;
 }) {
+  const theme = useTheme();
   const [open, setOpen] = useState(false);
 
   return (
     <View className={isLarge ? 'w-28' : 'w-32'}>
-      <Text className={`text-gray-500 mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>WEIGHT</Text>
+      <Text style={{ color: theme.subText }} className={`mb-1 tracking-wide ${isLarge ? 'text-xs' : 'text-sm'}`}>WEIGHT</Text>
       <Pressable
         onPress={() => setOpen(true)}
-        className={`bg-gray-900 rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
+        style={{ backgroundColor: theme.card }}
+        className={`rounded-lg flex-row items-center justify-between ${isLarge ? 'px-3 py-3' : 'px-4 py-3'}`}
       >
         <Text numberOfLines={1} adjustsFontSizeToFit className={`font-semibold flex-1 mr-1 ${isLarge ? 'text-base' : 'text-lg'}`} style={{ color: RED }}>
           {value} lb

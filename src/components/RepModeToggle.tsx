@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { Activity, Mic } from 'lucide-react-native';
+import { useTheme } from '@/lib/settings';
 
 /**
  * A vertical two-position switch that sits at the top of the Tracker screen
@@ -32,6 +33,7 @@ export function RepModeToggle({
   disabledLabel?: string;
   isLarge: boolean;
 }) {
+  const theme = useTheme();
   const PAD = 3;
   const trackWidth = isLarge ? 40 : 44;
   const trackHeight = isLarge ? 62 : 70;
@@ -68,8 +70,8 @@ export function RepModeToggle({
           padding: PAD,
           borderRadius: trackWidth / 2,
           borderWidth: 2,
-          borderColor: disabled ? '#374151' : '#f97316',
-          backgroundColor: '#111827',
+          borderColor: disabled ? theme.divider : '#f97316',
+          backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827',
         }}
       >
         {/* Sliding knob behind the active half. */}
@@ -89,10 +91,10 @@ export function RepModeToggle({
         />
 
         <View style={{ height: cellHeight }} className="items-center justify-center">
-          <Activity size={iconSize} color={value === 'motion' && !disabled ? '#000000' : '#6b7280'} />
+          <Activity size={iconSize} color={value === 'motion' && !disabled ? '#000000' : theme.subText} />
         </View>
         <View style={{ height: cellHeight }} className="items-center justify-center">
-          <Mic size={iconSize} color={value === 'voice' && !disabled ? '#000000' : '#6b7280'} />
+          <Mic size={iconSize} color={value === 'voice' && !disabled ? '#000000' : theme.subText} />
         </View>
       </View>
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { Check, X, Trash2 } from 'lucide-react-native';
+import { Check, X, Trash2, Pencil } from 'lucide-react-native';
+import { useTheme } from '@/lib/settings';
 
 interface EditSetModalProps {
   visible: boolean;
@@ -25,6 +26,7 @@ export function EditSetModal({
   onCancel,
   isLarge = false,
 }: EditSetModalProps) {
+  const theme = useTheme();
   const [inputValue, setInputValue] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const inputRef = useRef<TextInput>(null);
@@ -55,21 +57,22 @@ export function EditSetModal({
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="bg-gray-900 rounded-3xl w-full max-w-sm p-6"
+            style={{ backgroundColor: theme.card }}
+            className="rounded-3xl w-full max-w-sm p-6"
           >
             {/* Close button */}
             <Pressable
               onPress={onCancel}
               className="absolute top-4 right-4 w-8 h-8 items-center justify-center"
             >
-              <X size={24} color="#6b7280" />
+              <X size={24} color={theme.subText} />
             </Pressable>
 
             {/* Header */}
-            <Text className={`text-white text-center font-bold mb-1 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
+            <Text style={{ color: theme.text }} className={`text-center font-bold mb-1 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
               Edit Set {setNumber}
             </Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit className={`text-gray-500 text-center mb-6 ${isLarge ? 'text-sm' : 'text-base'}`}>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.subText }} className={`text-center mb-6 ${isLarge ? 'text-sm' : 'text-base'}`}>
               {exercise} · Level {inclineLevel}
             </Text>
 
@@ -84,11 +87,12 @@ export function EditSetModal({
                 onSubmitEditing={handleSave}
                 selectTextOnFocus
                 placeholder="0"
-                placeholderTextColor="#6b7280"
-                className={`text-orange-500 font-bold text-center bg-gray-800 rounded-xl px-6 py-4 ${isLarge ? 'text-5xl min-w-[160px]' : 'text-6xl min-w-[176px]'}`}
+                placeholderTextColor={theme.subText}
+                style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                className={`text-orange-500 font-bold text-center rounded-xl px-6 py-4 ${isLarge ? 'text-5xl min-w-[160px]' : 'text-6xl min-w-[176px]'}`}
               />
             </View>
-            <Text className={`text-gray-600 text-center mb-6 ${isLarge ? 'text-xs' : 'text-sm'}`}>reps</Text>
+            <Text style={{ color: theme.subText }} className={`text-center mb-6 ${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>reps</Text>
 
             {/* Save button */}
             <Pressable
@@ -104,15 +108,16 @@ export function EditSetModal({
             {/* Delete action with inline confirm */}
             {confirmingDelete ? (
               <View className="mt-3">
-                <Text className={`text-gray-400 text-center mb-2 ${isLarge ? 'text-sm' : 'text-base'}`}>
+                <Text style={{ color: theme.subText }} className={`text-center mb-2 ${isLarge ? 'text-sm' : 'text-base'}`}>
                   Delete this set?
                 </Text>
                 <View className="flex-row">
                   <Pressable
                     onPress={() => setConfirmingDelete(false)}
-                    className="flex-1 mr-2 bg-gray-800 rounded-xl py-3 items-center active:opacity-70"
+                    style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+                    className="flex-1 mr-2 rounded-xl py-3 items-center active:opacity-70"
                   >
-                    <Text numberOfLines={1} className={`text-gray-300 font-medium ${isLarge ? 'text-base' : 'text-lg'}`}>Cancel</Text>
+                    <Text numberOfLines={1} style={{ color: theme.text }} className={`font-medium ${isLarge ? 'text-base' : 'text-lg'}`}>Cancel</Text>
                   </Pressable>
                   <Pressable
                     onPress={onDelete}

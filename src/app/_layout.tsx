@@ -38,9 +38,15 @@ const queryClient = new QueryClient();
 
 function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null | undefined }) {
   const textSize = useSettingsStore(s => s.textSize);
+  const colorTheme = useSettingsStore(s => s.colorTheme);
+
+  // Use user-selected theme if set, otherwise fallback to system
+  const activeTheme = colorTheme || colorScheme || 'dark';
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={activeTheme === 'dark' ? DarkTheme : DefaultTheme}>
       <View style={[{ flex: 1 }, vars(getFontSizeVars(textSize))]}>
+        <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="app-settings" options={{ headerShown: false }} />
@@ -104,7 +110,6 @@ export default function RootLayout() {
                 Ensures we never touch sensors until the user is well past the boot phase.
             */}
             <MotionProvider updateInterval={16} smoothingFactor={0.8} autoStart={false}>
-              <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
               <RootLayoutNav colorScheme={colorScheme} />
               {showGreeting && (
                 <CustomGreeting onFinish={onGreetingFinish} />

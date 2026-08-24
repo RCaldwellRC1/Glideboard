@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -161,6 +161,7 @@ export default function HistoryScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const [editingSet, setEditingSet] = useState<EditingSet | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const workoutHistory = useWorkoutStore(s => s.workoutHistory);
   const updateSetReps = useWorkoutStore(s => s.updateSetReps);

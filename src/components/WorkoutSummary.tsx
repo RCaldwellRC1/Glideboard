@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text } from 'react-native';
 import { Dumbbell, Repeat, Clock, TrendingUp } from 'lucide-react-native';
 import type { Workout, WorkoutSet } from '@/lib/workout';
+import { useTheme } from '@/lib/settings';
 
 // One exercise's worth of sets, in the order they were performed.
 interface ExerciseBlock {
@@ -45,6 +46,7 @@ export function WorkoutSummary({
   isLarge: boolean;
   accentColor?: string;
 }) {
+  const theme = useTheme();
   const blocks = useMemo(() => groupByExercise(workout.sets), [workout.sets]);
   const totalReps = useMemo(() => workout.sets.reduce((s, set) => s + set.reps, 0), [workout.sets]);
 
@@ -53,30 +55,30 @@ export function WorkoutSummary({
   });
 
   return (
-    <View className="bg-gray-900 rounded-2xl overflow-hidden">
+    <View style={{ backgroundColor: theme.card }} className="rounded-2xl overflow-hidden">
       {/* Header */}
-      <View className="px-4 pt-4 pb-3 border-b border-gray-800">
-        <Text className={`text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`} numberOfLines={2}>
+      <View style={{ borderBottomColor: theme.divider }} className="px-4 pt-4 pb-3 border-b">
+        <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-lg' : 'text-xl'}`} numberOfLines={2}>
           {workout.routineTitle ?? 'Workout'}
         </Text>
-        <Text className={`text-gray-500 mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>{dateLabel}</Text>
+        <Text style={{ color: theme.subText }} className={`mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>{dateLabel}</Text>
 
         {/* Stat chips */}
         <View className="flex-row mt-3">
           <View className="flex-row items-center mr-4">
             <Dumbbell size={isLarge ? 14 : 16} color={accentColor} />
-            <Text className={`text-gray-300 ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>
+            <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>
               {workout.sets.length} {workout.sets.length === 1 ? 'set' : 'sets'}
             </Text>
           </View>
           <View className="flex-row items-center mr-4">
             <Repeat size={isLarge ? 14 : 16} color={accentColor} />
-            <Text className={`text-gray-300 ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>{totalReps} reps</Text>
+            <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>{totalReps} reps</Text>
           </View>
           {workout.duration > 0 && (
             <View className="flex-row items-center">
               <Clock size={isLarge ? 14 : 16} color={accentColor} />
-              <Text className={`text-gray-300 ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>
+              <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>
                 {formatDuration(workout.duration)}
               </Text>
             </View>
@@ -89,14 +91,14 @@ export function WorkoutSummary({
         {blocks.map((block, bi) => {
           const best = Math.max(...block.sets.map(s => s.reps));
           return (
-            <View key={`${block.exercise}-${bi}`} className="py-2.5 border-b border-gray-800/60">
+            <View key={`${block.exercise}-${bi}`} style={{ borderBottomColor: theme.divider }} className="py-2.5 border-b">
               <View className="flex-row items-center justify-between">
-                <Text className={`text-white font-semibold flex-1 mr-2 ${isLarge ? 'text-base' : 'text-lg'}`} numberOfLines={1}>
+                <Text style={{ color: theme.text }} className={`font-semibold flex-1 mr-2 ${isLarge ? 'text-base' : 'text-lg'}`} numberOfLines={1}>
                   {block.exercise}
                 </Text>
                 <View className="flex-row items-center">
-                  <TrendingUp size={isLarge ? 12 : 14} color="#6b7280" />
-                  <Text className={`text-gray-500 ml-1 ${isLarge ? 'text-xs' : 'text-sm'}`}>best {best}</Text>
+                  <TrendingUp size={isLarge ? 12 : 14} color={theme.subText} />
+                  <Text style={{ color: theme.subText }} className={`ml-1 ${isLarge ? 'text-xs' : 'text-sm'}`}>best {best}</Text>
                 </View>
               </View>
 
@@ -105,12 +107,13 @@ export function WorkoutSummary({
                 {block.sets.map((s, si) => (
                   <View
                     key={si}
-                    className="flex-row items-baseline bg-gray-800 rounded-lg px-2.5 py-1 mr-2 mb-1.5"
+                    style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }}
+                    className="flex-row items-baseline rounded-lg px-2.5 py-1 mr-2 mb-1.5"
                   >
                     <Text className={`font-bold ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: accentColor }}>
                       {s.reps}
                     </Text>
-                    <Text className={`text-gray-400 ml-1 ${isLarge ? 'text-[10px]' : 'text-xs'}`}>
+                    <Text style={{ color: theme.subText }} className={`ml-1 ${isLarge ? 'text-[10px]' : 'text-xs'}`}>
                       reps · Lvl {s.inclineLevel}
                     </Text>
                   </View>

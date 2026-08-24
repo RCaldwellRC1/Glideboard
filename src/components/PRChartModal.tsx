@@ -21,6 +21,7 @@ import Animated, {
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useWorkoutStore, getExerciseChartSeries } from '@/lib/workout';
+import { useTheme } from '@/lib/settings';
 
 const LEVEL_COLOR = '#f97316'; // orange — incline level
 const REPS_COLOR = '#38bdf8'; // sky blue — reps
@@ -35,6 +36,7 @@ interface PRChartModalProps {
 // time — incline level (left axis) and reps (right axis) — and can be pinch-
 // zoomed and dragged to show a longer or shorter time span.
 export function PRChartModal({ exercise, onClose }: PRChartModalProps) {
+  const theme = useTheme();
   const workoutHistory = useWorkoutStore(s => s.workoutHistory);
   const insets = useSafeAreaInsets();
 
@@ -57,23 +59,24 @@ export function PRChartModal({ exercise, onClose }: PRChartModalProps) {
       </Animated.View>
       <Animated.View entering={SlideInDown.duration(220)}>
         <View
-          className="bg-gray-900 rounded-t-3xl px-4 pt-4"
-          style={{ paddingBottom: insets.bottom + 16 }}
+          style={{ backgroundColor: theme.card, paddingBottom: insets.bottom + 16 }}
+          className="rounded-t-3xl px-4 pt-4"
         >
           {/* Header */}
           <View className="flex-row items-center justify-between mb-1">
             <View className="flex-1 mr-3">
-              <Text className="text-white font-bold text-xl" numberOfLines={1}>
+              <Text style={{ color: theme.text }} className="font-bold text-xl" numberOfLines={1}>
                 {exercise}
               </Text>
-              <Text className="text-gray-500 text-xs mt-0.5">Progress over time</Text>
+              <Text style={{ color: theme.subText }} className="text-xs mt-0.5 opacity-60">Progress over time</Text>
             </View>
             <Pressable
               onPress={onClose}
               hitSlop={12}
-              className="w-9 h-9 rounded-full bg-gray-800 items-center justify-center active:opacity-70"
+              style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
+              className="w-9 h-9 rounded-full items-center justify-center active:opacity-70"
             >
-              <X size={20} color="#9ca3af" />
+              <X size={20} color={theme.subText} />
             </Pressable>
           </View>
 
@@ -81,17 +84,17 @@ export function PRChartModal({ exercise, onClose }: PRChartModalProps) {
           <View className="flex-row items-center mt-2 mb-1">
             <View className="flex-row items-center mr-4">
               <View className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: LEVEL_COLOR }} />
-              <Text className="text-gray-300 text-sm">Incline Level</Text>
+              <Text style={{ color: theme.text }} className="text-sm opacity-80">Incline Level</Text>
             </View>
             <View className="flex-row items-center">
               <View className="w-3 h-3 rounded-full mr-1.5" style={{ backgroundColor: REPS_COLOR }} />
-              <Text className="text-gray-300 text-sm">Reps</Text>
+              <Text style={{ color: theme.text }} className="text-sm opacity-80">Reps</Text>
             </View>
           </View>
 
           {series.length === 0 ? (
             <View className="h-64 items-center justify-center">
-              <Text className="text-gray-500 text-center text-sm px-6">
+              <Text style={{ color: theme.subText }} className="text-center text-sm px-6 opacity-60">
                 No data to chart yet. Complete a few sessions of this exercise to
                 see your progress.
               </Text>
@@ -99,7 +102,7 @@ export function PRChartModal({ exercise, onClose }: PRChartModalProps) {
           ) : (
             <>
               <ChartCanvas series={series} />
-              <Text className="text-gray-600 text-center text-xs mt-2">
+              <Text style={{ color: theme.subText }} className="text-center text-xs mt-2 opacity-50">
                 Pinch to zoom the time span • Drag to scroll
               </Text>
             </>
@@ -118,6 +121,7 @@ const CHART_HEIGHT = 250;
 const MARGIN = { top: 16, right: 42, bottom: 30, left: 34 };
 
 function ChartCanvas({ series }: ChartCanvasProps) {
+  const theme = useTheme();
   const screenW = Dimensions.get('window').width;
   const chartW = screenW - 32; // modal has px-4 (16px) each side
   const plotLeft = MARGIN.left;
@@ -301,7 +305,7 @@ function ChartCanvas({ series }: ChartCanvasProps) {
                 y1={yLevel(l)}
                 x2={plotRight}
                 y2={yLevel(l)}
-                stroke="#1f2937"
+                stroke={theme.divider}
                 strokeWidth={1}
               />
               <SvgText
@@ -336,9 +340,10 @@ function ChartCanvas({ series }: ChartCanvasProps) {
               key={`x-${i}`}
               x={tk.x}
               y={CHART_HEIGHT - 10}
-              fill="#6b7280"
+              fill={theme.subText}
               fontSize={10}
               textAnchor="middle"
+              opacity={0.6}
             >
               {tk.label}
             </SvgText>
