@@ -330,14 +330,15 @@ export default function HistoryScreen() {
                 >
                   <Text
                     allowFontScaling={false}
-                    style={{ fontSize: fs(largeDisplayMode ? 12 : 10) }}
-                    className={`${
-                      dayInfo.isToday
-                        ? 'text-white font-bold'
+                    style={{
+                      fontSize: fs(largeDisplayMode ? 12 : 10),
+                      color: dayInfo.isToday
+                        ? '#ffffff'
                         : dayInfo.isCurrentMonth
                         ? theme.text
                         : theme.subText + '66'
-                    }`}
+                    }}
+                    className={dayInfo.isToday ? 'font-bold' : ''}
                   >
                     {dayInfo.day}
                   </Text>
