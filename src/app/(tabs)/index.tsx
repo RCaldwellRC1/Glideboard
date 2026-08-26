@@ -146,7 +146,7 @@ export default function TrackerScreen() {
   const autoMode: 'motion' | 'voice' | 'timed' =
     category === 'timed' ? 'timed' : category === 'freestyle' ? 'voice' : repCountingMode;
   const effectiveMode: 'motion' | 'voice' | 'timed' =
-    autoMode === 'timed' ? 'timed' : repModeUserSet ? repCountingMode : autoMode;
+    repModeUserSet ? repCountingMode : autoMode;
   const isTimed = category === 'timed';
   const isFreestyle = category === 'freestyle';
   const timedSeconds = timedDurations[currentExercise] ?? DEFAULT_TIMED_SECONDS;
@@ -391,9 +391,11 @@ export default function TrackerScreen() {
             <RepModeToggle
               value={effectiveMode === 'voice' ? 'voice' : 'motion'}
               isLarge={largeDisplayMode}
+              labelOverride={effectiveMode === 'timed' ? 'TIMED' : undefined}
               onToggle={() => {
-                setRepCountingMode(effectiveMode === 'voice' ? 'motion' : 'voice');
-                remoteLog('rep_mode_toggled', { mode: effectiveMode === 'voice' ? 'motion' : 'voice', source: 'tracker' });
+                const nextMode = effectiveMode === 'voice' ? 'motion' : 'voice';
+                setRepCountingMode(nextMode);
+                remoteLog('rep_mode_toggled', { mode: nextMode, source: 'tracker' });
               }}
             />
           </View>
@@ -583,7 +585,7 @@ export default function TrackerScreen() {
                   colors={currentReps > targetReps ? ['#22c55e', '#16a34a'] : ['#f97316', '#ea580c']}
                   start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                   className="h-full rounded-l-lg"
-                  style={{ width: `${Math.min((currentReps * 70) / targetReps, 100)}%` }}
+                  style={{ width: `${Math.min(Math.max(0, (currentReps * 70) / (targetReps || 1)), 100)}%` }}
                 />
 
                 {/* Text overlay */}

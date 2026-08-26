@@ -26,12 +26,14 @@ export function RepModeToggle({
   disabled = false,
   disabledLabel,
   isLarge,
+  labelOverride,
 }: {
   value: 'motion' | 'voice';
   onToggle: () => void;
   disabled?: boolean;
   disabledLabel?: string;
   isLarge: boolean;
+  labelOverride?: string;
 }) {
   const theme = useTheme();
   const PAD = 3;
@@ -51,7 +53,7 @@ export function RepModeToggle({
   }));
 
   const activeColor = disabled ? '#4b5563' : '#f97316';
-  const label = disabled ? (disabledLabel ?? '') : value === 'voice' ? 'VOICE' : 'MOTION';
+  const label = disabled ? (disabledLabel ?? '') : (labelOverride ?? (value === 'voice' ? 'VOICE' : 'MOTION'));
 
   return (
     <Pressable
