@@ -404,10 +404,9 @@ export default function HistoryScreen() {
                       color: dayInfo.isToday
                         ? '#ffffff'
                         : dayInfo.isCurrentMonth
-                        ? theme.text
-                        : theme.subText + '66'
+                        ? (theme.background === '#ffffff' ? '#000000' : '#ffffff')
+                        : (theme.background === '#ffffff' ? '#9ca3af' : '#4b5563')
                     }}
-                    className={dayInfo.isToday ? 'font-bold' : ''}
                   >
                     {dayInfo.day}
                   </Text>
