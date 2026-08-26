@@ -562,8 +562,8 @@ export default function HistoryScreen() {
           </View>
 
           {aggregatedData.length === 0 ? (
-            <View style={{ backgroundColor: theme.card }} className="rounded-3xl p-8 items-center border border-dashed border-gray-700 mt-4">
-              <Flame size={32} color={theme.subText} className="opacity-30" />
+            <View style={{ backgroundColor: theme.card, borderColor: theme.divider }} className="rounded-3xl p-8 items-center border border-dashed mt-4">
+              <Flame size={32} color={theme.subText} style={{ opacity: 0.3 }} />
               <Text style={{ color: theme.subText }} className="text-center mt-3 leading-6 opacity-60">
                 No data recorded for this period yet.{"\n"}Keep pushing to see your results!
               </Text>
@@ -574,17 +574,25 @@ export default function HistoryScreen() {
               return (
                 <View
                   key={item.exercise}
-                  style={{ backgroundColor: theme.card }}
-                  className="rounded-2xl p-4 mb-3 flex-row items-center"
+                  style={{
+                    backgroundColor: theme.card,
+                    borderColor: theme.border,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: theme.background === '#ffffff' ? 0.06 : 0,
+                    shadowRadius: 10,
+                    elevation: theme.background === '#ffffff' ? 3 : 0
+                  }}
+                  className="rounded-2xl p-4 mb-3 flex-row items-center border"
                 >
                   {/* Rank Badge */}
                   <View
-                    style={{ backgroundColor: index < 3 ? 'rgba(249,115,22,0.1)' : theme.divider }}
-                    className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                    style={{ backgroundColor: index < 3 ? 'rgba(249,115,22,0.1)' : (theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937') }}
+                    className="w-9 h-9 rounded-full items-center justify-center mr-3"
                   >
                     <Text
-                      style={{ color: index < 3 ? '#f97316' : theme.subText }}
-                      className="font-bold text-xs"
+                      style={{ color: index < 3 ? '#f97316' : theme.text }}
+                      className="font-black text-xs"
                     >
                       {index + 1}
                     </Text>
@@ -595,18 +603,18 @@ export default function HistoryScreen() {
                       {item.exercise}
                     </Text>
                     <View className="flex-row items-center mt-1">
-                      <View style={{ backgroundColor: `${accentColor}20` }} className="px-2 py-0.5 rounded-full">
-                        <Text style={{ color: accentColor }} className="text-[10px] font-bold uppercase tracking-widest">{item.category}</Text>
+                      <View style={{ backgroundColor: `${accentColor}15` }} className="px-2 py-0.5 rounded-full">
+                        <Text style={{ color: accentColor }} className="text-[10px] font-black uppercase tracking-widest">{item.category}</Text>
                       </View>
-                      <Text style={{ color: theme.subText }} className="text-xs ml-2 opacity-60">
+                      <Text style={{ color: theme.subText }} className="text-xs ml-2 font-medium opacity-60">
                         {item.sets} {item.sets === 1 ? 'set' : 'sets'}
                       </Text>
                     </View>
                   </View>
 
                   <View className="items-end">
-                    <Text className="text-orange-500 font-black text-xl">{item.reps}</Text>
-                    <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-widest opacity-60">Total Reps</Text>
+                    <Text className="text-orange-500 font-black text-2xl">{item.reps}</Text>
+                    <Text style={{ color: theme.subText }} className="text-[9px] uppercase font-black tracking-widest opacity-60">Total Reps</Text>
                   </View>
                 </View>
               );
