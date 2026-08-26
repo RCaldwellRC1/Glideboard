@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil } from 'lucide-react-native';
-import { useWorkoutStore, type Workout, type WorkoutSet } from '@/lib/workout';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil, Trophy, Target, Flame } from 'lucide-react-native';
+import { useWorkoutStore, type Workout, type WorkoutSet, getExerciseCategory, categoryColor } from '@/lib/workout';
 import { useSettingsStore, useTextScaleSubscription, TEXT_SIZE_FACTORS, useTheme } from '@/lib/settings';
 import { EditSetModal } from '@/components/EditSetModal';
 
@@ -159,6 +159,7 @@ export default function HistoryScreen() {
   const [calendarVisible, setCalendarVisible] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'daily' | 'monthly' | 'yearly'>('daily');
 
   const [editingSet, setEditingSet] = useState<EditingSet | null>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -245,6 +246,48 @@ export default function HistoryScreen() {
   const totalSets = allSets.length;
   const totalReps = allSets.reduce((sum: number, s: WorkoutSet) => sum + (s?.reps ?? 0), 0);
 
+  // --- Aggregate Data for Monthly / Yearly Views ---
+  const aggregatedData = useMemo(() => {
+    if (viewMode === 'daily') return [];
+
+    const isMonthly = viewMode === 'monthly';
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    // Filter workouts by month or year
+    const filteredWorkouts = workoutHistory.filter(w => {
+      const d = new Date(w.date);
+      if (isMonthly) {
+        return d.getFullYear() === year && d.getMonth() === month;
+      }
+      return d.getFullYear() === year;
+    });
+
+    const statsMap = new Map<string, { exercise: string; sets: number; reps: number; category: string }>();
+
+    filteredWorkouts.forEach(w => {
+      w.sets.forEach(s => {
+        const stats = statsMap.get(s.exercise) ?? {
+          exercise: s.exercise,
+          sets: 0,
+          reps: 0,
+          category: getExerciseCategory(s.exercise, useWorkoutStore.getState().customExercises)
+        };
+        stats.sets += 1;
+        stats.reps += (s.reps ?? 0);
+        statsMap.set(s.exercise, stats);
+      });
+    });
+
+    return Array.from(statsMap.values()).sort((a, b) => b.reps - a.reps);
+  }, [viewMode, currentDate, workoutHistory]);
+
+  const viewLabel = viewMode === 'monthly'
+    ? `${MONTHS[month]} ${year}`
+    : viewMode === 'yearly'
+    ? `${year} Summary`
+    : '';
+
   return (
     <ScrollView
       ref={scrollRef}
@@ -254,33 +297,59 @@ export default function HistoryScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* Title */}
-      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38), color: theme.text }} className="font-bold text-center mt-6">
-        Workout
-      </Text>
-      <Text style={{ fontSize: fs(largeDisplayMode ? 30 : 38), color: theme.text }} className="font-bold text-center">
-        History
-      </Text>
+      <View className="items-center mt-6">
+        <Text style={{ fontSize: fs(largeDisplayMode ? 28 : 34), color: theme.text }} className="font-bold">
+          Workout History
+        </Text>
+
+        {/* View Toggles */}
+        <View style={{ backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#1f2937' }} className="flex-row rounded-xl p-1 mt-4 mx-4">
+          {(['daily', 'monthly', 'yearly'] as const).map((mode) => {
+            const active = viewMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => setViewMode(mode)}
+                style={{ backgroundColor: active ? '#f97316' : 'transparent' }}
+                className="flex-1 py-2 rounded-lg items-center justify-center"
+              >
+                <Text
+                  style={{
+                    color: active ? '#fff' : theme.subText,
+                    fontSize: fs(largeDisplayMode ? 13 : 11)
+                  }}
+                  className="font-bold uppercase tracking-widest"
+                >
+                  {mode}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
 
       {/* Toggle Calendar */}
-      <Pressable
-        onPress={() => setCalendarVisible(!calendarVisible)}
-        className="flex-row items-center justify-center mt-6"
-      >
-        {calendarVisible ? (
-          <View className="flex-row items-center justify-center w-full">
-            <ChevronUp size={largeDisplayMode ? 24 : 20} color={theme.subText} />
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="ml-2 text-center flex-shrink">Tap to Show Workout Summaries</Text>
-          </View>
-        ) : (
-          <>
-            <ChevronDown size={largeDisplayMode ? 24 : 20} color="#f97316" />
-            <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-orange-500 ml-2">Show Calendar</Text>
-          </>
-        )}
-      </Pressable>
+      {viewMode === 'daily' && (
+        <Pressable
+          onPress={() => setCalendarVisible(!calendarVisible)}
+          className="flex-row items-center justify-center mt-6"
+        >
+          {calendarVisible ? (
+            <View className="flex-row items-center justify-center w-full">
+              <ChevronUp size={largeDisplayMode ? 24 : 20} color={theme.subText} />
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="ml-2 text-center flex-shrink">Tap to Show Workout Summaries</Text>
+            </View>
+          ) : (
+            <>
+              <ChevronDown size={largeDisplayMode ? 24 : 20} color="#f97316" />
+              <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12) }} className="text-orange-500 ml-2">Show Calendar</Text>
+            </>
+          )}
+        </Pressable>
+      )}
 
-      {/* Calendar */}
-      {calendarVisible && (
+      {/* Calendar (only in daily view) */}
+      {viewMode === 'daily' && calendarVisible && (
         <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-3">
           {/* Month Navigation */}
           <View className="flex-row items-center justify-between mb-3">
@@ -358,7 +427,7 @@ export default function HistoryScreen() {
       )}
 
       {/* Workout Summary - shown when calendar is hidden and a date is selected */}
-      {!calendarVisible && hasWorkoutsOnSelectedDay && (
+      {viewMode === 'daily' && !calendarVisible && hasWorkoutsOnSelectedDay && (
         <>
           {/* Day Summary Card */}
           <View style={{ backgroundColor: theme.card }} className="mx-4 mt-4 rounded-2xl p-4">
@@ -468,11 +537,88 @@ export default function HistoryScreen() {
       )}
 
       {/* Empty state when no workout selected */}
-      {!calendarVisible && !hasWorkoutsOnSelectedDay && (
+      {viewMode === 'daily' && !calendarVisible && !hasWorkoutsOnSelectedDay && (
         <View className="mx-4 mt-6">
           <Text style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.subText }} className="text-center">
             No workout recorded on this day
           </Text>
+        </View>
+      )}
+
+      {/* Monthly / Yearly Insights List */}
+      {viewMode !== 'daily' && (
+        <View className="mx-4 mt-6">
+          <View className="flex-row items-center justify-between mb-4 px-1">
+            <View>
+              <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
+                {viewMode === 'monthly' ? 'Monthly Leaderboard' : 'Year in Review'}
+              </Text>
+              <Text style={{ color: theme.subText }} className={`mt-0.5 ${largeDisplayMode ? 'text-sm' : 'text-base'} opacity-70`}>
+                {viewLabel}
+              </Text>
+            </View>
+            <View style={{ backgroundColor: 'rgba(249,115,22,0.1)' }} className="p-2.5 rounded-2xl">
+              <Trophy size={28} color="#f97316" />
+            </View>
+          </View>
+
+          {aggregatedData.length === 0 ? (
+            <View style={{ backgroundColor: theme.card }} className="rounded-3xl p-8 items-center border border-dashed border-gray-700 mt-4">
+              <Flame size={32} color={theme.subText} className="opacity-30" />
+              <Text style={{ color: theme.subText }} className="text-center mt-3 leading-6 opacity-60">
+                No data recorded for this period yet.{"\n"}Keep pushing to see your results!
+              </Text>
+            </View>
+          ) : (
+            aggregatedData.map((item, index) => {
+              const accentColor = categoryColor(item.category as any);
+              return (
+                <View
+                  key={item.exercise}
+                  style={{ backgroundColor: theme.card }}
+                  className="rounded-2xl p-4 mb-3 flex-row items-center"
+                >
+                  {/* Rank Badge */}
+                  <View
+                    style={{ backgroundColor: index < 3 ? 'rgba(249,115,22,0.1)' : theme.divider }}
+                    className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                  >
+                    <Text
+                      style={{ color: index < 3 ? '#f97316' : theme.subText }}
+                      className="font-bold text-xs"
+                    >
+                      {index + 1}
+                    </Text>
+                  </View>
+
+                  <View className="flex-1 mr-2">
+                    <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-base' : 'text-lg'}`} numberOfLines={1}>
+                      {item.exercise}
+                    </Text>
+                    <View className="flex-row items-center mt-1">
+                      <View style={{ backgroundColor: `${accentColor}20` }} className="px-2 py-0.5 rounded-full">
+                        <Text style={{ color: accentColor }} className="text-[10px] font-bold uppercase tracking-widest">{item.category}</Text>
+                      </View>
+                      <Text style={{ color: theme.subText }} className="text-xs ml-2 opacity-60">
+                        {item.sets} {item.sets === 1 ? 'set' : 'sets'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View className="items-end">
+                    <Text className="text-orange-500 font-black text-xl">{item.reps}</Text>
+                    <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-widest opacity-60">Total Reps</Text>
+                  </View>
+                </View>
+              );
+            })
+          )}
+
+          <View className="mt-4 mb-10 px-6">
+            <Text style={{ color: theme.subText }} className="text-center text-xs italic opacity-40">
+              Exercises are sorted by total reps achieved in this period.
+            </Text>
+          </View>
         </View>
       )}
 
