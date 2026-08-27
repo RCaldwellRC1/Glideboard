@@ -727,6 +727,14 @@ function RunnerView({
     setReps(confirmedCount);
     if (repCountingMode === 'motion' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
       applyUserOverride(currentExercise, currentInclineLevel, confirmedCount);
+
+      // Update TUT proportionally based on the user's correction so the
+      // Intensity (seconds per rep) stays consistent.
+      if (pendingSetSummary.repCount > 0) {
+        const measuredTUT = pendingSetSummary.totalActiveDuration / 1000;
+        const adjustedTUT = (measuredTUT / pendingSetSummary.repCount) * confirmedCount;
+        setCurrentTUT(adjustedTUT);
+      }
     }
     // Record voice auto-count vs. the user's correction so we can measure and
     // keep tuning voice accuracy.

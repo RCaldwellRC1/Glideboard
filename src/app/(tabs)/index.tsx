@@ -332,6 +332,15 @@ export default function TrackerScreen() {
     setReps(confirmedCount);
     if (effectiveMode === 'motion' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
       const { adjusted, direction, strong } = applyUserOverride(currentExercise, currentInclineLevel, confirmedCount);
+
+      // Update TUT proportionally based on the user's correction so the
+      // Intensity (seconds per rep) stays consistent.
+      if (pendingSetSummary.repCount > 0) {
+        const measuredTUT = pendingSetSummary.totalActiveDuration / 1000;
+        const adjustedTUT = (measuredTUT / pendingSetSummary.repCount) * confirmedCount;
+        setCurrentTUT(adjustedTUT);
+      }
+
       if (adjusted) {
         const nudged = direction === 'tighter' ? 'I\u0027ll count more tightly next time.' : 'I\u0027ll count more easily next time.';
         setLearningMsg(strong ? `Learned! ${nudged}` : `Nudged! ${nudged}`);
