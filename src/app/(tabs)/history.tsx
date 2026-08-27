@@ -107,10 +107,12 @@ interface ExerciseGroup {
 function fmtHold(total: number): string {
   if (total >= 60) {
     const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    const s = Math.round((total % 60) * 10) / 10;
+    // Show decimals if they exist, otherwise round seconds.
+    const sStr = s % 1 === 0 ? String(Math.round(s)).padStart(2, '0') : s.toFixed(1).padStart(4, '0');
+    return `${m}:${sStr}`;
   }
-  return `${total}s`;
+  return `${total.toFixed(total % 1 === 0 ? 0 : 1)}s`;
 }
 
 function groupSetsByExercise(sets: WorkoutSet[]): ExerciseGroup[] {
