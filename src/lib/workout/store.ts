@@ -61,6 +61,9 @@ interface WorkoutState {
   currentWeight: number;
   currentReps: number;
   currentSet: number;
+  // Time Under Tension for the active set (seconds). Captured by the motion
+  // engine and cleared when a set is committed or cancelled.
+  currentTUT: number;
   workoutStartTime: Date | null;
   setStartTime: Date | null;
 
@@ -113,6 +116,7 @@ interface WorkoutState {
   setExercise: (exercise: string) => void;
   setInclineLevel: (level: number) => void;
   setCurrentWeight: (weight: number) => void;
+  setCurrentTUT: (seconds: number) => void;
   resetReps: () => void;
 
   // History editing
@@ -136,6 +140,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   currentWeight: 45,
   currentReps: 0,
   currentSet: 0,
+  currentTUT: 0,
   workoutStartTime: null,
   setStartTime: null,
   currentWorkoutSets: [],
@@ -168,6 +173,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       timestamp: new Date(),
       kind: 'timed',
       durationSeconds: held,
+      tutSeconds: held,
     };
 
     set(prev => ({
@@ -342,6 +348,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       reps: state.currentReps,
       timestamp: new Date(),
       ...(isFreestyle ? { weight: state.currentWeight } : {}),
+      ...(state.currentTUT > 0 ? { tutSeconds: state.currentTUT } : {}),
     };
 
     // Update exercise history
@@ -376,6 +383,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set(prev => ({
       isSetActive: false,
       setStartTime: null,
+      currentTUT: 0,
       currentWorkoutSets: [...prev.currentWorkoutSets, newSet],
       exerciseHistory: updatedExerciseHistory,
     }));
@@ -391,6 +399,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       isSetActive: false,
       setStartTime: null,
       currentReps: 0,
+      currentTUT: 0,
       currentSet: Math.max(0, prev.currentSet - 1),
     }));
   },
@@ -419,6 +428,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ currentWeight: safe });
     get().saveToStorage();
     updateAppIconBadge(get().workoutHistory);
+  },
+
+  setCurrentTUT: (seconds: number) => {
+    set({ currentTUT: Math.max(0, seconds) });
   },
 
   resetReps: () => {

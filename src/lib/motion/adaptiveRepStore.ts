@@ -261,14 +261,17 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     const validDurations = state.repTimings
       .map(t => t.duration)
       .filter((d): d is number => d !== null);
+
+    const totalActiveDuration = validDurations.reduce((a, b) => a + b, 0);
     const avgRepDuration = validDurations.length > 0
-      ? validDurations.reduce((a, b) => a + b, 0) / validDurations.length
+      ? totalActiveDuration / validDurations.length
       : 0;
 
     const summary: SetSummary = {
       repCount: state.repCount,
       confidenceScore: confidence,
       avgRepDuration,
+      totalActiveDuration,
       repTimings: state.repTimings,
       needsConfirmation: confidence < C.CONFIDENCE_THRESHOLD && state.repCount > 0,
     };

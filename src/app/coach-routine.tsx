@@ -497,6 +497,7 @@ function RunnerView({
   const setReps = useWorkoutStore(s => s.setReps);
   const setExercise = useWorkoutStore(s => s.setExercise);
   const setInclineLevel = useWorkoutStore(s => s.setInclineLevel);
+  const setCurrentTUT = useWorkoutStore(s => s.setCurrentTUT);
   const exerciseHistory = useWorkoutStore(s => s.exerciseHistory);
 
   const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
@@ -688,6 +689,8 @@ function RunnerView({
     if (repCountingMode === 'motion') {
       const summary = adaptiveEndSet();
       if (summary.repCount >= 0) {
+        // Capture TUT (convert ms to seconds)
+        setCurrentTUT(summary.totalActiveDuration / 1000);
         setPendingSetSummary(summary);
         setShowConfirmModal(true);
         return;

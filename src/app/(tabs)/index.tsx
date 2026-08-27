@@ -132,6 +132,7 @@ export default function TrackerScreen() {
   const setExercise = useWorkoutStore(s => s.setExercise);
   const setInclineLevel = useWorkoutStore(s => s.setInclineLevel);
   const setCurrentWeight = useWorkoutStore(s => s.setCurrentWeight);
+  const setCurrentTUT = useWorkoutStore(s => s.setCurrentTUT);
   const getLastPerformance = useWorkoutStore(s => s.getLastPerformance);
   const workoutHistory = useWorkoutStore(s => s.workoutHistory);
   const loadFromStorage = useWorkoutStore(s => s.loadFromStorage);
@@ -294,6 +295,8 @@ export default function TrackerScreen() {
     if (effectiveMode === 'motion') {
       const summary = adaptiveEndSet();
       if (summary.repCount >= 0) {
+        // Capture TUT (convert ms to seconds)
+        setCurrentTUT(summary.totalActiveDuration / 1000);
         setPendingSetSummary(summary);
         setShowConfirmModal(true);
         return;

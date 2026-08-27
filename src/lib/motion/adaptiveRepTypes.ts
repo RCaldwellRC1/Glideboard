@@ -47,6 +47,7 @@ export interface SetSummary {
   repCount: number;
   confidenceScore: number;
   avgRepDuration: number;
+  totalActiveDuration: number; // Sum of all counted rep durations in ms
   repTimings: RepTiming[];
   needsConfirmation: boolean;
 }

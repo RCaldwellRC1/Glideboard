@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil, Trophy, Target, Flame } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Pencil, Trophy, Target, Flame, Clock } from 'lucide-react-native';
 import { useWorkoutStore, type Workout, type WorkoutSet, getExerciseCategory, categoryColor } from '@/lib/workout';
 import { useSettingsStore, useTextScaleSubscription, TEXT_SIZE_FACTORS, useTheme } from '@/lib/settings';
 import { EditSetModal } from '@/components/EditSetModal';
@@ -100,7 +100,7 @@ interface ExerciseGroup {
   exercise: string;
   inclineLevel: number;
   isTimed: boolean;
-  sets: { setNumber: number; reps: number; originalIndex: number; kind?: 'reps' | 'timed'; durationSeconds?: number }[];
+  sets: { setNumber: number; reps: number; originalIndex: number; kind?: 'reps' | 'timed'; durationSeconds?: number; tutSeconds?: number }[];
 }
 
 // Format a Timed hold length for display (e.g. 90 → "1:30", 45 → "45s").
@@ -138,6 +138,7 @@ function groupSetsByExercise(sets: WorkoutSet[]): ExerciseGroup[] {
       originalIndex: index,
       kind: set.kind,
       durationSeconds: set.durationSeconds,
+      tutSeconds: set.tutSeconds,
     });
   });
 
@@ -263,7 +264,7 @@ export default function HistoryScreen() {
       return d.getFullYear() === year;
     });
 
-    const statsMap = new Map<string, { exercise: string; sets: number; reps: number; category: string }>();
+    const statsMap = new Map<string, { exercise: string; sets: number; reps: number; category: string; tut: number }>();
 
     filteredWorkouts.forEach(w => {
       w.sets.forEach(s => {
@@ -271,10 +272,12 @@ export default function HistoryScreen() {
           exercise: s.exercise,
           sets: 0,
           reps: 0,
+          tut: 0,
           category: getExerciseCategory(s.exercise, useWorkoutStore.getState().customExercises)
         };
         stats.sets += 1;
         stats.reps += (s.reps ?? 0);
+        stats.tut += (s.tutSeconds ?? 0);
         statsMap.set(s.exercise, stats);
       });
     });
@@ -522,6 +525,12 @@ export default function HistoryScreen() {
                             <Text numberOfLines={1} style={{ fontSize: fs(largeDisplayMode ? 16 : 12), color: theme.text }} className="opacity-80">
                               Set {set.setNumber}: <Text style={{ color: theme.text }} className="font-medium">{set.reps} reps</Text>
                             </Text>
+                            {set.tutSeconds ? (
+                              <View className="flex-row items-center ml-3 opacity-60">
+                                <Clock size={11} color={theme.subText} />
+                                <Text style={{ color: theme.subText, fontSize: fs(largeDisplayMode ? 12 : 10) }} className="ml-1 font-medium">{fmtHold(set.tutSeconds)}</Text>
+                              </View>
+                            ) : null}
                             <Pencil size={largeDisplayMode ? 13 : 12} color={theme.subText} style={{ marginLeft: 8 }} />
                           </Pressable>
                         )
@@ -615,6 +624,12 @@ export default function HistoryScreen() {
                   <View className="items-end">
                     <Text className="text-orange-500 font-black text-2xl">{item.reps}</Text>
                     <Text style={{ color: theme.subText }} className="text-[9px] uppercase font-black tracking-widest opacity-60">Total Reps</Text>
+                    {item.tut > 0 && (
+                      <View className="flex-row items-center mt-0.5">
+                        <Clock size={10} color={theme.subText} />
+                        <Text style={{ color: theme.subText }} className="text-[10px] font-bold ml-1 opacity-60">{fmtHold(item.tut)} TUT</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               );

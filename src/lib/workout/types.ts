@@ -103,6 +103,9 @@ export interface WorkoutSet {
   // For timed holds: how many seconds the user held the position. `reps` is left
   // at 0 for timed sets so they never inflate rep totals/milestones.
   durationSeconds?: number;
+  // Time Under Tension: The cumulative time (in seconds) spent actually moving
+  // the board during this set. Sum of all individual rep durations.
+  tutSeconds?: number;
 }
 
 export interface Workout {
