@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Trophy, Target, Flame, TrendingUp, ChevronDown, Ribbon, Medal, Crown, Clock, Sparkles, Star, X } from 'lucide-react-native';
+import { Trophy, Target, Flame, TrendingUp, ChevronDown, ChevronRight, Ribbon, Medal, Crown, Clock, Sparkles, Star, X, LayoutPanelLeft } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
@@ -34,7 +34,6 @@ import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/sett
 import { useCoachStore, medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS, COACH_PROGRAMS, getProgramProgress, type CoachProgram } from '@/lib/coach';
 import { remoteLog } from '@/lib/remoteLog';
 import { PRChartModal } from '@/components/PRChartModal';
-import { LayoutPanelLeft } from 'lucide-react-native';
 
 interface TrophyCardProps {
   icon: 'trophy' | 'target' | 'flame' | 'trending';
@@ -977,8 +976,16 @@ export default function TrophiesScreen() {
       {/* Coach's Report Action Button */}
       <Pressable
         onPress={() => router.push('/coach-report')}
-        style={{ backgroundColor: theme.card, borderColor: '#f9731640' }}
-        className="mx-4 mt-4 rounded-2xl p-4 border flex-row items-center justify-between active:opacity-80 shadow-lg shadow-orange-500/10"
+        style={{
+          backgroundColor: theme.card,
+          borderColor: '#f9731640',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: theme.background === '#ffffff' ? 0.08 : 0,
+          shadowRadius: 12,
+          elevation: theme.background === '#ffffff' ? 3 : 0
+        }}
+        className="mx-4 mt-4 rounded-2xl p-4 border flex-row items-center justify-between active:opacity-80"
       >
         <View className="flex-row items-center flex-1">
           <View className="w-11 h-11 rounded-full bg-orange-500/15 items-center justify-center">

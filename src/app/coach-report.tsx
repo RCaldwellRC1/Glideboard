@@ -100,7 +100,17 @@ export default function CoachReportScreen() {
         </View>
 
         {/* Report Card Poster */}
-        <Animated.View entering={FadeIn.duration(600)} className="mx-3 mt-2 rounded-[40px] overflow-hidden shadow-2xl elevation-10">
+        <Animated.View
+          entering={FadeIn.duration(600)}
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: 0.25,
+            shadowRadius: 20,
+            elevation: 10,
+          }}
+          className="mx-3 mt-2 rounded-[40px] overflow-hidden"
+        >
           <LinearGradient
             colors={theme.background === '#ffffff' ? ['#f9fafb', '#ffffff'] : ['#111827', '#000000']}
             className="p-6"
