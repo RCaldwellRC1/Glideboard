@@ -196,8 +196,19 @@ export default function CoachReportScreen() {
             </View>
 
             {/* Muscle Group Balance Header - Frozen Concept */}
-            <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1">
+            <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1 flex-row items-center justify-between">
                <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] opacity-60">Body Balance & Quality</Text>
+               <Pressable
+                 onPress={() => Alert.alert(
+                   "The Quality Gauge",
+                   "Measures your Time Under Tension (TUT) pace per rep.\n\n" +
+                   "• POWER (Blue): 1.0 - 2.5s. Athletic explosiveness.\n" +
+                   "• GROWTH (Green): 3.0 - 5.5s. Maximum muscle size.\n" +
+                   "• CONTROL (Purple): 6.0s+. Density and neural drive."
+                 )}
+               >
+                 <HelpCircle size={14} color={theme.subText} opacity={0.6} />
+               </Pressable>
             </View>
 
             <View className="flex-row flex-wrap justify-between">
@@ -229,6 +240,13 @@ export default function CoachReportScreen() {
                 <View className="flex-row items-center">
                   <LayoutPanelLeft size={16} color="#f97316" />
                   <Text className="text-orange-500 font-black text-base ml-2">CORE EXERCISES</Text>
+                  {/* Goal Definition Icon */}
+                  <Pressable
+                    onPress={() => Alert.alert("Core Goal", "The foundation of all strength. Target minimum 2 focused sets per week across various core exercises.")}
+                    className="ml-2"
+                  >
+                    <HelpCircle size={14} color="#f97316" opacity={0.6} />
+                  </Pressable>
                 </View>
                 <View className="items-end">
                   <Text className="text-orange-500/60 text-[8px] font-black uppercase">GRADE</Text>
@@ -249,7 +267,7 @@ export default function CoachReportScreen() {
 
             {/* Poster Footer */}
             <View className="items-center mt-6">
-               <Text style={{ color: '#D4AF37' }} className="font-black text-[9px] tracking-[0.4em] uppercase shadow-sm">EVERY REP COUNTS</Text>
+               <Text style={{ color: '#D4AF37' }} className="font-black text-[11px] tracking-[0.4em] uppercase shadow-sm">EVERY REP COUNTS</Text>
             </View>
           </LinearGradient>
         </Animated.View>

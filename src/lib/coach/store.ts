@@ -331,13 +331,13 @@ function buildReport(id: string, sundayDate: Date, history: Workout[]): WeeklyRe
   const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
   const WINDOW_MS = 8 * ONE_WEEK_MS;
 
-  const endTs = sundayDate.getTime();
+  const endTs = Date.now(); // Always use "Now" for the 8-week lookback
   const startTs = endTs - WINDOW_MS;
   const prevStartTs = startTs - WINDOW_MS;
 
   const currentWindow = history.filter(w => {
     const t = new Date(w.date).getTime();
-    return t >= startTs && t < endTs;
+    return t >= startTs && t <= endTs;
   });
 
   const prevWindow = history.filter(w => {
@@ -349,14 +349,21 @@ function buildReport(id: string, sundayDate: Date, history: Workout[]): WeeklyRe
   const workoutsPerWeek = currentWindow.length / 8;
   const grade: PerformanceGrade = workoutsPerWeek >= 4 ? 'A' : workoutsPerWeek >= 3 ? 'B' : workoutsPerWeek >= 2 ? 'C' : workoutsPerWeek >= 1 ? 'D' : 'F';
 
-  // Category Breakdown
+  // Category Breakdown - Always show ALL groups
+  const ALL_GROUPS = ['LEGS', 'CHEST', 'BACK', 'SHOULDERS', 'ARMS', 'CORE'];
   const categoryMap = new Map<string, { sets: number; reps: number; tut: number }>();
+
+  ALL_GROUPS.forEach(group => {
+    categoryMap.set(group, { sets: 0, reps: 0, tut: 0 });
+  });
+
   let coreSets = 0;
 
   currentWindow.forEach(w => {
+    if (!w || !Array.isArray(w.sets)) return;
     w.sets.forEach(s => {
       const group = getMuscleGroup(s.exercise);
-      const stats = categoryMap.get(group) ?? { sets: 0, reps: 0, tut: 0 };
+      const stats = categoryMap.get(group) || { sets: 0, reps: 0, tut: 0 };
       stats.sets += 1;
 
       const reps = s.reps ?? 0;

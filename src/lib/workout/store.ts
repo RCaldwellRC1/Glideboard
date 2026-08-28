@@ -527,6 +527,37 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           };
         }).filter(Boolean) ?? [];
 
+        // --- Data Migration / Normalization ---
+        // Rebuild exerciseHistory from scratch to ensure legacy data (strings, spaces)
+        // is fixed and all historical reps show up on the Rep Meter.
+        const historyMap = new Map<string, ExerciseHistory>();
+
+        history.forEach(workout => {
+          workout.sets.forEach(s => {
+            const name = (s.exercise || '').trim();
+            const level = Number(s.inclineLevel);
+            if (!name || isNaN(level)) return;
+
+            const key = `${name.toLowerCase()}::${level}`;
+            const existing = historyMap.get(key);
+            const date = new Date(workout.date);
+
+            if (!existing || date > existing.lastDate) {
+              historyMap.set(key, {
+                exercise: name,
+                inclineLevel: level,
+                lastReps: s.reps,
+                bestReps: existing ? Math.max(existing.bestReps, s.reps) : s.reps,
+                lastDate: date,
+              });
+            } else {
+              existing.bestReps = Math.max(existing.bestReps, s.reps);
+            }
+          });
+        });
+        const migratedExerciseHistory = Array.from(historyMap.values());
+        // --- End Migration ---
+
         // Recover an interrupted workout: if the app was closed mid-workout, the
         // sets the user already completed were saved but never committed to
         // history. Finalize them now so the workout shows up in the Calendar and
@@ -559,11 +590,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
         set({
           workoutHistory: history,
-          exerciseHistory: parsed.exerciseHistory?.map((h: ExerciseHistory) => ({
-            ...h,
-            inclineLevel: Number(h.inclineLevel), // Ensure number
-            lastDate: new Date(h.lastDate),
-          })) ?? [],
+          exerciseHistory: migratedExerciseHistory,
           seenPRs: parsed.seenPRs ?? [],
           customExercises: pruneNativeDuplicates(parsed.customExercises ?? {}),
           timedDurations: parsed.timedDurations ?? {},
