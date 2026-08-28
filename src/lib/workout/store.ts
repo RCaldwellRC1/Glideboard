@@ -340,10 +340,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     // weight" lookups reuse the existing keying, and mirror it in `weight`.
     const isFreestyle =
       getExerciseCategory(state.currentExercise, state.customExercises) === 'freestyle';
-    const levelKey = isFreestyle ? state.currentWeight : state.currentInclineLevel;
+    const levelKey = Number(isFreestyle ? state.currentWeight : state.currentInclineLevel);
 
     const newSet: WorkoutSet = {
-      exercise: state.currentExercise,
+      exercise: state.currentExercise.trim(),
       inclineLevel: levelKey,
       reps: state.currentReps,
       timestamp: new Date(),
@@ -353,7 +353,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     // Update exercise history
     const existingHistory = state.exerciseHistory.find(
-      h => h.exercise === state.currentExercise && h.inclineLevel === levelKey
+      h => h.exercise.trim().toLowerCase() === state.currentExercise.trim().toLowerCase() &&
+           Number(h.inclineLevel) === levelKey
     );
 
     let updatedExerciseHistory = [...state.exerciseHistory];
@@ -469,11 +470,13 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
   getLastPerformance: (exercise: string, inclineLevel: number) => {
     const state = get();
+    const cleanExercise = exercise.trim().toLowerCase();
+    const cleanLevel = Number(inclineLevel);
 
     // Directly use the maintained exerciseHistory array, which is updated on every set end.
     // This is much faster and more reliable than scanning the full workoutHistory.
     const history = state.exerciseHistory.find(
-      h => h.exercise.trim().toLowerCase() === exercise.trim().toLowerCase() && h.inclineLevel === inclineLevel
+      h => h.exercise.trim().toLowerCase() === cleanExercise && Number(h.inclineLevel) === cleanLevel
     );
 
     if (history) {
@@ -484,16 +487,21 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     for (let i = state.workoutHistory.length - 1; i >= 0; i--) {
       const workout = state.workoutHistory[i];
       const matchingSets = workout.sets.filter(
-        s => s.exercise.trim().toLowerCase() === exercise.trim().toLowerCase() && s.inclineLevel === inclineLevel
+        s => s.exercise.trim().toLowerCase() === cleanExercise && Number(s.inclineLevel) === cleanLevel
       );
 
       if (matchingSets.length > 0) {
         const bestReps = Math.max(...matchingSets.map(s => s.reps));
+        // Find the LATEST set of this exercise in this workout to get the correct lastReps
+        const lastSetOfEx = [...matchingSets].sort((a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )[0];
+
         return {
           exercise,
-          inclineLevel,
+          inclineLevel: cleanLevel,
           bestReps,
-          lastReps: bestReps,
+          lastReps: lastSetOfEx?.reps ?? bestReps,
           lastDate: workout.date,
         };
       }
@@ -553,6 +561,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           workoutHistory: history,
           exerciseHistory: parsed.exerciseHistory?.map((h: ExerciseHistory) => ({
             ...h,
+            inclineLevel: Number(h.inclineLevel), // Ensure number
             lastDate: new Date(h.lastDate),
           })) ?? [],
           seenPRs: parsed.seenPRs ?? [],

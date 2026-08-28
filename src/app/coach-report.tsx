@@ -129,7 +129,7 @@ export default function CoachReportScreen() {
             {/* Poster Header */}
             <View className="flex-row justify-between items-center mb-6">
               <View className="flex-1 mr-2">
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(24) }} className="font-black italic tracking-tighter">COACHES REPORT</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(22) }} className="font-black italic tracking-tighter">COACHES REPORT</Text>
                 <View className="flex-row items-center mt-0.5">
                   <View className="bg-orange-500 px-1.5 py-0.5 rounded-md mr-2">
                     <Text className="text-black font-black text-[8px]">8-WEEK ROLLING</Text>
@@ -137,9 +137,9 @@ export default function CoachReportScreen() {
                   <Text style={{ color: theme.subText }} className="text-[10px] font-bold uppercase tracking-widest">{currentReport.id}</Text>
                 </View>
               </View>
-              <View className="items-end">
-                <Text style={{ color: theme.subText }} className="text-[8px] font-black uppercase opacity-60">OVERALL</Text>
-                <Text style={{ color: workoutsGradeColor, fontSize: fs(40) }} className="font-black leading-none">{currentReport.workoutsGrade}</Text>
+              <View className="items-end pl-2">
+                <Text style={{ color: theme.subText }} className="text-[7px] font-black uppercase opacity-60">OVERALL GRADE</Text>
+                <Text style={{ color: workoutsGradeColor, fontSize: fs(38) }} className="font-black leading-none">{currentReport.workoutsGrade}</Text>
               </View>
             </View>
 
@@ -212,8 +212,8 @@ export default function CoachReportScreen() {
             </View>
 
             {/* Poster Footer */}
-            <View className="items-center mt-8 opacity-20">
-               <Text style={{ color: theme.text }} className="font-black text-[10px] tracking-[0.4em] uppercase">EVERY REP COUNTS</Text>
+            <View className="items-center mt-6 opacity-20">
+               <Text style={{ color: theme.text }} className="font-black text-[9px] tracking-[0.4em] uppercase">EVERY REP COUNTS</Text>
             </View>
           </LinearGradient>
         </Animated.View>
