@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Dimensions, Image, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, Dimensions, Image, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -8,6 +8,8 @@ import {
   ChevronRight, X
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Sharing from 'expo-sharing';
+import { captureRef } from 'react-native-view-shot';
 import Animated, { FadeIn, FadeInDown, SlideInBottom } from 'react-native-reanimated';
 import { useTheme, useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { useCoachStore } from '@/lib/coach/store';
@@ -46,10 +48,33 @@ export default function CoachReportScreen() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [tacticalGoal, setTacticalGoal] = useState<string | null>(null);
   const [identityGoal, setIdentityGoal] = useState<string | null>(null);
+  const [isSharing, setIsSending] = useState(false);
+  const posterRef = useRef<View>(null);
 
   useEffect(() => {
     generateReportIfNeeded();
   }, []);
+
+  const handleShare = async () => {
+    if (!posterRef.current) return;
+    setIsSending(true);
+    try {
+      const uri = await captureRef(posterRef, {
+        format: 'png',
+        quality: 0.8,
+      });
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Share your Glideboard Coach Report',
+        UTI: 'public.png',
+      });
+    } catch (err) {
+      console.error('[REPORT] Failed to share:', err);
+      Alert.alert("Share Failed", "Could not generate the report image. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   // Show goal modal only if goals aren't set for this report
   useEffect(() => {
@@ -98,8 +123,12 @@ export default function CoachReportScreen() {
           />
           <Text style={{ color: theme.text }} className="font-black text-[8px] tracking-[0.3em] uppercase mt-1">GLIDEBOARD</Text>
         </View>
-        <Pressable className="active:opacity-60 p-2 -mr-2">
-          <Share2 size={24} color={theme.subText} />
+        <Pressable onPress={handleShare} disabled={isSharing} className="active:opacity-60 p-2 -mr-2">
+          {isSharing ? (
+            <ActivityIndicator size="small" color="#f97316" />
+          ) : (
+            <Share2 size={24} color={theme.subText} />
+          )}
         </Pressable>
       </View>
 
@@ -116,6 +145,7 @@ export default function CoachReportScreen() {
 
         {/* Report Card Poster */}
         <Animated.View
+          ref={posterRef}
           entering={FadeIn.duration(600)}
           style={{
             shadowColor: '#000',

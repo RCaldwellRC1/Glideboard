@@ -358,8 +358,23 @@ function buildReport(id: string, sundayDate: Date, history: Workout[]): WeeklyRe
       const group = getMuscleGroup(s.exercise);
       const stats = categoryMap.get(group) ?? { sets: 0, reps: 0, tut: 0 };
       stats.sets += 1;
-      stats.reps += s.reps;
-      stats.tut += (s.tutSeconds ?? 0);
+
+      const reps = s.reps ?? 0;
+      stats.reps += reps;
+
+      // Smart TUT Estimation for back-filling 8-week history:
+      // 1. Use actual measured tutSeconds if available (Build 292+)
+      // 2. Use durationSeconds for Timed exercises
+      // 3. Fallback to 3.5s per rep for legacy Standard/Freestyle sets
+      const measuredTUT = s.tutSeconds ?? 0;
+      const timedTUT = s.kind === 'timed' ? (s.durationSeconds ?? 0) : 0;
+
+      let finalTUT = measuredTUT > 0 ? measuredTUT : timedTUT;
+      if (finalTUT === 0 && reps > 0) {
+        finalTUT = reps * 3.5; // Backfill with 3.5s/rep average
+      }
+
+      stats.tut += finalTUT;
       categoryMap.set(group, stats);
 
       if (group === 'CORE') coreSets += 1;

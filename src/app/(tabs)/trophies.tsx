@@ -993,7 +993,7 @@ export default function TrophiesScreen() {
           </View>
           <View className="ml-3 flex-1">
             <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>Coach's Report</Text>
-            <Text style={{ color: theme.subText }} className={`text-xs mt-0.5 opacity-70`}>8-week rolling performance & balance score</Text>
+            <Text style={{ color: theme.subText }} className={`text-xs mt-0.5 opacity-70`}>8-week rolling performance & balance score. Automatically updates every Sunday at 4:00 am.</Text>
           </View>
         </View>
         <ChevronRight size={22} color={theme.subText} />
