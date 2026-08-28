@@ -281,9 +281,10 @@ export const useCoachStore = create<CoachState>((set, get) => {
 
       const reportId = lastSunday.toISOString().split('T')[0];
 
-      // Check if we already have a report for this Sunday
-      if (reports.some(r => r.id === reportId)) {
-        set({ currentReport: reports.find(r => r.id === reportId) || null });
+      // Check if we already have a full report for this Sunday
+      const existing = reports.find(r => r.id === reportId);
+      if (existing && existing.categoryBreakdown.length > 0) {
+        set({ currentReport: existing });
         return;
       }
 

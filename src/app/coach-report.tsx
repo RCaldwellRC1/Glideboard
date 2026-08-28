@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import {
   ChevronLeft, Trophy, Target, Flame, Share2, Check, Clock,
   ArrowUpRight, ArrowDownRight, Minus, Sparkles, LayoutPanelLeft,
-  ChevronRight, X
+  ChevronRight, X, HelpCircle
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
@@ -48,33 +48,12 @@ export default function CoachReportScreen() {
   const [showGoalModal, setShowGoalModal] = useState(false);
   const [tacticalGoal, setTacticalGoal] = useState<string | null>(null);
   const [identityGoal, setIdentityGoal] = useState<string | null>(null);
-  const [isSharing, setIsSending] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const posterRef = useRef<View>(null);
 
   useEffect(() => {
     generateReportIfNeeded();
   }, []);
-
-  const handleShare = async () => {
-    if (!posterRef.current) return;
-    setIsSending(true);
-    try {
-      const uri = await captureRef(posterRef, {
-        format: 'png',
-        quality: 0.8,
-      });
-      await Sharing.shareAsync(uri, {
-        mimeType: 'image/png',
-        dialogTitle: 'Share your Glideboard Coach Report',
-        UTI: 'public.png',
-      });
-    } catch (err) {
-      console.error('[REPORT] Failed to share:', err);
-      Alert.alert("Share Failed", "Could not generate the report image. Please try again.");
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   // Show goal modal only if goals aren't set for this report
   useEffect(() => {
@@ -100,10 +79,32 @@ export default function CoachReportScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (!posterRef.current) return;
+    setIsSharing(true);
+    try {
+      const uri = await captureRef(posterRef, {
+        format: 'png',
+        quality: 0.8,
+      });
+      await Sharing.shareAsync(uri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Share your Glideboard Coach Report',
+        UTI: 'public.png',
+      });
+    } catch (err) {
+      console.error('[REPORT] Failed to share:', err);
+      Alert.alert("Share Failed", "Could not generate the report image. Please try again.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   if (!currentReport) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }} className="items-center justify-center">
-        <Text style={{ color: theme.subText }}>Loading report...</Text>
+        <ActivityIndicator color="#f97316" size="large" />
+        <Text style={{ color: theme.subText, marginTop: 12 }}>Generating your report...</Text>
       </View>
     );
   }
@@ -145,7 +146,6 @@ export default function CoachReportScreen() {
 
         {/* Report Card Poster */}
         <Animated.View
-          ref={posterRef}
           entering={FadeIn.duration(600)}
           style={{
             shadowColor: '#000',
@@ -156,120 +156,122 @@ export default function CoachReportScreen() {
           }}
           className="mx-3 mt-1 rounded-[40px] overflow-hidden"
         >
-          <LinearGradient
-            colors={theme.background === '#ffffff' ? ['#f9fafb', '#ffffff'] : ['#111827', '#000000']}
-            className="p-5"
-          >
-            {/* Poster Header */}
-            <View className="flex-row justify-between items-center mb-6">
-              <View className="flex-1 mr-2">
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(22) }} className="font-black italic tracking-tighter uppercase">Coach's Report</Text>
-                <View className="flex-row items-center mt-0.5">
-                  <View className="bg-orange-500 px-1.5 py-0.5 rounded-md mr-2">
-                    <Text className="text-black font-black text-[8px]">8-WEEK ROLLING</Text>
+          {/* Note: posterRef attached to a standard View inside for better capture compatibility */}
+          <View ref={posterRef}>
+            <LinearGradient
+              colors={theme.background === '#ffffff' ? ['#f9fafb', '#ffffff'] : ['#111827', '#000000']}
+              className="p-5"
+            >
+              {/* Poster Header */}
+              <View className="flex-row justify-between items-center mb-6">
+                <View className="flex-1 mr-2">
+                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(22) }} className="font-black italic tracking-tighter uppercase">Coach's Report</Text>
+                  <View className="flex-row items-center mt-0.5">
+                    <View className="bg-orange-500 px-1.5 py-0.5 rounded-md mr-2">
+                      <Text className="text-black font-black text-[8px]">8-WEEK ROLLING</Text>
+                    </View>
+                    <Text style={{ color: theme.subText }} className="text-[10px] font-bold uppercase tracking-widest">{currentReport.id}</Text>
                   </View>
-                  <Text style={{ color: theme.subText }} className="text-[10px] font-bold uppercase tracking-widest">{currentReport.id}</Text>
+                </View>
+                <View className="items-end pl-2">
+                  <Text style={{ color: theme.subText }} className="text-[7px] font-black uppercase opacity-60">OVERALL GRADE</Text>
+                  <Text style={{ color: workoutsGradeColor, fontSize: fs(38) }} className="font-black leading-none">{currentReport.workoutsGrade}</Text>
                 </View>
               </View>
-              <View className="items-end pl-2">
-                <Text style={{ color: theme.subText }} className="text-[7px] font-black uppercase opacity-60">OVERALL GRADE</Text>
-                <Text style={{ color: workoutsGradeColor, fontSize: fs(38) }} className="font-black leading-none">{currentReport.workoutsGrade}</Text>
-              </View>
-            </View>
 
-            {/* Workout Frequency */}
-            <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="rounded-3xl p-4 mb-4 flex-row items-center justify-between">
-              <View className="flex-1 mr-4">
-                <Text style={{ color: theme.text }} className="font-bold text-base">Workout Frequency</Text>
-                <Text style={{ color: theme.subText }} className="text-[10px] mt-0.5 leading-4">Averaging <Text style={{ color: theme.text }} className="font-black">{currentReport.avgWorkoutsPerWeek.toFixed(1)}</Text> sessions per week.</Text>
+              {/* Workout Frequency */}
+              <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="rounded-3xl p-4 mb-4 flex-row items-center justify-between">
+                <View className="flex-1 mr-4">
+                  <Text style={{ color: theme.text }} className="font-bold text-base">Workout Frequency</Text>
+                  <Text style={{ color: theme.subText }} className="text-[10px] mt-0.5 leading-4">Averaging <Text style={{ color: theme.text }} className="font-black">{currentReport.avgWorkoutsPerWeek.toFixed(1)}</Text> sessions per week.</Text>
+                </View>
+                <View className="items-center border-l border-gray-700/30 pl-4">
+                  {currentReport.improvement.workouts !== 0 && (
+                    <View className="flex-row items-center mb-0.5">
+                      {currentReport.improvement.workouts > 0 ? <ArrowUpRight size={12} color="#22c55e" /> : <ArrowDownRight size={12} color="#ef4444" />}
+                      <Text style={{ color: currentReport.improvement.workouts > 0 ? '#22c55e' : '#ef4444' }} className="text-[10px] font-black">{Math.abs(currentReport.improvement.workouts).toFixed(0)}%</Text>
+                    </View>
+                  )}
+                  <Text style={{ color: theme.subText }} className="text-[8px] font-black uppercase opacity-60">GRADE</Text>
+                  <Text style={{ color: workoutsGradeColor }} className="font-black text-xl leading-none">{currentReport.workoutsGrade}</Text>
+                </View>
               </View>
-              <View className="items-center border-l border-gray-700/30 pl-4">
-                {currentReport.improvement.workouts !== 0 && (
-                  <View className="flex-row items-center mb-0.5">
-                    {currentReport.improvement.workouts > 0 ? <ArrowUpRight size={12} color="#22c55e" /> : <ArrowDownRight size={12} color="#ef4444" />}
-                    <Text style={{ color: currentReport.improvement.workouts > 0 ? '#22c55e' : '#ef4444' }} className="text-[10px] font-black">{Math.abs(currentReport.improvement.workouts).toFixed(0)}%</Text>
-                  </View>
-                )}
-                <Text style={{ color: theme.subText }} className="text-[8px] font-black uppercase opacity-60">GRADE</Text>
-                <Text style={{ color: workoutsGradeColor }} className="font-black text-xl leading-none">{currentReport.workoutsGrade}</Text>
-              </View>
-            </View>
 
-            {/* Muscle Group Balance Header - Frozen Concept */}
-            <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1 flex-row items-center justify-between">
-               <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] opacity-60">Body Balance & Quality</Text>
-               <Pressable
-                 onPress={() => Alert.alert(
-                   "The Quality Gauge",
-                   "Measures your Time Under Tension (TUT) pace per rep.\n\n" +
-                   "• POWER (Blue): 1.0 - 2.5s. Athletic explosiveness.\n" +
-                   "• GROWTH (Green): 3.0 - 5.5s. Maximum muscle size.\n" +
-                   "• CONTROL (Purple): 6.0s+. Density and neural drive."
-                 )}
-               >
-                 <HelpCircle size={14} color={theme.subText} opacity={0.6} />
-               </Pressable>
-            </View>
-
-            <View className="flex-row flex-wrap justify-between">
-              {currentReport.categoryBreakdown.map((item) => (
-                <View
-                  key={item.category}
-                  style={{ width: '48%', backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827', borderColor: theme.divider }}
-                  className="rounded-2xl p-2.5 mb-2.5 border items-center shadow-sm"
+              {/* Muscle Group Balance Header */}
+              <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1 flex-row items-center justify-between">
+                <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] opacity-60">Body Balance & Quality</Text>
+                <Pressable
+                  onPress={() => Alert.alert(
+                    "The Quality Gauge",
+                    "Measures your Time Under Tension (TUT) pace per rep.\n\n" +
+                    "• POWER (Blue): 1.0 - 2.5s. Athletic explosiveness.\n" +
+                    "• GROWTH (Green): 3.0 - 5.5s. Maximum muscle size.\n" +
+                    "• CONTROL (Purple): 6.0s+. Density and neural drive."
+                  )}
                 >
-                  <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-3">{item.category}</Text>
-                  <CoachTUTGauge averagePace={item.averagePace} isLarge={largeDisplayMode} />
-                  <View className="flex-row mt-2.5 w-full justify-around border-t pt-1.5" style={{ borderTopColor: theme.divider }}>
-                    <View className="items-center">
-                      <Text style={{ color: theme.text }} className="font-black text-xs">{item.totalSets}</Text>
-                      <Text style={{ color: theme.subText }} className="text-[7px] uppercase font-bold opacity-60">Sets</Text>
-                    </View>
-                    <View className="items-center">
-                      <Text style={{ color: theme.text }} className="font-black text-xs">{item.totalReps}</Text>
-                      <Text style={{ color: theme.subText }} className="text-[7px] uppercase font-bold opacity-60">Reps</Text>
+                  <HelpCircle size={14} color={theme.subText} opacity={0.6} />
+                </Pressable>
+              </View>
+
+              <View className="flex-row flex-wrap justify-between">
+                {currentReport.categoryBreakdown.map((item) => (
+                  <View
+                    key={item.category}
+                    style={{ width: '48%', backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827', borderColor: theme.divider }}
+                    className="rounded-2xl p-2.5 mb-2.5 border items-center shadow-sm"
+                  >
+                    <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-3">{item.category}</Text>
+                    <CoachTUTGauge averagePace={item.averagePace} isLarge={largeDisplayMode} />
+                    <View className="flex-row mt-2.5 w-full justify-around border-t pt-1.5" style={{ borderTopColor: theme.divider }}>
+                      <View className="items-center">
+                        <Text style={{ color: theme.text }} className="font-black text-xs">{item.totalSets}</Text>
+                        <Text style={{ color: theme.subText }} className="text-[7px] uppercase font-bold opacity-60">Sets</Text>
+                      </View>
+                      <View className="items-center">
+                        <Text style={{ color: theme.text }} className="font-black text-xs">{item.totalReps}</Text>
+                        <Text style={{ color: theme.subText }} className="text-[7px] uppercase font-bold opacity-60">Reps</Text>
+                      </View>
                     </View>
                   </View>
-                </View>
-              ))}
-            </View>
+                ))}
+              </View>
 
-            {/* Core Snapshot */}
-            <View style={{ backgroundColor: '#f9731608', borderColor: '#f9731620' }} className="rounded-3xl p-4 mt-2 border">
-              <View className="flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center">
-                  <LayoutPanelLeft size={16} color="#f97316" />
-                  <Text className="text-orange-500 font-black text-base ml-2">CORE EXERCISES</Text>
-                  {/* Goal Definition Icon */}
-                  <Pressable
-                    onPress={() => Alert.alert("Core Goal", "The foundation of all strength. Target minimum 2 focused sets per week across various core exercises.")}
-                    className="ml-2"
-                  >
-                    <HelpCircle size={14} color="#f97316" opacity={0.6} />
-                  </Pressable>
+              {/* Core Snapshot */}
+              <View style={{ backgroundColor: '#f9731608', borderColor: '#f9731620' }} className="rounded-3xl p-4 mt-2 border">
+                <View className="flex-row items-center justify-between mb-1.5">
+                  <View className="flex-row items-center">
+                    <LayoutPanelLeft size={16} color="#f97316" />
+                    <Text className="text-orange-500 font-black text-base ml-2">CORE EXERCISES</Text>
+                    <Pressable
+                      onPress={() => Alert.alert("Core Goal", "The foundation of all strength. Target minimum 2 focused sets per week across various core exercises.")}
+                      className="ml-2"
+                    >
+                      <HelpCircle size={14} color="#f97316" opacity={0.6} />
+                    </Pressable>
+                  </View>
+                  <View className="items-end">
+                    <Text className="text-orange-500/60 text-[8px] font-black uppercase">GRADE</Text>
+                    <Text className="text-orange-500 font-black text-xl leading-none">{currentReport.coreGrade}</Text>
+                  </View>
                 </View>
-                <View className="items-end">
-                  <Text className="text-orange-500/60 text-[8px] font-black uppercase">GRADE</Text>
-                  <Text className="text-orange-500 font-black text-xl leading-none">{currentReport.coreGrade}</Text>
+                <Text style={{ color: theme.text }} className="text-[11px] leading-5 italic opacity-80">"{currentReport.coreComment}"</Text>
+                <View className="flex-row items-center mt-2.5">
+                  <View className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden mr-3">
+                    <View
+                      style={{ width: `${Math.min(100, (currentReport.coreSetsPerWeek / 2) * 100)}%` }}
+                      className="h-full bg-orange-500 rounded-full"
+                    />
+                  </View>
+                  <Text style={{ color: theme.subText }} className="text-[9px] font-bold">{currentReport.coreSetsPerWeek.toFixed(1)}/2.0 Weekly</Text>
                 </View>
               </View>
-              <Text style={{ color: theme.text }} className="text-[11px] leading-5 italic opacity-80">"{currentReport.coreComment}"</Text>
-              <View className="flex-row items-center mt-2.5">
-                <View className="flex-1 h-1.5 bg-gray-800 rounded-full overflow-hidden mr-3">
-                  <View
-                    style={{ width: `${Math.min(100, (currentReport.coreSetsPerWeek / 2) * 100)}%` }}
-                    className="h-full bg-orange-500 rounded-full"
-                  />
-                </View>
-                <Text style={{ color: theme.subText }} className="text-[9px] font-bold">{currentReport.coreSetsPerWeek.toFixed(1)}/2.0 Weekly</Text>
-              </View>
-            </View>
 
-            {/* Poster Footer */}
-            <View className="items-center mt-6">
-               <Text style={{ color: '#D4AF37' }} className="font-black text-[11px] tracking-[0.4em] uppercase shadow-sm">EVERY REP COUNTS</Text>
-            </View>
-          </LinearGradient>
+              {/* Poster Footer */}
+              <View className="items-center mt-6">
+                <Text style={{ color: '#D4AF37' }} className="font-black text-[11px] tracking-[0.4em] uppercase shadow-sm">EVERY REP COUNTS</Text>
+              </View>
+            </LinearGradient>
+          </View>
         </Animated.View>
 
         {/* Tactical Summary if Goals set */}

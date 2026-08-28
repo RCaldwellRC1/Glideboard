@@ -358,7 +358,8 @@ export default function TrackerScreen() {
   const perfLevel = isFreestyle ? currentWeight : currentInclineLevel;
   const levelLabel = isFreestyle ? `${currentWeight} lb` : `Level ${currentInclineLevel}`;
   const lastPerformance = getLastPerformance(currentExercise, perfLevel);
-  const targetReps = lastPerformance?.lastReps ?? 0;
+  // Always target your Personal Best (Highest Reps) for this exercise/level
+  const targetReps = lastPerformance?.bestReps ?? 0;
 
   const currentExerciseColor = categoryColor(category);
 
