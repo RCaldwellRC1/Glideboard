@@ -12,7 +12,6 @@ import Animated, { FadeIn, FadeInDown, SlideInBottom } from 'react-native-reanim
 import { useTheme, useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { useCoachStore } from '@/lib/coach/store';
 import { CoachTUTGauge } from '@/components/CoachTUTGauge';
-import { categoryColor } from '@/lib/workout';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -88,26 +87,31 @@ export default function CoachReportScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={{ paddingTop: insets.top }} className="flex-row items-center justify-between px-4 py-2">
+        <Pressable onPress={() => router.back()} className="active:opacity-60 p-2 -ml-2">
+          <ChevronLeft size={32} color="#f97316" />
+        </Pressable>
+        <View className="items-center">
+          <Image
+            source={require('../../icon.png')}
+            style={{ width: 28, height: 28, borderRadius: 6 }}
+          />
+          <Text style={{ color: theme.text }} className="font-black text-[8px] tracking-[0.3em] uppercase mt-1">GLIDEBOARD</Text>
+        </View>
+        <Pressable className="active:opacity-60 p-2 -mr-2">
+          <Share2 size={24} color={theme.subText} />
+        </Pressable>
+      </View>
+
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[0]}
       >
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-2">
-          <Pressable onPress={() => router.back()} className="active:opacity-60 p-2 -ml-2">
-            <ChevronLeft size={32} color="#f97316" />
-          </Pressable>
-          <View className="items-center">
-            <Image
-              source={require('../../icon.png')}
-              style={{ width: 28, height: 28, borderRadius: 6 }}
-            />
-            <Text style={{ color: theme.text }} className="font-black text-[8px] tracking-[0.3em] uppercase mt-1">GLIDEBOARD</Text>
-          </View>
-          <Pressable className="active:opacity-60 p-2 -mr-2">
-            <Share2 size={24} color={theme.subText} />
-          </Pressable>
+        {/* Sticky Poster Header Wrapper */}
+        <View style={{ backgroundColor: theme.background }}>
+           <Text style={{ color: theme.text, fontSize: fs(18) }} className="font-black text-center py-2 uppercase tracking-[0.2em] opacity-40">Weekly Performance</Text>
         </View>
 
         {/* Report Card Poster */}
@@ -129,7 +133,7 @@ export default function CoachReportScreen() {
             {/* Poster Header */}
             <View className="flex-row justify-between items-center mb-6">
               <View className="flex-1 mr-2">
-                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(22) }} className="font-black italic tracking-tighter">COACHES REPORT</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text, fontSize: fs(22) }} className="font-black italic tracking-tighter uppercase">Coach's Report</Text>
                 <View className="flex-row items-center mt-0.5">
                   <View className="bg-orange-500 px-1.5 py-0.5 rounded-md mr-2">
                     <Text className="text-black font-black text-[8px]">8-WEEK ROLLING</Text>
@@ -161,17 +165,19 @@ export default function CoachReportScreen() {
               </View>
             </View>
 
-            {/* Muscle Group Balance */}
-            <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] mb-3 ml-1 opacity-60">Body Balance & Quality</Text>
+            {/* Muscle Group Balance Header - Frozen Concept */}
+            <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1">
+               <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] opacity-60">Body Balance & Quality</Text>
+            </View>
 
             <View className="flex-row flex-wrap justify-between">
               {currentReport.categoryBreakdown.map((item) => (
                 <View
                   key={item.category}
                   style={{ width: '48%', backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827', borderColor: theme.divider }}
-                  className="rounded-2xl p-2.5 mb-2.5 border items-center"
+                  className="rounded-2xl p-2.5 mb-2.5 border items-center shadow-sm"
                 >
-                  <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-2">{item.category}</Text>
+                  <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-3">{item.category}</Text>
                   <CoachTUTGauge averagePace={item.averagePace} isLarge={largeDisplayMode} />
                   <View className="flex-row mt-2.5 w-full justify-around border-t pt-1.5" style={{ borderTopColor: theme.divider }}>
                     <View className="items-center">
@@ -192,7 +198,7 @@ export default function CoachReportScreen() {
               <View className="flex-row items-center justify-between mb-1.5">
                 <View className="flex-row items-center">
                   <LayoutPanelLeft size={16} color="#f97316" />
-                  <Text className="text-orange-500 font-black text-base ml-2">CORE FOUNDATION</Text>
+                  <Text className="text-orange-500 font-black text-base ml-2">CORE EXERCISES</Text>
                 </View>
                 <View className="items-end">
                   <Text className="text-orange-500/60 text-[8px] font-black uppercase">GRADE</Text>
@@ -212,8 +218,8 @@ export default function CoachReportScreen() {
             </View>
 
             {/* Poster Footer */}
-            <View className="items-center mt-6 opacity-20">
-               <Text style={{ color: theme.text }} className="font-black text-[9px] tracking-[0.4em] uppercase">EVERY REP COUNTS</Text>
+            <View className="items-center mt-6">
+               <Text style={{ color: '#D4AF37' }} className="font-black text-[9px] tracking-[0.4em] uppercase shadow-sm">EVERY REP COUNTS</Text>
             </View>
           </LinearGradient>
         </Animated.View>
@@ -306,9 +312,10 @@ export default function CoachReportScreen() {
 
             <Pressable
               onPress={handleSaveGoals}
-              className={`mt-8 py-5 rounded-2xl items-center bg-orange-500 active:opacity-80`}
+              style={{ backgroundColor: (tacticalGoal && identityGoal) ? '#f97316' : theme.divider }}
+              className={`mt-8 py-5 rounded-2xl items-center active:opacity-80`}
             >
-              <Text className="text-white font-black text-lg">Save Focus</Text>
+              <Text style={{ color: (tacticalGoal && identityGoal) ? '#fff' : theme.subText }} className="font-black text-lg">Save Focus</Text>
             </Pressable>
           </Animated.View>
         </View>

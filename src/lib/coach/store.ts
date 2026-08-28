@@ -297,19 +297,29 @@ export const useCoachStore = create<CoachState>((set, get) => {
     },
 
     setGoals: (reportId: string, tactical: string, identity: string) => {
-      const { reports } = get();
-      const updated = reports.map(r => {
-        if (r.id === reportId) {
-          return {
-            ...r,
-            goals: { tactical, identity, timestamp: new Date().toISOString() },
-          };
-        }
-        return r;
-      });
-      set({ reports: updated, currentReport: updated.find(r => r.id === reportId) || null });
-      AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
-      remoteLog('coach_goals_set', { tactical, identity });
+      try {
+        const { reports } = get();
+        const updated = reports.map(r => {
+          if (r.id === reportId) {
+            return {
+              ...r,
+              goals: { tactical, identity, timestamp: new Date().toISOString() },
+            };
+          }
+          return r;
+        });
+
+        // Find the newly updated report to set as current
+        const nextCurrent = updated.find(r => r.id === reportId) || null;
+
+        set({ reports: updated, currentReport: nextCurrent });
+        AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated)).catch(e => {
+          console.error('[COACH] Failed to persist goals:', e);
+        });
+        remoteLog('coach_goals_set', { tactical, identity });
+      } catch (err) {
+        console.error('[COACH] Error in setGoals:', err);
+      }
     },
   };
 });
