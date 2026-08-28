@@ -34,6 +34,7 @@ import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/sett
 import { useCoachStore, medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS, COACH_PROGRAMS, getProgramProgress, type CoachProgram } from '@/lib/coach';
 import { remoteLog } from '@/lib/remoteLog';
 import { PRChartModal } from '@/components/PRChartModal';
+import { LayoutPanelLeft } from 'lucide-react-native';
 
 interface TrophyCardProps {
   icon: 'trophy' | 'target' | 'flame' | 'trending';
@@ -972,6 +973,24 @@ export default function TrophiesScreen() {
           <Text numberOfLines={1} className={`text-orange-500 font-bold flex-shrink-0 ${largeDisplayMode ? 'text-xl' : 'text-lg'}`}>{stats.workoutsThisWeek}</Text>
         </View>
       </View>
+
+      {/* Coach's Report Action Button */}
+      <Pressable
+        onPress={() => router.push('/coach-report')}
+        style={{ backgroundColor: theme.card, borderColor: '#f9731640' }}
+        className="mx-4 mt-4 rounded-2xl p-4 border flex-row items-center justify-between active:opacity-80 shadow-lg shadow-orange-500/10"
+      >
+        <View className="flex-row items-center flex-1">
+          <View className="w-11 h-11 rounded-full bg-orange-500/15 items-center justify-center">
+            <LayoutPanelLeft size={24} color="#f97316" />
+          </View>
+          <View className="ml-3 flex-1">
+            <Text style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-lg' : 'text-xl'}`}>Coach's Report</Text>
+            <Text style={{ color: theme.subText }} className={`text-xs mt-0.5 opacity-70`}>8-week rolling performance & balance score</Text>
+          </View>
+        </View>
+        <ChevronRight size={22} color={theme.subText} />
+      </Pressable>
 
       {/* Trophy Shelf */}
       <CollapsibleSection title="Trophy Shelf" isLarge={largeDisplayMode} {...sectionProps('shelf')}>

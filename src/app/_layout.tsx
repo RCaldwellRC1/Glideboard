@@ -56,6 +56,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
           <Stack.Screen name="coach-routine" options={{ headerShown: false }} />
           <Stack.Screen name="coach-program" options={{ headerShown: false }} />
           <Stack.Screen name="coach-build" options={{ headerShown: false }} />
+          <Stack.Screen name="coach-report" options={{ headerShown: false }} />
           <Stack.Screen name="diagnostics" options={{ headerShown: false, presentation: 'modal' }} />
           <Stack.Screen name="workout-summary" options={{ headerShown: false }} />
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />

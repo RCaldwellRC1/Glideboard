@@ -2,9 +2,13 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureDeviceId } from '@/lib/remoteLog';
 import type { CoachRoutine } from './types';
+import type { WeeklyReport, PerformanceGrade } from './reportTypes';
+import { useWorkoutStore, type Workout } from '@/lib/workout';
+import { getMuscleGroup } from './muscleMapping';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
 const COACH_STORAGE_KEY = 'coach-store';
+const REPORTS_STORAGE_KEY = 'coach-reports-v1';
 const PROFILE_STORAGE_KEY = 'user-profile';
 
 export interface CoachCompletion {
@@ -46,6 +50,12 @@ interface CoachState {
   customizeRoutine: (routine: CoachRoutine) => void;
   // Revert a routine to its original default state.
   resetRoutine: (routineId: string) => void;
+
+  // --- Reports & Goals ---
+  reports: WeeklyReport[];
+  currentReport: WeeklyReport | null;
+  generateReportIfNeeded: () => void;
+  setGoals: (reportId: string, tactical: string, identity: string) => void;
 }
 
 // Pull the user's display name from the saved profile, matching what the
@@ -220,5 +230,176 @@ export const useCoachStore = create<CoachState>((set, get) => {
       });
       persist();
     },
+
+    reports: [],
+    currentReport: null,
+
+    loadFromStorage: async () => {
+      try {
+        const [coachData, reportData] = await Promise.all([
+          AsyncStorage.getItem(COACH_STORAGE_KEY),
+          AsyncStorage.getItem(REPORTS_STORAGE_KEY),
+        ]);
+
+        if (coachData) {
+          const parsed = JSON.parse(coachData);
+          set({
+            acknowledged: parsed.acknowledged ?? false,
+            acknowledgedAt: parsed.acknowledgedAt ?? null,
+            dontShowInstructions: parsed.dontShowInstructions ?? {},
+            completions: Array.isArray(parsed.completions) ? parsed.completions : [],
+            customRoutines: Array.isArray(parsed.customRoutines) ? parsed.customRoutines : [],
+            customizedRoutines: parsed.customizedRoutines ?? {},
+          });
+        }
+
+        if (reportData) {
+          const parsedReports = JSON.parse(reportData);
+          set({ reports: parsedReports });
+        }
+
+        set({ isLoaded: true });
+      } catch (error) {
+        console.error('Failed to load coach/report data:', error);
+        set({ isLoaded: true });
+      }
+    },
+
+    generateReportIfNeeded: () => {
+      const { reports } = get();
+      const now = new Date();
+
+      // Calculate most recent Sunday at 4:00 AM
+      const lastSunday = new Date(now);
+      lastSunday.setDate(now.getDate() - now.getDay());
+      lastSunday.setHours(4, 0, 0, 0);
+
+      // If it's currently Sunday before 4 AM, we actually want the PREVIOUS Sunday
+      if (now.getDay() === 0 && now.getHours() < 4) {
+        lastSunday.setDate(lastSunday.getDate() - 7);
+      }
+
+      const reportId = lastSunday.toISOString().split('T')[0];
+
+      // Check if we already have a report for this Sunday
+      if (reports.some(r => r.id === reportId)) {
+        set({ currentReport: reports.find(r => r.id === reportId) || null });
+        return;
+      }
+
+      // Generate the snapshot
+      const workoutHistory = useWorkoutStore.getState().workoutHistory;
+      const newReport = buildReport(reportId, lastSunday, workoutHistory);
+
+      const newReports = [newReport, ...reports].slice(0, 12); // Keep last 12 reports
+      set({ reports: newReports, currentReport: newReport });
+      AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(newReports));
+    },
+
+    setGoals: (reportId: string, tactical: string, identity: string) => {
+      const { reports } = get();
+      const updated = reports.map(r => {
+        if (r.id === reportId) {
+          return {
+            ...r,
+            goals: { tactical, identity, timestamp: new Date().toISOString() },
+          };
+        }
+        return r;
+      });
+      set({ reports: updated, currentReport: updated.find(r => r.id === reportId) || null });
+      AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
+      remoteLog('coach_goals_set', { tactical, identity });
+    },
   };
 });
+
+/**
+ * The Data Aggregator Math
+ */
+function buildReport(id: string, sundayDate: Date, history: Workout[]): WeeklyReport {
+  const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  const WINDOW_MS = 8 * ONE_WEEK_MS;
+
+  const endTs = sundayDate.getTime();
+  const startTs = endTs - WINDOW_MS;
+  const prevStartTs = startTs - WINDOW_MS;
+
+  const currentWindow = history.filter(w => {
+    const t = new Date(w.date).getTime();
+    return t >= startTs && t < endTs;
+  });
+
+  const prevWindow = history.filter(w => {
+    const t = new Date(w.date).getTime();
+    return t >= prevStartTs && t < startTs;
+  });
+
+  // Calculate Averages
+  const workoutsPerWeek = currentWindow.length / 8;
+  const grade: PerformanceGrade = workoutsPerWeek >= 4 ? 'A' : workoutsPerWeek >= 3 ? 'B' : workoutsPerWeek >= 2 ? 'C' : workoutsPerWeek >= 1 ? 'D' : 'F';
+
+  // Category Breakdown
+  const categoryMap = new Map<string, { sets: number; reps: number; tut: number }>();
+  let coreSets = 0;
+
+  currentWindow.forEach(w => {
+    w.sets.forEach(s => {
+      const group = getMuscleGroup(s.exercise);
+      const stats = categoryMap.get(group) ?? { sets: 0, reps: 0, tut: 0 };
+      stats.sets += 1;
+      stats.reps += s.reps;
+      stats.tut += (s.tutSeconds ?? 0);
+      categoryMap.set(group, stats);
+
+      if (group === 'CORE') coreSets += 1;
+    });
+  });
+
+  const breakdown = Array.from(categoryMap.entries()).map(([cat, stats]) => ({
+    category: cat,
+    totalSets: stats.sets,
+    totalReps: stats.reps,
+    totalTUT: stats.tut,
+    averagePace: stats.reps > 0 ? stats.tut / stats.reps : 0,
+  }));
+
+  // Core Grade
+  const corePerWeek = coreSets / 8;
+  const coreGrade: PerformanceGrade = corePerWeek >= 2 ? 'A' : corePerWeek >= 1.5 ? 'B' : corePerWeek >= 1 ? 'C' : corePerWeek >= 0.5 ? 'D' : 'F';
+
+  const coreComments: Record<PerformanceGrade, string> = {
+    'A': 'Excellent focus on your foundation! Your core stability is protecting your spine and improving your force transfer.',
+    'B': 'Solid work. You are hitting the target, which will pay off in balance and posture.',
+    'C': 'Good start, but there is room for more stability. Aim for 2 sessions next week.',
+    'D': 'Inadequate core focus. A weak core limits your strength in every other exercise.',
+    'F': 'Critical Gap. Your core is your engine—without it, you are training with a flat tire.',
+  };
+
+  // Improvement Math
+  const getIntensity = (win: Workout[]) => {
+    let reps = 0, tut = 0;
+    win.forEach(w => w.sets.forEach(s => { reps += s.reps; tut += (s.tutSeconds ?? 0); }));
+    return reps > 0 ? tut / reps : 0;
+  };
+
+  const currentIntensity = getIntensity(currentWindow);
+  const prevIntensity = getIntensity(prevWindow);
+  const intensityImp = prevIntensity > 0 ? ((currentIntensity - prevIntensity) / prevIntensity) * 100 : 0;
+
+  return {
+    id,
+    generatedAt: new Date().toISOString(),
+    avgWorkoutsPerWeek: workoutsPerWeek,
+    workoutsGrade: grade,
+    categoryBreakdown: breakdown,
+    coreSetsPerWeek: corePerWeek,
+    coreGrade,
+    coreComment: coreComments[coreGrade],
+    improvement: {
+      workouts: prevWindow.length > 0 ? ((currentWindow.length - prevWindow.length) / prevWindow.length) * 100 : 0,
+      intensity: intensityImp,
+      consistency: 0, // Placeholder
+    }
+  };
+}
