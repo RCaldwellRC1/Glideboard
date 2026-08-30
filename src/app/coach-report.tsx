@@ -1,35 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Dimensions, Image, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Pressable, ScrollView, Dimensions, Image, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  ChevronLeft, Trophy, Target, Flame, Share2, Check, Clock,
-  ArrowUpRight, ArrowDownRight, Minus, Sparkles, LayoutPanelLeft,
-  ChevronRight, X, HelpCircle
+  ChevronLeft, LayoutPanelLeft, HelpCircle
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeIn, FadeInDown, SlideInBottom } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme, useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { useCoachStore } from '@/lib/coach/store';
 import { CoachTUTGauge } from '@/components/CoachTUTGauge';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const GOALS_TACTICAL = [
-  { id: 'control', label: 'Control', desc: 'Slowing down reps for Growth.' },
-  { id: 'balance', label: 'Balance', desc: 'Targeting weaker muscle groups.' },
-  { id: 'frequency', label: 'Frequency', desc: 'Hitting more weekly sessions.' },
-  { id: 'power', label: 'Power', desc: 'Increasing weight/intensity.' },
-  { id: 'none', label: 'Maintenance', desc: 'No changes planned.' },
-];
-
-const GOALS_IDENTITY = [
-  { id: 'spartan', label: 'Modern Spartan', desc: 'Athletic power & explosiveness.' },
-  { id: 'sculptor', label: 'The Sculptor', desc: 'Muscle size & definition.' },
-  { id: 'foundation', label: 'The Foundation', desc: 'Core strength & posture.' },
-  { id: 'hybrid', label: 'The Hybrid', desc: 'A balanced athletic mix.' },
-  { id: 'none', label: 'No Change', desc: 'Staying on current path.' },
-];
 
 export default function CoachReportScreen() {
   const insets = useSafeAreaInsets();
@@ -40,45 +22,11 @@ export default function CoachReportScreen() {
   const fs = (base: number) => Math.round(base * (textSize === 'small' ? 0.85 : textSize === 'large' ? 1.15 : 1));
 
   const currentReport = useCoachStore(s => s.currentReport);
-  const setGoals = useCoachStore(s => s.setGoals);
   const generateReportIfNeeded = useCoachStore(s => s.generateReportIfNeeded);
-
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  const [tacticalGoal, setTacticalGoal] = useState<string | null>(null);
-  const [identityGoal, setIdentityGoal] = useState<string | null>(null);
 
   useEffect(() => {
     generateReportIfNeeded();
   }, []);
-
-  // Show goal modal only if goals aren't set for this report
-  useEffect(() => {
-    if (currentReport && !currentReport.goals) {
-      const timer = setTimeout(() => setShowGoalModal(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [currentReport]);
-
-  const handleSaveGoals = async () => {
-    if (!tacticalGoal || !identityGoal) {
-      Alert.alert(
-        "Selection Required",
-        "Please select a 'Tactical Focus' and an 'Athlete Identity' to finalize your vision.",
-        [{ text: "Got it" }]
-      );
-      return;
-    }
-
-    if (currentReport) {
-      try {
-        await setGoals(currentReport.id, tacticalGoal, identityGoal);
-        setShowGoalModal(false);
-      } catch (e) {
-        console.error('[REPORT] Goal save error:', e);
-        Alert.alert("Error", "Could not save your goals. Please try again.");
-      }
-    }
-  };
 
   if (!currentReport) {
     return (
@@ -90,6 +38,17 @@ export default function CoachReportScreen() {
   }
 
   const workoutsGradeColor = currentReport.workoutsGrade === 'A' ? '#22c55e' : currentReport.workoutsGrade === 'B' ? '#3b82f6' : '#f97316';
+
+  const showGaugeHelp = () => {
+    Alert.alert(
+      "The Quality Gauge",
+      "This dial measures your Average Pace (Seconds per Rep). Different speeds trigger different physiological adaptations:\n\n" +
+      "• POWER (1.0 - 2.8s): Blue Zone. Focus on speed and force. Real-world: Jumping, sprinting, or explosive lifting. High Power output increases athletic reactivity and fast-twitch fiber activation.\n\n" +
+      "• GROWTH (3.0 - 5.8s): Green Zone. The 'Hypertrophy' sweet spot. Science shows that moderate tempo creates optimal micro-tears in muscle fibers, leading to maximized muscle size, definition, and metabolic stress.\n\n" +
+      "• CONTROL (6.0s+): Purple Zone. Maximize 'Time Under Tension'. Benefits include enhanced joint stability, neural drive, and muscle density. You're still building muscle, but with extreme safety and precision.",
+      [{ text: "Got it" }]
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -158,12 +117,6 @@ export default function CoachReportScreen() {
                 <Text style={{ color: theme.subText }} className="text-[10px] mt-0.5 leading-4">Averaging <Text style={{ color: theme.text }} className="font-black">{currentReport.avgWorkoutsPerWeek.toFixed(1)}</Text> sessions per week.</Text>
               </View>
               <View className="items-center border-l border-gray-700/30 pl-4">
-                {currentReport.improvement.workouts !== 0 && (
-                  <View className="flex-row items-center mb-0.5">
-                    {currentReport.improvement.workouts > 0 ? <ArrowUpRight size={12} color="#22c55e" /> : <ArrowDownRight size={12} color="#ef4444" />}
-                    <Text style={{ color: currentReport.improvement.workouts > 0 ? '#22c55e' : '#ef4444' }} className="text-[10px] font-black">{Math.abs(currentReport.improvement.workouts).toFixed(0)}%</Text>
-                  </View>
-                )}
                 <Text style={{ color: theme.subText }} className="text-[8px] font-black uppercase opacity-60">GRADE</Text>
                 <Text style={{ color: workoutsGradeColor }} className="font-black text-xl leading-none">{currentReport.workoutsGrade}</Text>
               </View>
@@ -172,15 +125,7 @@ export default function CoachReportScreen() {
             {/* Muscle Group Balance Header */}
             <View style={{ borderBottomColor: theme.divider }} className="border-b mb-4 pb-1 flex-row items-center justify-between">
                <Text style={{ color: theme.text }} className="font-black text-[10px] uppercase tracking-[0.2em] opacity-60">Body Balance & Quality</Text>
-               <Pressable
-                 onPress={() => Alert.alert(
-                   "The Quality Gauge",
-                   "Measures your Time Under Tension (TUT) pace per rep.\n\n" +
-                   "• POWER (Blue): 1.0 - 2.8s.\n" +
-                   "• GROWTH (Green): 3.0 - 5.8s.\n" +
-                   "• CONTROL (Purple): 6.0s+."
-                 )}
-               >
+               <Pressable onPress={showGaugeHelp} className="p-1">
                  <HelpCircle size={18} color="#f97316" />
                </Pressable>
             </View>
@@ -192,7 +137,7 @@ export default function CoachReportScreen() {
                   style={{ width: '48%', backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827', borderColor: theme.divider }}
                   className="rounded-2xl p-2.5 mb-2.5 border items-center shadow-sm"
                 >
-                  <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-3">{item.category}</Text>
+                  <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-4">{item.category}</Text>
                   <CoachTUTGauge averagePace={item.averagePace} isLarge={largeDisplayMode} />
                   <View className="flex-row mt-2.5 w-full justify-around border-t pt-1.5" style={{ borderTopColor: theme.divider }}>
                     <View className="items-center">
@@ -244,112 +189,7 @@ export default function CoachReportScreen() {
             </View>
           </LinearGradient>
         </Animated.View>
-
-        {/* Tactical Summary if Goals set */}
-        {currentReport.goals && (
-          <Animated.View entering={FadeInDown.delay(400)} style={{ backgroundColor: theme.card }} className="mx-4 mt-6 rounded-2xl p-5">
-            <View className="flex-row items-center mb-4">
-              <Sparkles size={20} color="#f97316" />
-              <Text style={{ color: theme.text }} className="font-bold text-lg ml-2">8-Week Vision</Text>
-            </View>
-            <View className="flex-row mb-4">
-              <View className="flex-1 bg-orange-500/10 p-3 rounded-xl mr-2">
-                <Text style={{ color: theme.subText }} className="text-[10px] font-black uppercase">Tactical Focus</Text>
-                <Text style={{ color: theme.text }} className="font-bold text-base mt-1">{GOALS_TACTICAL.find(g => g.id === currentReport.goals?.tactical)?.label}</Text>
-              </View>
-              <View className="flex-1 bg-orange-500/10 p-3 rounded-xl">
-                <Text style={{ color: theme.subText }} className="text-[10px] font-black uppercase">Athlete Identity</Text>
-                <Text style={{ color: theme.text }} className="font-bold text-base mt-1">{GOALS_IDENTITY.find(g => g.id === currentReport.goals?.identity)?.label}</Text>
-              </View>
-            </View>
-            <Pressable onPress={() => setShowGoalModal(true)} className="items-center">
-              <Text className="text-orange-500 font-bold text-xs uppercase tracking-widest underline">Update My Focus</Text>
-            </Pressable>
-          </Animated.View>
-        )}
       </ScrollView>
-
-      {/* Goal Questionnaire Modal */}
-      <Modal visible={showGoalModal} transparent animationType="slide" onRequestClose={() => setShowGoalModal(false)}>
-        <View style={{ paddingTop: insets.top }} className="flex-1 bg-black/80 justify-end">
-          <Animated.View entering={SlideInBottom} style={{ backgroundColor: theme.card, paddingBottom: insets.bottom + 20 }} className="rounded-t-[40px] p-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <View>
-                <Text style={{ color: theme.text }} className="text-2xl font-black">Set Your Focus</Text>
-                <Text style={{ color: theme.subText }} className="text-xs uppercase font-bold tracking-widest">Next 8-Week Vision</Text>
-              </View>
-              <Pressable onPress={() => setShowGoalModal(false)} className="bg-gray-800 p-2 rounded-full active:opacity-70">
-                <X size={20} color={theme.subText} />
-              </Pressable>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 450 }}>
-              <View className="bg-orange-500/10 p-4 rounded-2xl mb-6 border border-orange-500/20">
-                 <Text style={{ color: theme.text }} className="text-sm leading-5 font-medium italic">
-                   "To maximize your Glideboard results, tell the Coach your primary goal for the next 8 weeks. We'll use this to tailor your future reports."
-                 </Text>
-              </View>
-
-              {/* Question 1 */}
-              <View className="flex-row items-center mb-4">
-                <Target size={16} color="#f97316" />
-                <Text style={{ color: theme.text }} className="font-black text-xs uppercase tracking-widest ml-2">1. Tactical Focus</Text>
-              </View>
-              {GOALS_TACTICAL.map((goal) => (
-                <Pressable
-                  key={goal.id}
-                  onPress={() => setTacticalGoal(goal.id)}
-                  style={{ backgroundColor: tacticalGoal === goal.id ? '#f9731615' : theme.background, borderColor: tacticalGoal === goal.id ? '#f97316' : theme.divider }}
-                  className="p-4 rounded-2xl mb-2 border flex-row items-center"
-                >
-                  <View className="flex-1">
-                    <Text style={{ color: tacticalGoal === goal.id ? '#f97316' : theme.text }} className="font-bold text-base">{goal.label}</Text>
-                    <Text style={{ color: theme.subText }} className="text-xs mt-1">{goal.desc}</Text>
-                  </View>
-                  {tacticalGoal === goal.id && <Check size={20} color="#f97316" />}
-                </Pressable>
-              ))}
-
-              {/* Question 2 */}
-              <View className="flex-row items-center mt-6 mb-4">
-                <Sparkles size={16} color="#f97316" />
-                <Text style={{ color: theme.text }} className="font-black text-xs uppercase tracking-widest ml-2">2. Athlete Identity</Text>
-              </View>
-              {GOALS_IDENTITY.map((goal) => (
-                <Pressable
-                  key={goal.id}
-                  onPress={() => setIdentityGoal(goal.id)}
-                  style={{ backgroundColor: identityGoal === goal.id ? '#f9731615' : theme.background, borderColor: identityGoal === goal.id ? '#f97316' : theme.divider }}
-                  className="p-4 rounded-2xl mb-2 border flex-row items-center"
-                >
-                  <View className="flex-1">
-                    <Text style={{ color: identityGoal === goal.id ? '#f97316' : theme.text }} className="font-bold text-base">{goal.label}</Text>
-                    <Text style={{ color: theme.subText }} className="text-xs mt-1">{goal.desc}</Text>
-                  </View>
-                  {identityGoal === goal.id && <Check size={20} color="#f97316" />}
-                </Pressable>
-              ))}
-            </ScrollView>
-
-            <View className="flex-row mt-8">
-              <Pressable
-                onPress={() => setShowGoalModal(false)}
-                style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
-                className="flex-1 py-5 rounded-2xl items-center mr-2 active:opacity-70"
-              >
-                <Text style={{ color: theme.text }} className="font-bold text-lg">Go Back</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleSaveGoals}
-                style={{ backgroundColor: (tacticalGoal && identityGoal) ? '#f97316' : theme.divider }}
-                className={`flex-1 py-5 rounded-2xl items-center active:opacity-80`}
-              >
-                <Text style={{ color: (tacticalGoal && identityGoal) ? '#fff' : theme.subText }} className="font-black text-lg">Save Focus</Text>
-              </Pressable>
-            </View>
-          </Animated.View>
-        </View>
-      </Modal>
     </View>
   );
 }

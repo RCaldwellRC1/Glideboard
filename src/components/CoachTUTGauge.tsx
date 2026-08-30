@@ -9,7 +9,7 @@ import { useTheme } from '@/lib/settings';
 
 /**
  * A perfectly centered "Chronograph" Gauge for Time Under Tension.
- * Dial and Pivot aligned for an authentic analogue feel.
+ * Fixed pivot logic for stable needle alignment and vibrant colors.
  */
 
 interface CoachTUTGaugeProps {
@@ -27,7 +27,7 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
   const rotation = useSharedValue(-90);
 
   useEffect(() => {
-    // Range: 1s to 8s. Center (0 deg) is 4.5s
+    // 1s = -90, 4.5s = 0, 8s = 90
     const clampedPace = Math.max(1, Math.min(8, averagePace));
     const targetRotation = ((clampedPace - 1) / (8 - 1)) * 180 - 90;
     rotation.value = withSpring(targetRotation, { damping: 15 });
@@ -46,18 +46,18 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
     : 'CONTROL';
 
   const zoneColor = averagePace <= 0 ? theme.subText : averagePace < 2.8
-    ? '#3b82f6' // blue
+    ? '#007AFF' // Vibrant Blue
     : averagePace < 5.8
-    ? '#22c55e' // green
-    : '#a855f7'; // purple
+    ? '#32D74B' // Vibrant Green
+    : '#AF52DE'; // Vibrant Purple
 
   return (
-    <View className="items-center justify-center">
+    <View className="items-center justify-center pt-2">
       <View
-        style={{ width: size, height: size / 2 + 10 }}
-        className="items-center justify-end overflow-hidden"
+        style={{ width: size, height: radius + 5, overflow: 'hidden' }}
+        className="items-center justify-end"
       >
-        {/* Track Arc */}
+        {/* Background Track Arc */}
         <View
           style={{
             width: size,
@@ -66,30 +66,30 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
             borderWidth: 8,
             borderColor: theme.divider,
             position: 'absolute',
-            bottom: -radius / 2, // Centered vertically in the overflow-hidden view
+            bottom: 0,
             left: 0,
           }}
         />
 
-        {/* Colored Zones (using border arc segments) */}
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#3b82f6', bottom: -radius/2, left: 0, transform: [{ rotate: '-90deg' }], opacity: 0.25 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#22c55e', bottom: -radius/2, left: 0, transform: [{ rotate: '-35deg' }], opacity: 0.25 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#a855f7', bottom: -radius/2, left: 0, transform: [{ rotate: '35deg' }], opacity: 0.25 }} />
+        {/* Colored Zones - High Vibrancy */}
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#007AFF', bottom: 0, left: 0, transform: [{ rotate: '-90deg' }], opacity: 0.5 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#32D74B', bottom: 0, left: 0, transform: [{ rotate: '-35deg' }], opacity: 0.5 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#AF52DE', bottom: 0, left: 0, transform: [{ rotate: '35deg' }], opacity: 0.5 }} />
 
-        {/* The Needle - Container rotated around center */}
-        <View style={{ position: 'absolute', bottom: radius/2, height: radius, width: size, alignItems: 'center' }}>
+        {/* The Needle - Pivot exactly at bottom-center */}
+        <View style={{ position: 'absolute', bottom: 0, width: size, height: radius, alignItems: 'center' }}>
           <Animated.View
             style={[
               {
-                height: radius * 2, // Full diameter for center pivot
+                height: radius * 2, // Rotate around the middle of this view
                 width: 3,
                 alignItems: 'center',
                 justifyContent: 'flex-start',
+                top: 0,
               },
               needleStyle
             ]}
           >
-             {/* The physical needle line (only top half) */}
              <View
                style={{
                  width: 3,
@@ -97,15 +97,15 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
                  backgroundColor: zoneColor,
                  borderRadius: 2,
                  shadowColor: '#000',
-                 shadowOpacity: 0.3,
-                 shadowRadius: 2,
-                 elevation: 4
+                 shadowOpacity: 0.4,
+                 shadowRadius: 3,
+                 elevation: 5
                }}
              />
           </Animated.View>
         </View>
 
-        {/* Pivot Point - Exactly at the center of the arc */}
+        {/* The Center Pin */}
         <View
           style={{
             position: 'absolute',
@@ -113,11 +113,11 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
             height: 10,
             borderRadius: 5,
             backgroundColor: theme.text,
-            bottom: radius / 2 - 5,
-            left: (size / 2) - 5,
+            bottom: -5,
+            left: radius - 5,
             borderWidth: 2,
             borderColor: theme.card,
-            zIndex: 30
+            zIndex: 40
           }}
         />
       </View>

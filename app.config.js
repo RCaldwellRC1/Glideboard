@@ -22,7 +22,7 @@ module.exports = ({ config }) => ({
     versionCode: (() => {
       const buildNum = Number.parseInt(process.env.BUILD_NUMBER, 10) || 0;
       const jsonVersion = config.android?.versionCode || 0;
-      const finalVersion = Math.max(buildNum, jsonVersion, 303);
+      const finalVersion = Math.max(buildNum, jsonVersion, 304);
       console.log(`[BUILD] Build Number: ${buildNum}, JSON Version: ${jsonVersion}, Final Version: ${finalVersion}`);
       return finalVersion;
     })(),
