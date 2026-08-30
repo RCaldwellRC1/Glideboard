@@ -2,7 +2,7 @@
  * Maps all exercises (Standard, Timed, Free Style) to Body Part Categories.
  */
 
-import { EXERCISE_GROUPS, getExerciseCategory, TIMED_GROUP } from '@/lib/workout';
+import { EXERCISE_GROUPS } from '@/lib/workout/types';
 
 // Manual mapping for Timed and common Free Style exercises to their Body Part Groups.
 // Built-in groups are: LEGS, CHEST, BACK, SHOULDERS, ARMS, CORE.
@@ -18,12 +18,17 @@ const MANUAL_MAPPING: Record<string, string> = {
   'Hollow Hold': 'CORE',
   'Russian Twist': 'CORE',
   'Leg Raises': 'CORE',
+  'Iso Plank from Knee': 'CORE',
+  'Iso Plank from feet': 'CORE',
 
   // LEGS
   'Wall Sit': 'LEGS',
+  'Iso Wall Sits': 'LEGS',
   'Squats': 'LEGS',
   'Bulgarian Split Squat': 'LEGS',
   'Lunges': 'LEGS',
+  'Iso Lunge Hold': 'LEGS',
+  'Iso Warrior Pose': 'LEGS',
 
   // CHEST
   'Pushups': 'CHEST',
@@ -34,10 +39,16 @@ const MANUAL_MAPPING: Record<string, string> = {
   'Superman': 'BACK',
   'Rows': 'BACK',
 
+  // SHOULDERS
+  'Shoulder Press': 'SHOULDERS',
+  'Front Raises': 'SHOULDERS',
+  'Lateral Raises': 'SHOULDERS',
+
   // ARMS
   'Bicep Curls': 'ARMS',
   'Tricep Dips': 'ARMS',
   'Diamond Pushups': 'ARMS',
+  'Iso Curl Hold': 'ARMS',
 };
 
 /**
@@ -60,11 +71,12 @@ export function getMuscleGroup(exerciseName: string): string {
   }
 
   // 3. Heuristic Fallbacks
-  if (lowerName.includes('plank') || lowerName.includes('crunch') || lowerName.includes('core')) return 'CORE';
-  if (lowerName.includes('press') || lowerName.includes('fly')) return 'CHEST';
-  if (lowerName.includes('squat') || lowerName.includes('leg') || lowerName.includes('calf')) return 'LEGS';
-  if (lowerName.includes('row') || lowerName.includes('pull')) return 'BACK';
-  if (lowerName.includes('curl') || lowerName.includes('extension')) return 'ARMS';
+  if (lowerName.includes('plank') || lowerName.includes('crunch') || lowerName.includes('core') || lowerName.includes('ab')) return 'CORE';
+  if (lowerName.includes('press') || lowerName.includes('fly') || lowerName.includes('chest') || lowerName.includes('pushup')) return 'CHEST';
+  if (lowerName.includes('squat') || lowerName.includes('leg') || lowerName.includes('calf') || lowerName.includes('lunge') || lowerName.includes('hip')) return 'LEGS';
+  if (lowerName.includes('row') || lowerName.includes('pull') || lowerName.includes('back')) return 'BACK';
+  if (lowerName.includes('curl') || lowerName.includes('tricep') || lowerName.includes('bicep') || lowerName.includes('arm') || lowerName.includes('extension')) return 'ARMS';
+  if (lowerName.includes('shoulder') || lowerName.includes('raise') || lowerName.includes('delt')) return 'SHOULDERS';
 
   return 'OTHER';
 }

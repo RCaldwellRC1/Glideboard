@@ -8,8 +8,8 @@ import Animated, {
 import { useTheme } from '@/lib/settings';
 
 /**
- * A refined "Chronograph" Gauge for Time Under Tension.
- * Smaller size with centered dial and better zone visibility.
+ * A perfectly centered "Chronograph" Gauge for Time Under Tension.
+ * Dial and Pivot aligned for an authentic analogue feel.
  */
 
 interface CoachTUTGaugeProps {
@@ -19,15 +19,15 @@ interface CoachTUTGaugeProps {
 
 export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
   const theme = useTheme();
-  // Compact size to fit everything on one page
-  const size = isLarge ? 85 : 75;
+  // Compact sizes to keep report on one page
+  const size = isLarge ? 80 : 70;
   const radius = size / 2;
 
   // Rotation from -90 (1s) to +90 (8s+)
   const rotation = useSharedValue(-90);
 
   useEffect(() => {
-    // 1s = -90, 4.5s = 0, 8s = 90
+    // Range: 1s to 8s. Center (0 deg) is 4.5s
     const clampedPace = Math.max(1, Math.min(8, averagePace));
     const targetRotation = ((clampedPace - 1) / (8 - 1)) * 180 - 90;
     rotation.value = withSpring(targetRotation, { damping: 15 });
@@ -35,9 +35,7 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
 
   const needleStyle = useAnimatedStyle(() => ({
     transform: [
-      { translateY: size / 2.5 }, // Offset to pivot around the logical center
       { rotate: `${rotation.value}deg` },
-      { translateY: -size / 2.5 },
     ],
   }));
 
@@ -56,10 +54,10 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
   return (
     <View className="items-center justify-center">
       <View
-        style={{ width: size, height: size / 2 + 5, overflow: 'hidden' }}
-        className="items-center justify-end"
+        style={{ width: size, height: size / 2 + 10 }}
+        className="items-center justify-end overflow-hidden"
       >
-        {/* The Arc Track */}
+        {/* Track Arc */}
         <View
           style={{
             width: size,
@@ -67,36 +65,47 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
             borderRadius: radius,
             borderWidth: 8,
             borderColor: theme.divider,
-            borderBottomColor: 'transparent',
-            transform: [{ rotate: '-90deg' }]
+            position: 'absolute',
+            bottom: -radius / 2, // Centered vertically in the overflow-hidden view
+            left: 0,
           }}
         />
 
-        {/* Zones (Blue, Green, Purple) */}
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#3b82f6', transform: [{ rotate: '-90deg' }], opacity: 0.25 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#22c55e', transform: [{ rotate: '-35deg' }], opacity: 0.25 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#a855f7', transform: [{ rotate: '35deg' }], opacity: 0.25 }} />
+        {/* Colored Zones (using border arc segments) */}
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#3b82f6', bottom: -radius/2, left: 0, transform: [{ rotate: '-90deg' }], opacity: 0.25 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#22c55e', bottom: -radius/2, left: 0, transform: [{ rotate: '-35deg' }], opacity: 0.25 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#a855f7', bottom: -radius/2, left: 0, transform: [{ rotate: '35deg' }], opacity: 0.25 }} />
 
-        {/* The Needle - Pivot perfectly in the center bottom */}
-        <Animated.View
-          style={[
-            {
-              position: 'absolute',
-              width: 2.5,
-              height: radius - 4,
-              backgroundColor: zoneColor,
-              bottom: 4,
-              borderRadius: 2,
-              shadowColor: '#000',
-              shadowOpacity: 0.3,
-              shadowRadius: 2,
-              elevation: 4
-            },
-            needleStyle
-          ]}
-        />
+        {/* The Needle - Container rotated around center */}
+        <View style={{ position: 'absolute', bottom: radius/2, height: radius, width: size, alignItems: 'center' }}>
+          <Animated.View
+            style={[
+              {
+                height: radius * 2, // Full diameter for center pivot
+                width: 3,
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+              },
+              needleStyle
+            ]}
+          >
+             {/* The physical needle line (only top half) */}
+             <View
+               style={{
+                 width: 3,
+                 height: radius - 4,
+                 backgroundColor: zoneColor,
+                 borderRadius: 2,
+                 shadowColor: '#000',
+                 shadowOpacity: 0.3,
+                 shadowRadius: 2,
+                 elevation: 4
+               }}
+             />
+          </Animated.View>
+        </View>
 
-        {/* Pivot Point */}
+        {/* Pivot Point - Exactly at the center of the arc */}
         <View
           style={{
             position: 'absolute',
@@ -104,19 +113,18 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
             height: 10,
             borderRadius: 5,
             backgroundColor: theme.text,
-            bottom: -2,
+            bottom: radius / 2 - 5,
+            left: (size / 2) - 5,
             borderWidth: 2,
-            borderColor: theme.card
+            borderColor: theme.card,
+            zIndex: 30
           }}
         />
       </View>
 
-      {/* Tiny Zone Labels inside the card */}
-      <View className="flex-row items-center mt-1">
-        <Text style={{ color: zoneColor, fontSize: isLarge ? 10 : 9 }} className="font-black uppercase tracking-tighter">
-          {label}
-        </Text>
-      </View>
+      <Text style={{ color: zoneColor, fontSize: isLarge ? 10 : 9, marginTop: 4 }} className="font-black uppercase tracking-tighter">
+        {label}
+      </Text>
 
       {averagePace > 0 && (
         <Text style={{ color: theme.text, fontSize: isLarge ? 12 : 11 }} className="font-bold">
