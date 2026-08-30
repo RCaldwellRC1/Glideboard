@@ -9,7 +9,7 @@ import { useTheme } from '@/lib/settings';
 
 /**
  * A perfectly centered "Chronograph" Gauge for Time Under Tension.
- * Fixed pivot logic for stable needle alignment and vibrant colors.
+ * Fixed pivot logic for stable needle alignment and high-vibrancy zones.
  */
 
 interface CoachTUTGaugeProps {
@@ -20,7 +20,7 @@ interface CoachTUTGaugeProps {
 export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
   const theme = useTheme();
   // Compact sizes to keep report on one page
-  const size = isLarge ? 80 : 70;
+  const size = isLarge ? 84 : 74;
   const radius = size / 2;
 
   // Rotation from -90 (1s) to +90 (8s+)
@@ -45,47 +45,52 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
     ? 'GROWTH'
     : 'CONTROL';
 
+  // Vibrant iOS-style palette
+  const blue = '#007AFF';
+  const green = '#34C759';
+  const purple = '#AF52DE';
+
   const zoneColor = averagePace <= 0 ? theme.subText : averagePace < 2.8
-    ? '#007AFF' // Vibrant Blue
+    ? blue
     : averagePace < 5.8
-    ? '#32D74B' // Vibrant Green
-    : '#AF52DE'; // Vibrant Purple
+    ? green
+    : purple;
 
   return (
     <View className="items-center justify-center pt-2">
       <View
-        style={{ width: size, height: radius + 5, overflow: 'hidden' }}
-        className="items-center justify-end"
+        style={{ width: size, height: radius + 2, overflow: 'hidden' }}
+        className="items-center"
       >
-        {/* Background Track Arc */}
+        {/* Track - Top Half Arc */}
         <View
           style={{
             width: size,
             height: size,
             borderRadius: radius,
-            borderWidth: 8,
+            borderWidth: 9,
             borderColor: theme.divider,
             position: 'absolute',
-            bottom: 0,
+            top: 0,
             left: 0,
           }}
         />
 
-        {/* Colored Zones - High Vibrancy */}
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#007AFF', bottom: 0, left: 0, transform: [{ rotate: '-90deg' }], opacity: 0.5 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#32D74B', bottom: 0, left: 0, transform: [{ rotate: '-35deg' }], opacity: 0.5 }} />
-        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 8, borderColor: 'transparent', borderTopColor: '#AF52DE', bottom: 0, left: 0, transform: [{ rotate: '35deg' }], opacity: 0.5 }} />
+        {/* High-Vibrancy Zones */}
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 9, borderColor: 'transparent', borderTopColor: blue, top: 0, left: 0, transform: [{ rotate: '-90deg' }], opacity: 0.8 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 9, borderColor: 'transparent', borderTopColor: green, top: 0, left: 0, transform: [{ rotate: '-35deg' }], opacity: 0.8 }} />
+        <View style={{ position: 'absolute', width: size, height: size, borderRadius: radius, borderWidth: 9, borderColor: 'transparent', borderTopColor: purple, top: 0, left: 0, transform: [{ rotate: '35deg' }], opacity: 0.8 }} />
 
-        {/* The Needle - Pivot exactly at bottom-center */}
-        <View style={{ position: 'absolute', bottom: 0, width: size, height: radius, alignItems: 'center' }}>
+        {/* The Needle - Pivot perfectly at the bottom-center of the visible arc */}
+        <View style={{ position: 'absolute', top: radius, width: size, height: radius, alignItems: 'center' }}>
           <Animated.View
             style={[
               {
-                height: radius * 2, // Rotate around the middle of this view
+                height: radius * 2,
                 width: 3,
                 alignItems: 'center',
                 justifyContent: 'flex-start',
-                top: 0,
+                top: -radius, // Pivot is now exactly at the center of the arc
               },
               needleStyle
             ]}
@@ -93,41 +98,45 @@ export function CoachTUTGauge({ averagePace, isLarge }: CoachTUTGaugeProps) {
              <View
                style={{
                  width: 3,
-                 height: radius - 4,
+                 height: radius - 3,
                  backgroundColor: zoneColor,
                  borderRadius: 2,
                  shadowColor: '#000',
-                 shadowOpacity: 0.4,
-                 shadowRadius: 3,
-                 elevation: 5
+                 shadowOpacity: 0.5,
+                 shadowRadius: 4,
+                 elevation: 6
                }}
              />
           </Animated.View>
         </View>
 
-        {/* The Center Pin */}
+        {/* The Center Pin - Absolute alignment with arc center */}
         <View
           style={{
             position: 'absolute',
-            width: 10,
-            height: 10,
-            borderRadius: 5,
+            width: 12,
+            height: 12,
+            borderRadius: 6,
             backgroundColor: theme.text,
-            bottom: -5,
-            left: radius - 5,
+            top: radius - 6,
+            left: radius - 6,
             borderWidth: 2,
             borderColor: theme.card,
-            zIndex: 40
+            zIndex: 40,
+            shadowColor: '#000',
+            shadowOpacity: 0.2,
+            shadowRadius: 2,
+            elevation: 2
           }}
         />
       </View>
 
-      <Text style={{ color: zoneColor, fontSize: isLarge ? 10 : 9, marginTop: 4 }} className="font-black uppercase tracking-tighter">
+      <Text style={{ color: zoneColor, fontSize: isLarge ? 11 : 10, marginTop: 6 }} className="font-black uppercase tracking-tighter">
         {label}
       </Text>
 
       {averagePace > 0 && (
-        <Text style={{ color: theme.text, fontSize: isLarge ? 12 : 11 }} className="font-bold">
+        <Text style={{ color: theme.text, fontSize: isLarge ? 14 : 12 }} className="font-bold">
           {averagePace.toFixed(1)}s <Text className="font-normal opacity-50">/ rep</Text>
         </Text>
       )}
