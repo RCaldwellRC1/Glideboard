@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, Dimensions, Image, Alert, ActivityIn
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
-  ChevronLeft, LayoutPanelLeft, HelpCircle
+  ChevronLeft, LayoutPanelLeft, HelpCircle, ArrowUpRight, ArrowDownRight
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -117,6 +117,12 @@ export default function CoachReportScreen() {
                 <Text style={{ color: theme.subText }} className="text-[10px] mt-0.5 leading-4">Averaging <Text style={{ color: theme.text }} className="font-black">{currentReport.avgWorkoutsPerWeek.toFixed(1)}</Text> sessions per week.</Text>
               </View>
               <View className="items-center border-l border-gray-700/30 pl-4">
+                {currentReport.improvement.workouts !== 0 && (
+                  <View className="flex-row items-center mb-0.5">
+                    {currentReport.improvement.workouts > 0 ? <ArrowUpRight size={12} color="#22c55e" /> : <ArrowDownRight size={12} color="#ef4444" />}
+                    <Text style={{ color: currentReport.improvement.workouts > 0 ? '#22c55e' : '#ef4444' }} className="text-[10px] font-black">{Math.abs(currentReport.improvement.workouts).toFixed(0)}%</Text>
+                  </View>
+                )}
                 <Text style={{ color: theme.subText }} className="text-[8px] font-black uppercase opacity-60">GRADE</Text>
                 <Text style={{ color: workoutsGradeColor }} className="font-black text-xl leading-none">{currentReport.workoutsGrade}</Text>
               </View>

@@ -1,9 +1,6 @@
 /**
  * Adaptive Rep Counter Store
  * Implements the Vibecode Spec for real-time rep counting with learning
- *
- * Key insight: For accelerometer-based rep counting, we detect the UP→DOWN→UP
- * pattern by looking at acceleration changes, not absolute position.
  */
 
 import { create } from 'zustand';
@@ -28,13 +25,7 @@ function persistAdjustments(
   cooldowns: Record<string, { factor: number }>,
 ) {
   const data = JSON.stringify({ thresholds, cooldowns });
-  AsyncStorage.setItem(ADJUSTMENTS_STORAGE_KEY, data)
-    .then(() => {
-      console.log('[ADAPTIVE] Successfully saved learned adjustments');
-    })
-    .catch(err => {
-      console.error('[ADAPTIVE] Failed to save adjustments:', err);
-    });
+  AsyncStorage.setItem(ADJUSTMENTS_STORAGE_KEY, data).catch(() => {});
 }
 
 function getProfileKey(exerciseId: string, inclineLevel: number): string {
@@ -48,38 +39,28 @@ export interface OverrideResult {
 }
 
 interface AdaptiveRepState {
-  // Set state
   setState: SetState;
   repCount: number;
   lastRepTime: number;
   setStartTime: number;
 
-  // Position stabilization
   ignoreMotion: boolean;
   baselineAccel: number;
   stabilizationStartTime: number | null;
   accelHistory: number[];
 
-  // Rep state machine
   repState: RepState;
   repStartTime: number | null;
   peakDeviation: number;
   movingDirection: 'none' | 'away' | 'returning';
 
-  // Cooldown after rep
   repCooldownUntil: number;
-
-  // ROM learning (during set)
   measuredPeaks: number[];
   isLearningROM: boolean;
-
-  // Rep timings for confidence
   repTimings: RepTiming[];
 
-  // Exercise profiles (persisted)
   profiles: Record<string, ExerciseProfile>;
   isLoaded: boolean;
-
   thresholdAdjustments: Record<string, { factor: number }>;
   cooldownAdjustments: Record<string, { factor: number }>;
 
@@ -89,22 +70,14 @@ interface AdaptiveRepState {
   _repCooldownMs: number;
   _setupDelayMs: number;
 
-  // Actions
-  startSet: (
-    exerciseId: string,
-    inclineLevel: number,
-    sensitivityMultiplier?: number,
-    minRepDurationMs?: number,
-    repCooldownMs?: number,
-    setupDelayMs?: number,
-  ) => void;
+  startSet: (ex: string, lvl: number, sens?: number, minMs?: number, coolMs?: number, delayMs?: number) => void;
   endSet: () => SetSummary;
   resetToIdle: () => void;
-  processMotion: (accelMagnitude: number) => void;
-  applyUserOverride: (exerciseId: string, inclineLevel: number, userCount: number) => OverrideResult;
+  processMotion: (accel: number) => void;
+  applyUserOverride: (ex: string, lvl: number, count: number) => OverrideResult;
 
-  getProfile: (exerciseId: string, inclineLevel: number) => ExerciseProfile | null;
-  getCooldownFactor: (exerciseId: string, inclineLevel: number) => number;
+  getProfile: (ex: string, lvl: number) => ExerciseProfile | null;
+  getCooldownFactor: (ex: string, lvl: number) => number;
   loadFromStorage: () => Promise<void>;
 
   _currentExerciseId: string | null;
@@ -123,36 +96,27 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
   repCount: 0,
   lastRepTime: 0,
   setStartTime: 0,
-
   ignoreMotion: true,
   baselineAccel: 9.8,
   stabilizationStartTime: null,
   accelHistory: [],
-
   repState: 'WAITING',
   repStartTime: null,
   peakDeviation: 0,
   movingDirection: 'none',
-
   repCooldownUntil: 0,
-
   measuredPeaks: [],
   isLearningROM: false,
-
   repTimings: [],
-
   profiles: {},
   isLoaded: false,
-
   thresholdAdjustments: {},
   cooldownAdjustments: {},
-
   _sensitivityMultiplier: 1.0,
   _expectedRepMs: 2000,
   _minRepDurationMs: 120,
   _repCooldownMs: 800,
   _setupDelayMs: 6000,
-
   _currentExerciseId: null,
   _currentInclineLevel: null,
 
@@ -161,16 +125,8 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     set({ setState: 'SET_IDLE' });
   },
 
-  startSet: (
-    exerciseId: string,
-    inclineLevel: number,
-    sensitivityMultiplier = 1.0,
-    minRepDurationMs = 120,
-    repCooldownMs = 800,
-    setupDelayMs = 6000,
-  ) => {
+  startSet: (exerciseId, inclineLevel, sensitivityMultiplier = 1.0, minRepDurationMs = 120, repCooldownMs = 800, setupDelayMs = 6000) => {
     clearInactivityTimer();
-
     const state = get();
     const profile = state.profiles[getProfileKey(exerciseId, inclineLevel)];
     const needsLearning = !profile || profile.sampleCount < C.ROM_LEARNING_REPS;
@@ -180,24 +136,18 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       repCount: 0,
       lastRepTime: Date.now(),
       setStartTime: Date.now(),
-
       ignoreMotion: true,
       baselineAccel: 9.8,
       stabilizationStartTime: null,
       accelHistory: [],
-
       repState: 'WAITING',
       repStartTime: null,
       peakDeviation: 0,
       movingDirection: 'none',
-
       repCooldownUntil: 0,
-
       measuredPeaks: [],
       isLearningROM: needsLearning,
-
       repTimings: [],
-
       _sensitivityMultiplier: sensitivityMultiplier,
       _expectedRepMs: (repCooldownMs / 0.85),
       _minRepDurationMs: minRepDurationMs,
@@ -211,35 +161,27 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
   endSet: () => {
     clearInactivityTimer();
     const state = get();
-    const confidence = calculateConfidence(state.repTimings);
-
-    const validDurations = state.repTimings
-      .map(t => t.duration)
-      .filter((d): d is number => d !== null);
-
+    const validDurations = state.repTimings.map(t => t.duration).filter((d): d is number => d !== null);
     const totalActiveDuration = validDurations.reduce((a, b) => a + b, 0);
-    const avgRepDuration = validDurations.length > 0
-      ? totalActiveDuration / validDurations.length
-      : 0;
+    const avgRepDuration = validDurations.length > 0 ? totalActiveDuration / validDurations.length : 0;
 
     const summary: SetSummary = {
       repCount: state.repCount,
-      confidenceScore: confidence,
+      confidenceScore: calculateConfidence(state.repTimings),
       avgRepDuration,
       totalActiveDuration,
       repTimings: state.repTimings,
-      needsConfirmation: confidence < C.CONFIDENCE_THRESHOLD && state.repCount > 0,
+      needsConfirmation: false,
     };
 
     if (state._currentExerciseId && state._currentInclineLevel !== null && state.measuredPeaks.length > 0) {
       updateProfileROM(state, set);
     }
-
     set({ setState: 'SET_IDLE' });
     return summary;
   },
 
-  processMotion: (accelMagnitude: number) => {
+  processMotion: (accelMagnitude) => {
     const state = get();
     if (state.setState !== 'SET_ACTIVE') return;
 
@@ -249,24 +191,17 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
     if (state.ignoreMotion) {
       if (newHistory.length < SMOOTHING_WINDOW) return;
-
       const variance = calculateVariance(newHistory);
       const setupElapsed = state.setStartTime > 0 ? now - state.setStartTime : 0;
       const setupDone = setupElapsed >= state._setupDelayMs;
-      const forceStabilize = state.setStartTime > 0 &&
-        setupElapsed >= Math.max(C.MAX_STABILIZATION_WAIT_MS, state._setupDelayMs);
+      const forceStabilize = state.setStartTime > 0 && setupElapsed >= Math.max(C.MAX_STABILIZATION_WAIT_MS, state._setupDelayMs);
 
       if (variance < C.STABILIZATION_VARIANCE_THRESHOLD || forceStabilize) {
         if (state.stabilizationStartTime === null) {
           set({ stabilizationStartTime: now });
         } else if ((setupDone && now - state.stabilizationStartTime >= C.STABILIZATION_TIME_MS) || forceStabilize) {
           const baseline = newHistory.reduce((a, b) => a + b, 0) / newHistory.length;
-          set({
-            ignoreMotion: false,
-            baselineAccel: baseline,
-            repState: 'WAITING',
-            movingDirection: 'none',
-          });
+          set({ ignoreMotion: false, baselineAccel: baseline, repState: 'WAITING', movingDirection: 'none' });
           startInactivityTimer(get, set);
         }
       } else {
@@ -277,69 +212,49 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
     if (now < state.repCooldownUntil) return;
 
-    const exerciseId = state._currentExerciseId;
-    const inclineLevel = state._currentInclineLevel;
-    if (!exerciseId || inclineLevel === null) return;
+    const exId = state._currentExerciseId;
+    const lvl = state._currentInclineLevel;
+    if (!exId || lvl === null) return;
 
-    const profile = state.profiles[getProfileKey(exerciseId, inclineLevel)];
-    const adjustment = state.thresholdAdjustments[getProfileKey(exerciseId, inclineLevel)]?.factor ?? 1;
-
+    const profile = state.profiles[getProfileKey(exId, lvl)];
+    const adjustment = state.thresholdAdjustments[getProfileKey(exId, lvl)]?.factor ?? 1;
     const recentAccel = newHistory.slice(-SMOOTHING_WINDOW);
     const smoothedAccel = recentAccel.reduce((a, b) => a + b, 0) / recentAccel.length;
     const deviation = Math.abs(smoothedAccel - state.baselineAccel);
     const sens = state._sensitivityMultiplier;
     const paceFactor = Math.max(0.5, Math.min(1.0, 2.0 / (state._expectedRepMs / 1000 || 2.0)));
 
-    const triggerThreshold = state.isLearningROM
-      ? 0.05 * sens * paceFactor
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
+    const triggerThreshold = state.isLearningROM ? 0.05 * sens * paceFactor : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
+    const returnThreshold = 0.04 * sens; // Lower threshold to capture full return stroke
 
-    const returnThreshold = 0.07 * sens;
-
-    if (deviation > state.peakDeviation) {
-      set({ peakDeviation: deviation });
-    }
+    if (deviation > state.peakDeviation) set({ peakDeviation: deviation });
 
     const currentDirection = state.movingDirection;
 
     if (currentDirection === 'none' && deviation > triggerThreshold) {
-      set({
-        movingDirection: 'away',
-        repStartTime: now,
-        peakDeviation: deviation,
-      });
+      set({ movingDirection: 'away', repStartTime: now, peakDeviation: deviation });
       resetInactivityTimer(get, set);
     }
     else if (currentDirection === 'away') {
+      // Reached peak
       if (deviation < state.peakDeviation * 0.5 && state.peakDeviation > triggerThreshold * 1.1) {
         set({ movingDirection: 'returning' });
       }
     }
     else if (currentDirection === 'returning' && deviation < returnThreshold) {
+      // Returned to rest - end rep
       const repDuration = now - (state.repStartTime ?? now);
       const peak = state.peakDeviation;
-
-      const rawMinPeak = state.isLearningROM
-        ? MIN_PEAK_FOR_REP
-        : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
-
+      const rawMinPeak = state.isLearningROM ? MIN_PEAK_FOR_REP : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
       const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor, 0.07);
 
       if (repDuration >= state._minRepDurationMs && peak >= activeMinPeak) {
         const newRepCount = state.repCount + 1;
-        const timing: RepTiming = {
-          startTime: state.repStartTime ?? now,
-          upReachedTime: null,
-          endTime: now,
-          duration: repDuration,
-        };
-
+        const timing: RepTiming = { startTime: state.repStartTime ?? now, upReachedTime: null, endTime: now, duration: repDuration };
         const newPeaks = [...state.measuredPeaks, peak];
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        const cooldownFactor = state.cooldownAdjustments[getProfileKey(exerciseId, inclineLevel)]?.factor ?? 1;
-        const activeCooldown = state._repCooldownMs * cooldownFactor;
-
+        const cooldownFactor = state.cooldownAdjustments[getProfileKey(exId, lvl)]?.factor ?? 1;
         set({
           repCount: newRepCount,
           lastRepTime: now,
@@ -347,16 +262,12 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
           repStartTime: null,
           peakDeviation: 0,
           movingDirection: 'none',
-          repCooldownUntil: now + activeCooldown,
+          repCooldownUntil: now + (state._repCooldownMs * cooldownFactor),
           repTimings: [...state.repTimings, timing],
           measuredPeaks: newPeaks,
         });
-
         resetInactivityTimer(get, set);
-
-        if (state.isLearningROM && newPeaks.length >= C.ROM_LEARNING_REPS) {
-          set({ isLearningROM: false });
-        }
+        if (state.isLearningROM && newPeaks.length >= C.ROM_LEARNING_REPS) set({ isLearningROM: false });
       } else {
         resetInactivityTimer(get, set);
         set({ repStartTime: null, peakDeviation: 0, movingDirection: 'none' });
@@ -372,16 +283,15 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     }
   },
 
-  applyUserOverride: (exerciseId: string, inclineLevel: number, userCount: number) => {
+  applyUserOverride: (exId, lvl, userCount) => {
     const state = get();
     const autoCount = state.repCount;
     if (autoCount < 1) return { adjusted: false, direction: 'none', strong: false };
-
     const delta = userCount - autoCount;
     const ratio = Math.abs(delta) / Math.max(autoCount, userCount);
     if (ratio > 0.8) return { adjusted: false, direction: 'none', strong: false };
 
-    const key = getProfileKey(exerciseId, inclineLevel);
+    const key = getProfileKey(exId, lvl);
     const prevThreshold = safeNum(state.thresholdAdjustments[key]?.factor, 1);
     const prevCooldown = safeNum(state.cooldownAdjustments[key]?.factor, 1);
     const relError = (autoCount - userCount) / Math.max(userCount, 1);
@@ -390,7 +300,6 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
     let newThreshold = prevThreshold;
     let newCooldown = prevCooldown;
-
     if (delta < 0) {
       newCooldown = prevCooldown * (1 + 0.8 * gain * Math.min(relError, 1.5));
     } else if (delta > 0) {
@@ -403,29 +312,16 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
     const newThresholdAdjustments = { ...state.thresholdAdjustments, [key]: { factor: newThreshold } };
     const newCooldownAdjustments = { ...state.cooldownAdjustments, [key]: { factor: newCooldown } };
-
     set({ thresholdAdjustments: newThresholdAdjustments, cooldownAdjustments: newCooldownAdjustments });
     persistAdjustments(newThresholdAdjustments, newCooldownAdjustments);
-
     return { adjusted: true, direction: delta < 0 ? 'tighter' : 'looser', strong: bigMiss };
   },
 
-  getProfile: (exerciseId: string, inclineLevel: number) => {
-    const key = getProfileKey(exerciseId, inclineLevel);
-    return get().profiles[key] ?? null;
-  },
-
-  getCooldownFactor: (exerciseId: string, inclineLevel: number) => {
-    const key = getProfileKey(exerciseId, inclineLevel);
-    return safeNum(get().cooldownAdjustments[key]?.factor, 1);
-  },
-
+  getProfile: (exId, lvl) => get().profiles[getProfileKey(exId, lvl)] ?? null,
+  getCooldownFactor: (exId, lvl) => safeNum(get().cooldownAdjustments[getProfileKey(exId, lvl)]?.factor, 1),
   loadFromStorage: async () => {
     try {
-      const [profileData, adjustmentData] = await Promise.all([
-        AsyncStorage.getItem(PROFILES_STORAGE_KEY),
-        AsyncStorage.getItem(ADJUSTMENTS_STORAGE_KEY),
-      ]);
+      const [profileData, adjustmentData] = await Promise.all([AsyncStorage.getItem(PROFILES_STORAGE_KEY), AsyncStorage.getItem(ADJUSTMENTS_STORAGE_KEY)]);
       const update: Partial<AdaptiveRepState> = { isLoaded: true };
       if (profileData) {
         const parsed = JSON.parse(profileData);
@@ -462,10 +358,10 @@ function calculateConfidence(timings: RepTiming[]): number {
 }
 
 function updateProfileROM(state: AdaptiveRepState, set: (partial: Partial<AdaptiveRepState>) => void) {
-  const exerciseId = state._currentExerciseId;
-  const inclineLevel = state._currentInclineLevel;
-  if (!exerciseId || inclineLevel === null) return;
-  const key = getProfileKey(exerciseId, inclineLevel);
+  const exId = state._currentExerciseId;
+  const lvl = state._currentInclineLevel;
+  if (!exId || lvl === null) return;
+  const key = getProfileKey(exId, lvl);
   const existing = state.profiles[key];
   const validPeaks = state.measuredPeaks.filter(p => Number.isFinite(p));
   if (validPeaks.length === 0) return;
@@ -473,7 +369,7 @@ function updateProfileROM(state: AdaptiveRepState, set: (partial: Partial<Adapti
   const minMeasuredPeak = Math.min(Math.min(...validPeaks) * 0.8, avgMeasuredROM * 0.7);
   let newProfile: ExerciseProfile;
   if (!existing || existing.sampleCount === 0) {
-    newProfile = { exerciseId, inclineLevel, avgROM: avgMeasuredROM, minPeak: Math.max(minMeasuredPeak, 0.10), romConfidence: C.INITIAL_ROM_CONFIDENCE, sampleCount: validPeaks.length, lastUpdated: new Date() };
+    newProfile = { exerciseId: exId, inclineLevel: lvl, avgROM: avgMeasuredROM, minPeak: Math.max(minMeasuredPeak, 0.10), romConfidence: C.INITIAL_ROM_CONFIDENCE, sampleCount: validPeaks.length, lastUpdated: new Date() };
   } else {
     const existingAvgROM = safeNum(existing.avgROM, avgMeasuredROM);
     const existingMinPeak = safeNum(existing.minPeak, Math.max(minMeasuredPeak, 0.10));
@@ -488,7 +384,6 @@ function updateProfileROM(state: AdaptiveRepState, set: (partial: Partial<Adapti
 
 let globalInactivityTimer: ReturnType<typeof setTimeout> | null = null;
 let timerStartTime: number = 0;
-
 function startInactivityTimer(get: () => AdaptiveRepState, set: (partial: Partial<AdaptiveRepState>) => void) {
   if (globalInactivityTimer) clearTimeout(globalInactivityTimer);
   timerStartTime = Date.now();
@@ -501,14 +396,5 @@ function startInactivityTimer(get: () => AdaptiveRepState, set: (partial: Partia
     }
   }, C.INACTIVITY_TIMEOUT_MS);
 }
-
-function resetInactivityTimer(get: () => AdaptiveRepState, set: (partial: Partial<AdaptiveRepState>) => void) {
-  startInactivityTimer(get, set);
-}
-
-function clearInactivityTimer() {
-  if (globalInactivityTimer) {
-    clearTimeout(globalInactivityTimer);
-    globalInactivityTimer = null;
-  }
-}
+function resetInactivityTimer(get: () => AdaptiveRepState, set: (partial: Partial<AdaptiveRepState>) => void) { startInactivityTimer(get, set); }
+function clearInactivityTimer() { if (globalInactivityTimer) { clearTimeout(globalInactivityTimer); globalInactivityTimer = null; } }

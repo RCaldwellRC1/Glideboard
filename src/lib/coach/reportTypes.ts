@@ -34,13 +34,6 @@ export interface WeeklyReport {
     intensity: number; // percentage change in TUT/Rep
     consistency: number; // change in weekly streak
   };
-
-  // The user's goals set AFTER viewing this report
-  goals?: {
-    tactical: string; // e.g. "Control", "Balance"
-    identity: string; // e.g. "The Sculptor", "Modern Spartan"
-    timestamp: string;
-  };
 }
 
 export const WORKOUT_FREQUENCY_GUIDE = {

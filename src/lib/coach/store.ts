@@ -51,11 +51,10 @@ interface CoachState {
   // Revert a routine to its original default state.
   resetRoutine: (routineId: string) => void;
 
-  // --- Reports & Goals ---
+  // --- Reports ---
   reports: WeeklyReport[];
   currentReport: WeeklyReport | null;
   generateReportIfNeeded: () => void;
-  setGoals: (reportId: string, tactical: string, identity: string) => void;
 }
 
 // Pull the user's display name from the saved profile, matching what the
@@ -295,30 +294,6 @@ export const useCoachStore = create<CoachState>((set, get) => {
       const newReports = [newReport, ...reports].slice(0, 12); // Keep last 12 reports
       set({ reports: newReports, currentReport: newReport });
       AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(newReports));
-    },
-
-    setGoals: async (reportId: string, tactical: string, identity: string) => {
-      try {
-        const state = get();
-        const updated = state.reports.map(r => {
-          if (r.id === reportId) {
-            return {
-              ...r,
-              goals: { tactical, identity, timestamp: new Date().toISOString() },
-            };
-          }
-          return r;
-        });
-
-        const nextCurrent = updated.find(r => r.id === reportId) || null;
-        set({ reports: updated, currentReport: nextCurrent });
-
-        // Safe async storage
-        await AsyncStorage.setItem(REPORTS_STORAGE_KEY, JSON.stringify(updated));
-        remoteLog('coach_goals_set', { tactical, identity });
-      } catch (err) {
-        console.error('[COACH] Safe setGoals failure:', err);
-      }
     },
   };
 });
