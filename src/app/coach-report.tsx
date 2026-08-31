@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, Dimensions, Image, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -10,8 +10,6 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useTheme, useSettingsStore, useTextScaleSubscription } from '@/lib/settings';
 import { useCoachStore } from '@/lib/coach/store';
 import { CoachTUTGauge } from '@/components/CoachTUTGauge';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function CoachReportScreen() {
   const insets = useSafeAreaInsets();
@@ -43,9 +41,10 @@ export default function CoachReportScreen() {
     Alert.alert(
       "The Quality Gauge",
       "This dial measures your Average Pace (Seconds per Rep). Different speeds trigger different physiological adaptations:\n\n" +
-      "• POWER (1.0 - 2.8s): Blue Zone. Focus on speed and force. Real-world: Jumping, sprinting, or explosive lifting. High Power output increases athletic reactivity and fast-twitch fiber activation.\n\n" +
-      "• GROWTH (3.0 - 5.8s): Green Zone. The 'Hypertrophy' sweet spot. Science shows that moderate tempo creates optimal micro-tears in muscle fibers, leading to maximized muscle size, definition, and metabolic stress.\n\n" +
-      "• CONTROL (6.0s+): Purple Zone. Maximize 'Time Under Tension'. Benefits include enhanced joint stability, neural drive, and muscle density. You're still building muscle, but with extreme safety and precision.",
+      "POWER (1.0 - 2.8s): Blue Zone. Focus on speed and force. Real-world examples include jumping, sprinting, or explosive lifting. High Power output increases athletic reactivity and fast-twitch fiber activation.\n\n" +
+      "GROWTH (3.0 - 5.8s): Green Zone. The 'Hypertrophy' sweet spot. Science shows that moderate tempo creates optimal micro-tears in muscle fibers, leading to maximized muscle size, definition, and metabolic stress. This is where most visual body transformation occurs.\n\n" +
+      "CONTROL (6.0s+): Purple Zone. Maximize 'Time Under Tension'. Benefits include enhanced joint stability, neural drive (mind-muscle connection), and muscle density. You are still building muscle, but with extreme safety and precision.\n\n" +
+      "Note: You can build muscle in all three zones, but the 'Growth' zone is specialized for size.",
       [{ text: "Got it" }]
     );
   };
@@ -68,7 +67,7 @@ export default function CoachReportScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 40 }}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
       >
@@ -141,7 +140,7 @@ export default function CoachReportScreen() {
                 <View
                   key={item.category}
                   style={{ width: '48%', backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827', borderColor: theme.divider }}
-                  className="rounded-2xl p-2.5 mb-2.5 border items-center shadow-sm"
+                  className="rounded-2xl p-2.5 mb-3 border items-center shadow-sm"
                 >
                   <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold text-[10px] uppercase mb-4">{item.category}</Text>
                   <CoachTUTGauge averagePace={item.averagePace} isLarge={largeDisplayMode} />
