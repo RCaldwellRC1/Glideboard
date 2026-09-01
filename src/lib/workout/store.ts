@@ -8,6 +8,7 @@ import {
 } from './types';
 import { getExerciseCategory, categoryColor } from './categories';
 import { remoteLog } from '@/lib/remoteLog';
+import { updateAppIconBadge } from '@/lib/notifications';
 
 interface WorkoutState {
   workoutHistory: Workout[];
@@ -18,6 +19,7 @@ interface WorkoutState {
 
   // Active workout state
   isWorkoutActive: boolean;
+  isSetActive: boolean;
   currentWorkoutSets: WorkoutSet[];
   currentExercise: string;
   currentInclineLevel: number;
@@ -82,6 +84,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   isLoaded: false,
 
   isWorkoutActive: false,
+  isSetActive: false,
   currentWorkoutSets: [],
   currentExercise: EXERCISE_GROUPS[0].exercises[0],
   currentInclineLevel: 1,
@@ -176,6 +179,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   startWorkout: () => {
     set({
       isWorkoutActive: true,
+      isSetActive: false,
       currentWorkoutSets: [],
       workoutStartTime: new Date(),
       currentSet: 0,
@@ -187,7 +191,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   endWorkout: () => {
     const state = get();
     if (state.currentWorkoutSets.length === 0) {
-      set({ isWorkoutActive: false, workoutStartTime: null });
+      set({ isWorkoutActive: false, isSetActive: false, workoutStartTime: null });
       return null;
     }
 
@@ -207,21 +211,23 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
     set(prev => ({
       isWorkoutActive: false,
+      isSetActive: false,
       workoutStartTime: null,
       workoutHistory: [newWorkout, ...prev.workoutHistory],
       justCompletedDate: dateStr,
     }));
 
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
     return dateStr;
   },
 
   cancelWorkout: () => {
-    set({ isWorkoutActive: false, currentWorkoutSets: [], workoutStartTime: null });
+    set({ isWorkoutActive: false, isSetActive: false, currentWorkoutSets: [], workoutStartTime: null });
   },
 
   setExercise: (exercise: string) => {
-    set({ currentExercise: exercise, currentReps: 0, currentSet: 0, currentTUT: 0 });
+    set({ currentExercise: exercise, currentReps: 0, currentSet: 0, currentTUT: 0, isSetActive: false });
   },
 
   setInclineLevel: (level: number) => {
@@ -241,10 +247,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       const reps = prev.currentReps + 1;
       let tut = prev.currentTUT;
 
-      // Calculate TUT for voice/manual reps based on time since set start
       if (prev.setStartTime) {
          const totalMs = Date.now() - prev.setStartTime.getTime();
-         // Use totalMs for TUT if it's currently 0 or smaller than this
          if (tut === 0) {
            tut = totalMs / 1000;
          }
@@ -264,6 +268,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
   startSet: () => {
     set(prev => ({
+      isSetActive: true,
       currentReps: 0,
       currentTUT: 0,
       currentSet: prev.currentSet + 1,
@@ -317,6 +322,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }
 
     set(prev => ({
+      isSetActive: false,
       setStartTime: null,
       currentReps: 0,
       currentTUT: 0,
@@ -325,10 +331,12 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }));
 
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   cancelSet: () => {
     set(prev => ({
+      isSetActive: false,
       setStartTime: null,
       currentReps: 0,
       currentTUT: 0,
@@ -349,12 +357,14 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     };
 
     set(prev => ({
+      isSetActive: false,
       setStartTime: null,
       currentSet: prev.currentSet + 1,
       currentWorkoutSets: [...prev.currentWorkoutSets, newSet],
     }));
 
     get().saveToStorage();
+    updateAppIconBadge(get().workoutHistory);
   },
 
   updateSetReps: (workoutId: string, setIndex: number, reps: number) => {
