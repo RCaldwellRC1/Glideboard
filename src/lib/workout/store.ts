@@ -8,7 +8,6 @@ import {
 } from './types';
 import { getExerciseCategory, categoryColor } from './categories';
 import { remoteLog } from '@/lib/remoteLog';
-import { updateAppIconBadge } from '@/lib/notifications';
 
 interface WorkoutState {
   workoutHistory: Workout[];
@@ -218,7 +217,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }));
 
     get().saveToStorage();
-    updateAppIconBadge(get().workoutHistory);
     return dateStr;
   },
 
@@ -331,7 +329,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }));
 
     get().saveToStorage();
-    updateAppIconBadge(get().workoutHistory);
   },
 
   cancelSet: () => {
@@ -357,14 +354,13 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     };
 
     set(prev => ({
-      isSetActive: false,
       setStartTime: null,
+      isSetActive: false,
       currentSet: prev.currentSet + 1,
       currentWorkoutSets: [...prev.currentWorkoutSets, newSet],
     }));
 
     get().saveToStorage();
-    updateAppIconBadge(get().workoutHistory);
   },
 
   updateSetReps: (workoutId: string, setIndex: number, reps: number) => {
