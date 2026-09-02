@@ -45,6 +45,7 @@ interface WorkoutState {
   setInclineLevel: (level: number) => void;
   setCurrentWeight: (weight: number) => void;
   setCurrentTUT: (seconds: number) => void;
+  setTimedDuration: (exercise: string, seconds: number) => void;
 
   incrementReps: () => void;
   setReps: (reps: number) => void;
@@ -114,18 +115,15 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           };
         }).filter(Boolean);
 
-        // --- Data Migration / Normalization ---
         const historyMap = new Map<string, ExerciseHistory>();
         history.forEach(workout => {
           workout.sets.forEach(s => {
             const name = (s.exercise || '').trim();
             const level = Number(s.inclineLevel);
             if (!name || isNaN(level)) return;
-
             const key = `${name.toLowerCase()}::${level}`;
             const existing = historyMap.get(key);
             const date = new Date(workout.date);
-
             if (!existing || date > existing.lastDate) {
               historyMap.set(key, {
                 exercise: name,
@@ -140,7 +138,6 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           });
         });
         const migratedExerciseHistory = Array.from(historyMap.values());
-        // --- End Migration ---
 
         set({
           workoutHistory: history,
@@ -176,15 +173,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   },
 
   startWorkout: () => {
-    set({
-      isWorkoutActive: true,
-      isSetActive: false,
-      currentWorkoutSets: [],
-      workoutStartTime: new Date(),
-      currentSet: 0,
-      currentReps: 0,
-      currentTUT: 0,
-    });
+    set({ isWorkoutActive: true, isSetActive: false, currentWorkoutSets: [], workoutStartTime: new Date(), currentSet: 0, currentReps: 0, currentTUT: 0 });
   },
 
   endWorkout: () => {
@@ -193,244 +182,82 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       set({ isWorkoutActive: false, isSetActive: false, workoutStartTime: null });
       return null;
     }
-
     const now = new Date();
-    const duration = state.workoutStartTime
-      ? Math.floor((now.getTime() - state.workoutStartTime.getTime()) / 1000)
-      : 0;
-
-    const newWorkout: Workout = {
-      id: Date.now().toString(),
-      date: now,
-      sets: state.currentWorkoutSets,
-      duration,
-    };
-
+    const duration = state.workoutStartTime ? Math.floor((now.getTime() - state.workoutStartTime.getTime()) / 1000) : 0;
+    const newWorkout: Workout = { id: Date.now().toString(), date: now, sets: state.currentWorkoutSets, duration };
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-    set(prev => ({
-      isWorkoutActive: false,
-      isSetActive: false,
-      workoutStartTime: null,
-      workoutHistory: [newWorkout, ...prev.workoutHistory],
-      justCompletedDate: dateStr,
-    }));
-
+    set(prev => ({ isWorkoutActive: false, isSetActive: false, workoutStartTime: null, workoutHistory: [newWorkout, ...prev.workoutHistory], justCompletedDate: dateStr }));
     get().saveToStorage();
     return dateStr;
   },
 
-  cancelWorkout: () => {
-    set({ isWorkoutActive: false, isSetActive: false, currentWorkoutSets: [], workoutStartTime: null });
-  },
-
-  setExercise: (exercise: string) => {
-    set({ currentExercise: exercise, currentReps: 0, currentSet: 0, currentTUT: 0, isSetActive: false });
-  },
-
-  setInclineLevel: (level: number) => {
-    set({ currentInclineLevel: level });
-  },
-
-  setCurrentWeight: (weight: number) => {
-    set({ currentWeight: weight });
-  },
-
-  setCurrentTUT: (seconds: number) => {
-    set({ currentTUT: Math.max(0, seconds) });
+  cancelWorkout: () => { set({ isWorkoutActive: false, isSetActive: false, currentWorkoutSets: [], workoutStartTime: null }); },
+  setExercise: (exercise: string) => { set({ currentExercise: exercise, currentReps: 0, currentSet: 0, currentTUT: 0, isSetActive: false }); },
+  setInclineLevel: (level: number) => { set({ currentInclineLevel: level }); },
+  setCurrentWeight: (weight: number) => { set({ currentWeight: weight }); },
+  setCurrentTUT: (seconds: number) => { set({ currentTUT: Math.max(0, seconds) }); },
+  setTimedDuration: (exercise: string, seconds: number) => {
+    set(prev => ({ timedDurations: { ...prev.timedDurations, [exercise]: seconds } }));
+    get().saveToStorage();
   },
 
   incrementReps: () => {
     set(prev => {
       const reps = prev.currentReps + 1;
       let tut = prev.currentTUT;
-
       if (prev.setStartTime) {
          const totalMs = Date.now() - prev.setStartTime.getTime();
-         if (tut === 0) {
-           tut = totalMs / 1000;
-         }
+         if (tut === 0 || totalMs / 1000 > tut) { tut = totalMs / 1000; }
       }
-
       return { currentReps: reps, currentTUT: tut };
     });
   },
-
-  setReps: (reps: number) => {
-    set({ currentReps: reps });
-  },
-
-  resetReps: () => {
-    set({ currentReps: 0, currentTUT: 0 });
-  },
+  setReps: (reps: number) => { set({ currentReps: reps }); },
+  resetReps: () => { set({ currentReps: 0, currentTUT: 0 }); },
 
   startSet: () => {
-    set(prev => ({
-      isSetActive: true,
-      currentReps: 0,
-      currentTUT: 0,
-      currentSet: prev.currentSet + 1,
-      setStartTime: new Date(),
-    }));
+    set(prev => ({ isSetActive: true, currentReps: 0, currentTUT: 0, currentSet: prev.currentSet + 1, setStartTime: new Date() }));
   },
 
   endSet: () => {
     const state = get();
     const isFreestyle = getExerciseCategory(state.currentExercise, state.customExercises) === 'freestyle';
     const levelKey = Number(isFreestyle ? state.currentWeight : state.currentInclineLevel);
+    const newSet: WorkoutSet = { exercise: state.currentExercise.trim(), inclineLevel: levelKey, reps: state.currentReps, timestamp: new Date(), ...(isFreestyle ? { weight: state.currentWeight } : {}), ...(state.currentTUT > 0 ? { tutSeconds: state.currentTUT } : {}) };
 
-    const newSet: WorkoutSet = {
-      exercise: state.currentExercise.trim(),
-      inclineLevel: levelKey,
-      reps: state.currentReps,
-      timestamp: new Date(),
-      ...(isFreestyle ? { weight: state.currentWeight } : {}),
-      ...(state.currentTUT > 0 ? { tutSeconds: state.currentTUT } : {}),
-    };
-
-    // Update exercise history
-    const existingHistory = state.exerciseHistory.find(
-      h => h.exercise.trim().toLowerCase() === state.currentExercise.trim().toLowerCase() &&
-           Number(h.inclineLevel) === levelKey
-    );
-
+    const cleanEx = state.currentExercise.trim().toLowerCase();
+    const existingIndex = state.exerciseHistory.findIndex(h => h.exercise.trim().toLowerCase() === cleanEx && Number(h.inclineLevel) === levelKey);
     let updatedExerciseHistory = [...state.exerciseHistory];
-
-    if (existingHistory) {
-      updatedExerciseHistory = updatedExerciseHistory.map(h => {
-        if (h.exercise.trim().toLowerCase() === state.currentExercise.trim().toLowerCase() &&
-            Number(h.inclineLevel) === levelKey) {
-          return {
-            ...h,
-            lastReps: state.currentReps,
-            bestReps: Math.max(h.bestReps, state.currentReps),
-            lastDate: new Date(),
-          };
-        }
-        return h;
-      });
+    if (existingIndex >= 0) {
+      const h = updatedExerciseHistory[existingIndex];
+      updatedExerciseHistory[existingIndex] = { ...h, lastReps: state.currentReps, bestReps: Math.max(h.bestReps, state.currentReps), lastDate: new Date() };
     } else {
-      updatedExerciseHistory.push({
-        exercise: state.currentExercise.trim(),
-        inclineLevel: levelKey,
-        bestReps: state.currentReps,
-        lastReps: state.currentReps,
-        lastDate: new Date(),
-      });
+      updatedExerciseHistory.push({ exercise: state.currentExercise.trim(), inclineLevel: levelKey, bestReps: state.currentReps, lastReps: state.currentReps, lastDate: new Date() });
     }
-
-    set(prev => ({
-      isSetActive: false,
-      setStartTime: null,
-      currentReps: 0,
-      currentTUT: 0,
-      currentWorkoutSets: [...prev.currentWorkoutSets, newSet],
-      exerciseHistory: updatedExerciseHistory,
-    }));
-
+    set(prev => ({ isSetActive: false, setStartTime: null, currentReps: 0, currentTUT: 0, currentWorkoutSets: [...prev.currentWorkoutSets, newSet], exerciseHistory: updatedExerciseHistory }));
     get().saveToStorage();
   },
 
-  cancelSet: () => {
-    set(prev => ({
-      isSetActive: false,
-      setStartTime: null,
-      currentReps: 0,
-      currentTUT: 0,
-      currentSet: Math.max(0, prev.currentSet - 1),
-    }));
-  },
+  cancelSet: () => { set(prev => ({ isSetActive: false, setStartTime: null, currentReps: 0, currentTUT: 0, currentSet: Math.max(0, prev.currentSet - 1) })); },
 
   endTimedSet: (held: number) => {
     const state = get();
-    const newSet: WorkoutSet = {
-      exercise: state.currentExercise.trim(),
-      inclineLevel: 0,
-      reps: 0,
-      timestamp: new Date(),
-      kind: 'timed',
-      durationSeconds: held,
-      tutSeconds: held,
-    };
-
-    set(prev => ({
-      setStartTime: null,
-      isSetActive: false,
-      currentSet: prev.currentSet + 1,
-      currentWorkoutSets: [...prev.currentWorkoutSets, newSet],
-    }));
-
+    const newSet: WorkoutSet = { exercise: state.currentExercise.trim(), inclineLevel: 0, reps: 0, timestamp: new Date(), kind: 'timed', durationSeconds: held, tutSeconds: held };
+    set(prev => ({ setStartTime: null, isSetActive: false, currentSet: prev.currentSet, currentWorkoutSets: [...prev.currentWorkoutSets, newSet] }));
     get().saveToStorage();
   },
 
   updateSetReps: (workoutId: string, setIndex: number, reps: number) => {
-    set(prev => ({
-      workoutHistory: prev.workoutHistory.map(w => {
-        if (w.id !== workoutId) return w;
-        const newSets = [...w.sets];
-        newSets[setIndex] = { ...newSets[setIndex], reps };
-        return { ...w, sets: newSets };
-      }),
-    }));
+    set(prev => ({ workoutHistory: prev.workoutHistory.map(w => w.id !== workoutId ? w : { ...w, sets: w.sets.map((s, i) => i === setIndex ? { ...s, reps } : s) }) }));
     get().saveToStorage();
   },
-
   deleteSet: (workoutId: string, setIndex: number) => {
-    set(prev => ({
-      workoutHistory: prev.workoutHistory
-        .map(w => {
-          if (w.id !== workoutId) return w;
-          return { ...w, sets: w.sets.filter((_, i) => i !== setIndex) };
-        })
-        .filter(w => w.sets.length > 0),
-    }));
+    set(prev => ({ workoutHistory: prev.workoutHistory.map(w => w.id !== workoutId ? w : { ...w, sets: w.sets.filter((_, i) => i !== setIndex) }).filter(w => w.sets.length > 0) }));
     get().saveToStorage();
   },
-
-  addCustomExercise: (group: string, name: string) => {
-    set(prev => {
-      const updated = { ...prev.customExercises };
-      const list = updated[group] ?? [];
-      if (!list.includes(name)) {
-        updated[group] = [...list, name];
-      }
-      return { customExercises: updated };
-    });
-    get().saveToStorage();
-  },
-
-  renameCustomExercise: (group: string, oldName: string, newName: string) => {
-    set(prev => {
-      const updated = { ...prev.customExercises };
-      const list = updated[group] ?? [];
-      updated[group] = list.map(n => n === oldName ? newName : n);
-
-      const newHistory = prev.workoutHistory.map(w => ({
-        ...w,
-        sets: w.sets.map(s => s.exercise === oldName ? { ...s, exercise: newName } : s),
-      }));
-
-      return { customExercises: updated, workoutHistory: newHistory };
-    });
-    get().saveToStorage();
-  },
-
-  getLastPerformance: (exercise: string, inclineLevel: number) => {
-    const state = get();
-    const cleanEx = exercise.trim().toLowerCase();
-    const cleanLevel = Number(inclineLevel);
-
-    return state.exerciseHistory.find(
-      h => h.exercise.trim().toLowerCase() === cleanEx && Number(h.inclineLevel) === cleanLevel
-    ) ?? null;
-  },
-
-  markPRsSeen: (keys: string[]) => {
-    set(prev => ({ seenPRs: [...new Set([...prev.seenPRs, ...keys])] }));
-    get().saveToStorage();
-  },
-
-  clearJustCompleted: () => {
-    set({ justCompletedDate: null });
-  },
+  addCustomExercise: (group: string, name: string) => { set(prev => { const updated = { ...prev.customExercises }; const list = updated[group] ?? []; if (!list.includes(name)) updated[group] = [...list, name]; return { customExercises: updated }; }); get().saveToStorage(); },
+  renameCustomExercise: (group: string, old: string, nw: string) => { set(prev => { const updated = { ...prev.customExercises }; const list = updated[group] ?? []; updated[group] = list.map(n => n === old ? nw : n); const h = prev.workoutHistory.map(w => ({ ...w, sets: w.sets.map(s => s.exercise === old ? { ...s, exercise: nw } : s) })); return { customExercises: updated, workoutHistory: h }; }); get().saveToStorage(); },
+  getLastPerformance: (ex: string, lvl: number) => { const state = get(); const cleanEx = ex.trim().toLowerCase(); const cleanLvl = Number(lvl); return state.exerciseHistory.find(h => h.exercise.trim().toLowerCase() === cleanEx && Number(h.inclineLevel) === cleanLvl) ?? null; },
+  markPRsSeen: (keys: string[]) => { set(prev => ({ seenPRs: [...new Set([...prev.seenPRs, ...keys])] })); get().saveToStorage(); },
+  clearJustCompleted: () => { set({ justCompletedDate: null }); },
 }));

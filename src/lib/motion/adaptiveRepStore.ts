@@ -225,7 +225,7 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     const paceFactor = Math.max(0.5, Math.min(1.0, 2.0 / (state._expectedRepMs / 1000 || 2.0)));
 
     const triggerThreshold = state.isLearningROM ? 0.05 * sens * paceFactor : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
-    const returnThreshold = 0.04 * sens; // Lower threshold to capture full return stroke
+    const returnThreshold = 0.04 * sens;
 
     if (deviation > state.peakDeviation) set({ peakDeviation: deviation });
 
@@ -236,13 +236,11 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       resetInactivityTimer(get, set);
     }
     else if (currentDirection === 'away') {
-      // Reached peak
       if (deviation < state.peakDeviation * 0.5 && state.peakDeviation > triggerThreshold * 1.1) {
         set({ movingDirection: 'returning' });
       }
     }
     else if (currentDirection === 'returning' && deviation < returnThreshold) {
-      // Returned to rest - end rep
       const repDuration = now - (state.repStartTime ?? now);
       const peak = state.peakDeviation;
       const rawMinPeak = state.isLearningROM ? MIN_PEAK_FOR_REP : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
