@@ -306,8 +306,8 @@ function CoachTrophyCard({
 // that gently pulses, and a "Next Level Unlocked" flourish. Only rendered once
 // the program is actually complete, so users never see it before they earn it.
 function ProgramChampionCard({
-  program, completedAt, isLarge, onPress,
-}: { program: CoachProgram; completedAt: string | null; isLarge: boolean; onPress: () => void }) {
+  program, completedAt, isLarge, onPress, completionCount,
+}: { program: CoachProgram; completedAt: string | null; isLarge: boolean; onPress: () => void; completionCount: number }) {
   const glow = useSharedValue(0);
   const crownScale = useSharedValue(1);
 
@@ -380,7 +380,7 @@ function ProgramChampionCard({
                 {program.title}
               </Text>
               <Text className={`text-yellow-100/90 mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'}`} numberOfLines={1}>
-                Full 4-week program complete
+                Completed {completionCount} {completionCount === 1 ? 'Time' : 'Times'}
               </Text>
               {dateLabel && (
                 <Text className={`text-white font-semibold mt-1 ${isLarge ? 'text-xs' : 'text-sm'}`} numberOfLines={1}>
@@ -1096,6 +1096,7 @@ export default function TrophiesScreen() {
             completedAt={progress.completedAt}
             isLarge={largeDisplayMode}
             onPress={() => router.push(`/coach-program?id=${program.id}`)}
+            completionCount={progress.completionCount}
           />
         ))}
 

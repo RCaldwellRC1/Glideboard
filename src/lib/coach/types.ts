@@ -283,7 +283,84 @@ const BEGINNER_TOTAL_GYM: CoachProgram = {
   ],
 };
 
-export const COACH_PROGRAMS: CoachProgram[] = [BEGINNER_TOTAL_GYM];
+const PPL_OVERVIEW = `Push, Pull, Legs — One Month Program
+
+This is a One Month Program. You can Complete it as many times as you like. Adjust it to fit your goals if you like. You'll receive an updated Trophy for each completion.
+
+Push Day targets your Chest, Shoulders, and Triceps.
+Pull Day targets your Back and Biceps.
+Legs Day targets your Lower Body and Core.
+
+WEEKLY SCHEDULE
+• Day 1 — Push Day
+• Day 2 — Pull Day
+• Day 3 — Legs Day
+• Day 4 — Rest
+• Day 5 — Repeat Cycle (Push)
+• Day 6 — Pull
+• Day 7 — Legs / Rest
+
+Repeat this cycle 4 times to complete the program.`;
+
+const PPL_PROGRAM: CoachProgram = {
+  id: 'push-pull-legs',
+  title: 'Push, Pull, Legs',
+  subtitle: '4 weeks · 3-day cycle · High Volume',
+  overview: PPL_OVERVIEW,
+  workouts: [
+    {
+      id: 'ppl-push',
+      title: 'Push Day',
+      subtitle: '8 exercises · Chest, Shoulders, Triceps',
+      instructions: 'Targeting your pushing muscles. Focus on controlled eccentric movements.',
+      programLength: 4,
+      steps: [
+        { group: 'CHEST', exercise: 'Chest Press', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'CHEST', exercise: 'Chest Flys', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'CHEST', exercise: 'Chest Press Incline', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'SHOULDERS', exercise: 'Shoulder Press', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Tricep Cable Extensions', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Tricep Dips', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Skull Crusher', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'CORE', exercise: 'Ab Roller', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+      ],
+    },
+    {
+      id: 'ppl-pull',
+      title: 'Pull Day',
+      subtitle: '8 exercises · Back, Biceps',
+      instructions: 'Targeting your pulling muscles. Imagine your hands are just hooks and pull with your elbows.',
+      programLength: 4,
+      steps: [
+        { group: 'BACK', exercise: 'Rows (Low)', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'BACK', exercise: 'Pull-Ups', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'BACK', exercise: 'Chin-Ups', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'BACK', exercise: 'Rows (Mid)', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Long Arm Curls', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Seated Bicep Curls', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'ARMS', exercise: 'Hammer Curls', sets: 2, repRangeLabel: '12 Reps target', targetReps: 12 },
+        { group: 'CORE', exercise: 'Oblique Twists', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+      ],
+    },
+    {
+      id: 'ppl-legs',
+      title: 'Legs Day',
+      subtitle: '6 exercises · Lower Body, Core',
+      instructions: 'Targeting your foundation. Keep your core tight throughout.',
+      programLength: 4,
+      steps: [
+        { group: 'LEGS', exercise: 'Squats', sets: 2, repRangeLabel: '30 Reps target', targetReps: 30 },
+        { group: 'LEGS', exercise: 'Calf Raise', sets: 2, repRangeLabel: '40 Reps target', targetReps: 40 },
+        { group: 'LEGS', exercise: 'Hamstring Curl', sets: 2, repRangeLabel: '20 Reps target', targetReps: 20 },
+        { group: 'LEGS', exercise: 'Alternating Lunges', sets: 2, repRangeLabel: '20 Reps target', targetReps: 20 },
+        { group: 'LEGS', exercise: 'Glute Bridge', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
+        { group: 'CORE', exercise: 'Crunch', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
+      ],
+    },
+  ],
+};
+
+export const COACH_PROGRAMS: CoachProgram[] = [BEGINNER_TOTAL_GYM, PPL_PROGRAM];
 
 // Every workout across all programs, flattened — so the runner can resolve a
 // workout by its id just like a standalone routine.
@@ -307,6 +384,8 @@ export interface ProgramProgress {
   // ISO date the program was completed (when the final requirement was met), or
   // null if it isn't complete yet. Stable once earned.
   completedAt: string | null;
+  // How many full cycles of the program have been finished (for repeating programs).
+  completionCount: number;
 }
 
 export function getProgramProgress(
@@ -318,11 +397,23 @@ export function getProgramProgress(
   const totalWorkouts = program.workouts.length;
   const sessionsRequired = program.workouts.reduce((sum, w) => sum + w.programLength, 0);
 
-  // Walk completions oldest-first so we can capture the exact session that
-  // finished the program.
+  // Filter relevant completions
   const relevant = completions
     .filter(c => targets.has(c.routineId))
     .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime());
+
+  // Count total completions per routine
+  const totalCounts = new Map<string, number>();
+  relevant.forEach(c => {
+    totalCounts.set(c.routineId, (totalCounts.get(c.routineId) ?? 0) + 1);
+  });
+
+  // completionCount is the minimum of (actual_count / required_count) for all routines in program
+  let completionCount = 0;
+  if (totalWorkouts > 0) {
+    const countsList = program.workouts.map(w => Math.floor((totalCounts.get(w.id) ?? 0) / w.programLength));
+    completionCount = Math.min(...countsList);
+  }
 
   let sessionsDone = 0;
   let workoutsMet = 0;
@@ -331,7 +422,7 @@ export function getProgramProgress(
   for (const c of relevant) {
     const target = targets.get(c.routineId) ?? 0;
     const prev = counts.get(c.routineId) ?? 0;
-    if (prev >= target) continue; // this workout already satisfied — extra reps don't count
+    if (prev >= target) continue;
     const next = prev + 1;
     counts.set(c.routineId, next);
     sessionsDone += 1;
@@ -344,12 +435,13 @@ export function getProgramProgress(
   }
 
   return {
-    complete: workoutsMet === totalWorkouts,
+    complete: completionCount > 0,
     workoutsMet,
     totalWorkouts,
     sessionsDone,
     sessionsRequired,
     completedAt,
+    completionCount,
   };
 }
 

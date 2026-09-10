@@ -29,6 +29,7 @@ const MANUAL_MAPPING: Record<string, string> = {
   'Lunges': 'LEGS',
   'Iso Lunge Hold': 'LEGS',
   'Iso Warrior Pose': 'LEGS',
+  'Tibialis Raise': 'LEGS',
 
   // CHEST
   'Pushups': 'CHEST',
@@ -38,6 +39,7 @@ const MANUAL_MAPPING: Record<string, string> = {
   'Pullups': 'BACK',
   'Superman': 'BACK',
   'Rows': 'BACK',
+  'Scapula Pulls': 'BACK',
 
   // SHOULDERS
   'Shoulder Press': 'SHOULDERS',

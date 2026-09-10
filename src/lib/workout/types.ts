@@ -16,6 +16,7 @@ export const EXERCISE_GROUPS: ExerciseGroup[] = [
       'Hip Adduction',
       'Glute Bridge',
       'Alternating Lunges',
+      'Tibialis Raise',
     ],
   },
   {
@@ -42,6 +43,7 @@ export const EXERCISE_GROUPS: ExerciseGroup[] = [
       'Crossover Pulls',
       'Chin-Ups',
       'Underhand Rows',
+      'Scapula Pulls',
     ],
   },
   {
