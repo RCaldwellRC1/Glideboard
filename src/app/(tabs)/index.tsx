@@ -95,6 +95,7 @@ export default function TrackerScreen() {
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
   const [learningMsg, setLearningMsg] = useState<string | null>(null);
   const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
+  const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
 
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
   useTextScaleSubscription();
@@ -263,6 +264,33 @@ export default function TrackerScreen() {
     return () => clearInterval(interval);
   }, [ignoreMotion, adaptiveSetState, repCountingMode, adaptiveSetStartTime, setupDelayMs]);
 
+  // ---- Pre-set "get into position" countdown (both counting modes) ----
+  useEffect(() => {
+    if (getReadyLeft === null) return;
+    if (getReadyLeft <= 0) {
+      setGetReadyLeft(null);
+      startSet();
+      return;
+    }
+    const t = setTimeout(() => {
+      setGetReadyLeft(v => (v === null ? null : v - 1));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [getReadyLeft, startSet]);
+
+  const cancelGetReady = useCallback(() => {
+    setGetReadyLeft(null);
+  }, []);
+
+  const beginSet = useCallback(() => {
+    const delay = paceSettings.delayToStart;
+    if (delay <= 0) {
+      startSet();
+    } else {
+      setGetReadyLeft(Math.round(delay));
+    }
+  }, [paceSettings.delayToStart, startSet]);
+
   const SENSOR_FAILURE_GRACE_MS = 2000;
   const [showSensorFailure, setShowSensorFailure] = useState(false);
   const motionSensorHealthy = motionDiagnostics.isHealthy;
@@ -417,18 +445,19 @@ export default function TrackerScreen() {
             onPress={(e) => {
               e.stopPropagation();
               if (isSetActive) handleEndSet();
-              else startSet();
+              else if (getReadyLeft !== null) cancelGetReady();
+              else beginSet();
             }}
             disabled={!isWorkoutActive}
             hitSlop={{ top: 16, bottom: 20, left: 0, right: 16 }}
             className="active:opacity-70 items-center flex-1 py-2"
           >
-            <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? (isSetActive ? 'text-red-500' : 'text-green-500') : 'text-gray-600'}`}>
-              {isSetActive ? 'END SET' : 'START NEXT'}
+            <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? (isSetActive || getReadyLeft !== null ? 'text-red-500' : 'text-green-500') : 'text-gray-600'}`}>
+              {isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : 'START NEXT'}
             </Text>
             {!isSetActive && (
-              <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? 'text-green-500' : 'text-gray-600'}`}>
-                SET
+              <Text allowFontScaling={false} className={`font-bold text-center ${largeDisplayMode ? 'text-lg' : 'text-xl'} ${isWorkoutActive ? (getReadyLeft !== null ? 'text-red-500' : 'text-green-500') : 'text-gray-600'}`}>
+                {getReadyLeft !== null ? 'START' : 'SET'}
               </Text>
             )}
           </Pressable>
@@ -530,6 +559,14 @@ export default function TrackerScreen() {
               onSetDuration={(s) => setTimedDuration(currentExercise, s)}
               onFinalized={(h) => endTimedSet(h)}
             />
+          ) : getReadyLeft !== null ? (
+            <View
+              style={{ backgroundColor: theme.card, borderColor: '#eab308' }}
+              className={`flex-1 mr-2 border-2 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`}
+            >
+              <Text className={`text-yellow-500 tracking-wide font-semibold ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>GET READY</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{getReadyLeft}</Text>
+            </View>
           ) : isPaceSetterMode ? (
             <Pressable className="flex-1 mr-2" onPress={() => setIsPaceSetterMode(false)}>
               <PaceSetterGauge size={largeDisplayMode ? 140 : 160} isActive={isSetActive} currentReps={currentReps} isLarge={largeDisplayMode} />
@@ -544,9 +581,9 @@ export default function TrackerScreen() {
             </Pressable>
           )}
 
-          <View className={`flex-1 ml-2 border-2 border-orange-500 rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`} style={{ backgroundColor: theme.card }}>
+          <View className={`flex-1 ml-2 border-2 ${getReadyLeft !== null ? 'border-gray-500/30' : 'border-orange-500'} rounded-2xl p-3 items-center justify-center ${largeDisplayMode ? 'min-h-[140px]' : 'min-h-[160px]'}`} style={{ backgroundColor: theme.card }}>
             <Text style={{ color: theme.subText }} className={`tracking-wide ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>SET</Text>
-            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: theme.text }} className={`font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentSet}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={{ color: getReadyLeft !== null ? theme.subText : theme.text }} className={`font-bold ${largeDisplayMode ? 'text-7xl' : 'text-8xl'}`}>{currentSet}</Text>
           </View>
         </View>
 
