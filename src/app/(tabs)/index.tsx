@@ -113,7 +113,11 @@ export default function TrackerScreen() {
   const expectedRepMs = (paceSettings.liftTime + paceSettings.holdTime + paceSettings.downTime) * 1000;
   const minRepDurationMs = jitterFloorMsMap[motionSensitivity];
   const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity], Math.round(expectedRepMs * 0.85));
-  const setupDelayMs = paceSettings.delayToStart * 1000;
+  // Motion counting needs a brief window to read a steady baseline once the
+  // set begins. The actual positioning is now handled by the big "GET READY"
+  // countdown in the Reps box, so we keep this brief (900ms) to avoid
+  // making the user wait twice.
+  const setupDelayMs = 900;
 
   const router = useRouter();
   const { hasFullAccess, isLoading: isAccessLoading } = useHasFullAccess();
@@ -494,7 +498,7 @@ export default function TrackerScreen() {
               <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
                 <Loader size={16} color="#eab308" />
                 <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 ml-2 font-medium flex-shrink ${largeDisplayMode ? 'text-sm' : 'text-base'}`}>
-                  Get into position{setupSecondsLeft > 0 ? `... ${setupSecondsLeft}s` : '...'}
+                  Get into position...
                 </Text>
               </View>
             ) : isLearningROM ? (
