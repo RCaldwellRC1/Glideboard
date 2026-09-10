@@ -38,7 +38,7 @@ interface WorkoutState {
   saveToStorage: () => Promise<void>;
 
   startWorkout: () => void;
-  endWorkout: () => string | null;
+  endWorkout: (params?: { routineId?: string; routineTitle?: string }) => Workout | null;
   cancelWorkout: () => void;
 
   setExercise: (exercise: string) => void;
@@ -115,6 +115,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
           };
         }).filter(Boolean);
 
+        // --- Data Migration ---
         const historyMap = new Map<string, ExerciseHistory>();
         history.forEach(workout => {
           workout.sets.forEach(s => {
@@ -176,7 +177,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ isWorkoutActive: true, isSetActive: false, currentWorkoutSets: [], workoutStartTime: new Date(), currentSet: 0, currentReps: 0, currentTUT: 0 });
   },
 
-  endWorkout: () => {
+  endWorkout: (params) => {
     const state = get();
     if (state.currentWorkoutSets.length === 0) {
       set({ isWorkoutActive: false, isSetActive: false, workoutStartTime: null });
@@ -184,11 +185,18 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     }
     const now = new Date();
     const duration = state.workoutStartTime ? Math.floor((now.getTime() - state.workoutStartTime.getTime()) / 1000) : 0;
-    const newWorkout: Workout = { id: Date.now().toString(), date: now, sets: state.currentWorkoutSets, duration };
+    const newWorkout: Workout = {
+      id: Date.now().toString(),
+      date: now,
+      sets: state.currentWorkoutSets,
+      duration,
+      routineId: params?.routineId,
+      routineTitle: params?.routineTitle,
+    };
     const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     set(prev => ({ isWorkoutActive: false, isSetActive: false, workoutStartTime: null, workoutHistory: [newWorkout, ...prev.workoutHistory], justCompletedDate: dateStr }));
     get().saveToStorage();
-    return dateStr;
+    return newWorkout;
   },
 
   cancelWorkout: () => { set({ isWorkoutActive: false, isSetActive: false, currentWorkoutSets: [], workoutStartTime: null }); },
@@ -207,7 +215,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       let tut = prev.currentTUT;
       if (prev.setStartTime) {
          const totalMs = Date.now() - prev.setStartTime.getTime();
-         if (tut === 0 || totalMs / 1000 > tut) { tut = totalMs / 1000; }
+         if (tut === 0 || (totalMs / 1000) > tut) { tut = totalMs / 1000; }
       }
       return { currentReps: reps, currentTUT: tut };
     });
@@ -223,7 +231,15 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     const state = get();
     const isFreestyle = getExerciseCategory(state.currentExercise, state.customExercises) === 'freestyle';
     const levelKey = Number(isFreestyle ? state.currentWeight : state.currentInclineLevel);
-    const newSet: WorkoutSet = { exercise: state.currentExercise.trim(), inclineLevel: levelKey, reps: state.currentReps, timestamp: new Date(), ...(isFreestyle ? { weight: state.currentWeight } : {}), ...(state.currentTUT > 0 ? { tutSeconds: state.currentTUT } : {}) };
+
+    const newSet: WorkoutSet = {
+      exercise: state.currentExercise.trim(),
+      inclineLevel: levelKey,
+      reps: state.currentReps,
+      timestamp: new Date(),
+      ...(isFreestyle ? { weight: state.currentWeight } : {}),
+      ...(state.currentTUT > 0 ? { tutSeconds: state.currentTUT } : {})
+    };
 
     const cleanEx = state.currentExercise.trim().toLowerCase();
     const existingIndex = state.exerciseHistory.findIndex(h => h.exercise.trim().toLowerCase() === cleanEx && Number(h.inclineLevel) === levelKey);
