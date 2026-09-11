@@ -15,6 +15,7 @@ interface ExerciseBlock {
 // the way it was done). Consecutive runs of the same exercise stay together.
 function groupByExercise(sets: WorkoutSet[]): ExerciseBlock[] {
   const blocks: ExerciseBlock[] = [];
+  if (!sets || !Array.isArray(sets)) return blocks;
   for (const set of sets) {
     const last = blocks[blocks.length - 1];
     if (last && last.exercise === set.exercise) {

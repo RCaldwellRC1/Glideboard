@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, Keyboard, Modal } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Target, Loader, Plus, Check, ClipboardList, TriangleAlert, RefreshCw, Mic, X, Sparkles } from 'lucide-react-native';
@@ -94,7 +94,6 @@ export default function TrackerScreen() {
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
   const [learningMsg, setLearningMsg] = useState<string | null>(null);
-  const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
 
   const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
@@ -113,6 +112,7 @@ export default function TrackerScreen() {
   const expectedRepMs = (paceSettings.liftTime + paceSettings.holdTime + paceSettings.downTime) * 1000;
   const minRepDurationMs = jitterFloorMsMap[motionSensitivity];
   const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity], Math.round(expectedRepMs * 0.85));
+
   // Motion counting needs a brief window to read a steady baseline once the
   // set begins. The actual positioning is now handled by the big "GET READY"
   // countdown in the Reps box, so we keep this brief (900ms) to avoid
@@ -133,6 +133,7 @@ export default function TrackerScreen() {
   const endWorkout = useWorkoutStore(s => s.endWorkout);
   const startSet = useWorkoutStore(s => s.startSet);
   const endSet = useWorkoutStore(s => s.endSet);
+  const cancelSet = useWorkoutStore(s => s.cancelSet);
   const setReps = useWorkoutStore(s => s.setReps);
   const setExercise = useWorkoutStore(s => s.setExercise);
   const setInclineLevel = useWorkoutStore(s => s.setInclineLevel);
@@ -167,6 +168,7 @@ export default function TrackerScreen() {
   const adaptiveEndSet = useAdaptiveRepStore(s => s.endSet);
   const adaptiveProcessMotion = useAdaptiveRepStore(s => s.processMotion);
   const applyUserOverride = useAdaptiveRepStore(s => s.applyUserOverride);
+  const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
   const loadAdaptiveProfiles = useAdaptiveRepStore(s => s.loadFromStorage);
 
   const learnedCooldownFactor = useAdaptiveRepStore(s => {
@@ -195,6 +197,36 @@ export default function TrackerScreen() {
     stopListening: stopVoiceListening,
     resetCount: resetVoiceCount,
   } = useVoiceCounting(handleVoiceRepCounted, isSetActive && effectiveMode === 'voice');
+
+  useEffect(() => {
+    if (getReadyLeft === null) return;
+    if (getReadyLeft <= 0) {
+      setGetReadyLeft(null);
+      startSet();
+      return;
+    }
+    const t = setTimeout(() => {
+      setGetReadyLeft(v => (v === null ? null : v - 1));
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [getReadyLeft, startSet]);
+
+  const cancelGetReady = useCallback(() => {
+    setGetReadyLeft(null);
+  }, []);
+
+  const beginSet = useCallback(() => {
+    if (isTimed) {
+      startSet();
+    } else {
+      const delay = paceSettings.delayToStart;
+      if (delay <= 0) {
+        startSet();
+      } else {
+        setGetReadyLeft(Math.round(delay));
+      }
+    }
+  }, [isTimed, paceSettings.delayToStart, startSet]);
 
   const prevExerciseRef = useRef(currentExercise);
   useEffect(() => {
@@ -253,48 +285,6 @@ export default function TrackerScreen() {
     adaptiveProcessMotion(accelMagnitude);
   }, [motion, isSetActive, isListening, adaptiveSetState, effectiveMode, adaptiveProcessMotion]);
 
-  useEffect(() => {
-    const isSettingUp = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
-    if (!isSettingUp) {
-      setSetupSecondsLeft(0);
-      return;
-    }
-    const update = () => {
-      const remaining = Math.ceil((adaptiveSetStartTime + setupDelayMs - Date.now()) / 1000);
-      setSetupSecondsLeft(Math.max(0, remaining));
-    };
-    update();
-    const interval = setInterval(update, 250);
-    return () => clearInterval(interval);
-  }, [ignoreMotion, adaptiveSetState, repCountingMode, adaptiveSetStartTime, setupDelayMs]);
-
-  // ---- Pre-set "get into position" countdown (both counting modes) ----
-  useEffect(() => {
-    if (getReadyLeft === null) return;
-    if (getReadyLeft <= 0) {
-      setGetReadyLeft(null);
-      startSet();
-      return;
-    }
-    const t = setTimeout(() => {
-      setGetReadyLeft(v => (v === null ? null : v - 1));
-    }, 1000);
-    return () => clearTimeout(t);
-  }, [getReadyLeft, startSet]);
-
-  const cancelGetReady = useCallback(() => {
-    setGetReadyLeft(null);
-  }, []);
-
-  const beginSet = useCallback(() => {
-    const delay = paceSettings.delayToStart;
-    if (delay <= 0) {
-      startSet();
-    } else {
-      setGetReadyLeft(Math.round(delay));
-    }
-  }, [paceSettings.delayToStart, startSet]);
-
   const SENSOR_FAILURE_GRACE_MS = 2000;
   const [showSensorFailure, setShowSensorFailure] = useState(false);
   const motionSensorHealthy = motionDiagnostics.isHealthy;
@@ -309,7 +299,6 @@ export default function TrackerScreen() {
   }, [effectiveMode, motionSensorHealthy]);
 
   const autoEndHandled = React.useRef(false);
-  const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
 
   useEffect(() => {
     if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
@@ -327,7 +316,6 @@ export default function TrackerScreen() {
     if (effectiveMode === 'motion') {
       const summary = adaptiveEndSet();
       if (summary.repCount >= 0) {
-        // Capture TUT (convert ms to seconds)
         setCurrentTUT(summary.totalActiveDuration / 1000);
         setPendingSetSummary(summary);
         setShowConfirmModal(true);
@@ -350,7 +338,7 @@ export default function TrackerScreen() {
       return;
     }
     endSet();
-  }, [effectiveMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, isVoiceProcessing, endTimedSet]);
+  }, [effectiveMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, isVoiceProcessing, endTimedSet, setCurrentTUT]);
 
   useEffect(() => {
     if (isWaitingForVoiceToEndSet && !isVoiceProcessing) {
@@ -364,15 +352,11 @@ export default function TrackerScreen() {
     setReps(confirmedCount);
     if (effectiveMode === 'motion' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
       const { adjusted, direction, strong } = applyUserOverride(currentExercise, currentInclineLevel, confirmedCount);
-
-      // Update TUT proportionally based on the user's correction so the
-      // Intensity (seconds per rep) stays consistent.
       if (pendingSetSummary.repCount > 0) {
         const measuredTUT = pendingSetSummary.totalActiveDuration / 1000;
         const adjustedTUT = (measuredTUT / pendingSetSummary.repCount) * confirmedCount;
         setCurrentTUT(adjustedTUT);
       }
-
       if (adjusted) {
         const nudged = direction === 'tighter' ? 'I\u0027ll count more tightly next time.' : 'I\u0027ll count more easily next time.';
         setLearningMsg(strong ? `Learned! ${nudged}` : `Nudged! ${nudged}`);
@@ -385,15 +369,12 @@ export default function TrackerScreen() {
     endSet();
     setShowConfirmModal(false);
     setPendingSetSummary(null);
-  }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, effectiveMode]);
+  }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, effectiveMode, setCurrentTUT]);
 
   const perfLevel = isFreestyle ? currentWeight : currentInclineLevel;
   const levelLabel = isFreestyle ? `${currentWeight} lb` : `Level ${currentInclineLevel}`;
   const lastPerformance = getLastPerformance(currentExercise, perfLevel);
-  // Always target your Personal Best (Highest Reps) for this exercise/level
   const targetReps = lastPerformance?.bestReps ?? 0;
-
-  const currentExerciseColor = categoryColor(category);
 
   const closeDropdowns = () => {
     setExerciseDropdownOpen(false);
@@ -437,7 +418,9 @@ export default function TrackerScreen() {
               value={effectiveMode === 'voice' ? 'voice' : 'motion'}
               isLarge={largeDisplayMode}
               labelOverride={effectiveMode === 'timed' ? 'TIMED' : undefined}
+              disabled={isTimed}
               onToggle={() => {
+                if (isTimed) return;
                 const nextMode = effectiveMode === 'voice' ? 'motion' : 'voice';
                 setRepCountingMode(nextMode);
                 remoteLog('rep_mode_toggled', { mode: nextMode, source: 'tracker' });
@@ -634,22 +617,17 @@ export default function TrackerScreen() {
               </View>
 
               <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937', borderColor: 'rgba(0,0,0,0.05)' }} className={`rounded-xl flex-row items-center overflow-hidden ${largeDisplayMode ? 'h-12' : 'h-14'} border`}>
-                {/* Progress Bar Fill: Target reps is now mapped to 70% width */}
                 <LinearGradient
                   colors={currentReps > targetReps ? ['#22c55e', '#16a34a'] : ['#f97316', '#ea580c']}
                   start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
                   className="h-full rounded-l-lg"
                   style={{ width: `${Math.min(Math.max(0, (currentReps * 70) / (targetReps || 1)), 100)}%` }}
                 />
-
-                {/* Text overlay */}
                 <View className="absolute inset-0 flex-row items-center justify-center">
                   <Text numberOfLines={1} style={{ color: theme.text }} className={`font-black ${largeDisplayMode ? 'text-xl' : 'text-2xl'}`}>
                     {currentReps} / {targetReps}
                   </Text>
                 </View>
-
-                {/* Target marker line fixed at 70% */}
                 <View
                   className={`absolute w-0.5 ${largeDisplayMode ? 'h-8' : 'h-10'}`}
                   style={{ left: '70%', marginLeft: -1, backgroundColor: theme.text, opacity: 0.3 }}
@@ -676,7 +654,12 @@ export default function TrackerScreen() {
         autoCount={pendingSetSummary?.repCount ?? 0}
         onConfirm={handleConfirmReps}
         onDismiss={() => { endSet(); setShowConfirmModal(false); setPendingSetSummary(null); }}
-        onRedo={() => { adaptiveResetToIdle(); setShowConfirmModal(false); setPendingSetSummary(null); }}
+        onRedo={() => {
+          adaptiveResetToIdle();
+          cancelSet();
+          setShowConfirmModal(false);
+          setPendingSetSummary(null);
+        }}
         isLarge={largeDisplayMode}
         learningMsg={learningMsg}
       />

@@ -953,7 +953,7 @@ function RunnerView({
               <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
                 <Loader size={16} color="#eab308" />
                 <Text className={`text-yellow-500 ml-2 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Get into position{setupSecondsLeft > 0 ? `... ${setupSecondsLeft}s` : '...'}
+                  Get into position...
                 </Text>
               </View>
             ) : showLearningIndicator ? (
