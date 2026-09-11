@@ -372,7 +372,7 @@ export default function ProfileScreen() {
         {/* Footer */}
         <View className="mt-8 items-center">
           <Text style={{ color: theme.subText }} className="text-xs opacity-50 font-bold uppercase tracking-widest">
-            Glideboard V1.4.6 (Build 317)
+            Glideboard V1.4.7 (Build 318)
           </Text>
         </View>
       </ScrollView>

@@ -75,7 +75,13 @@ export function clearActiveRecording(rec: Audio.Recording): void {
 // Cheap, normal-path cleanup: unload whatever recorder still holds the slot
 // (from either hook) before preparing the next one. No-op once it's cleared.
 export async function releaseActiveRecorder(): Promise<void> {
-  await safeUnload(activeRecording);
+  if (activeRecording) {
+    await safeUnload(activeRecording);
+  }
+  // Even if activeRecording is null, the native module might still be stuck
+  // from a crash or Fast Refresh. A quick reset here is cheap and fixes the
+  // "Only one Recording" error for good.
+  await forceResetNativeRecorder();
 }
 
 // Heavy recovery for when prepare reports the slot is stuck and no JS object

@@ -19,6 +19,7 @@ import { useAdaptiveRepStore, useMotionContext } from '@/lib/motion';
 import { useVoiceCounting } from '@/lib/voice';
 import { RepConfirmationModal } from '@/components/RepConfirmationModal';
 import { InclineDropdown } from '@/components/InclineDropdown';
+import { TimedExerciseRunner, type TimedRunnerHandle } from '@/components/TimedExerciseRunner';
 import { RepModeToggle } from '@/components/RepModeToggle';
 import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { WorkoutSummary } from '@/components/WorkoutSummary';
@@ -457,9 +458,11 @@ function RunnerView({
   const [setsDone, setSetsDone] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
-  const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
+  const [learningMsg, setLearningMsg] = useState<string | null>(null);
   const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
+  const timedRunnerRef = useRef<TimedRunnerHandle>(null);
+
   // Seconds left on the pre-set "get into position" countdown (null = not counting).
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
 
@@ -527,6 +530,16 @@ function RunnerView({
   const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
   const loadAdaptiveProfiles = useAdaptiveRepStore(s => s.loadFromStorage);
 
+  const { isLoaded: workoutLoaded, customExercises, endTimedSet } = useWorkoutStore(s => ({
+    isLoaded: s.isLoaded,
+    customExercises: s.customExercises,
+    endTimedSet: s.endTimedSet,
+  }));
+
+  const category = step ? getExerciseCategory(step.exercise, customExercises) : 'standard';
+  const isTimed = category === 'timed';
+  const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
+
   const learnedCooldownFactor = useAdaptiveRepStore(s => {
     const f = s.cooldownAdjustments[`${currentExercise}::${currentInclineLevel}`]?.factor;
     return typeof f === 'number' && isFinite(f) ? f : 1;
@@ -558,6 +571,8 @@ function RunnerView({
   const advanceAfterSet = useCallback(() => {
     if (!step) return;
     const newDone = setsDone + 1;
+    adaptiveResetToIdle(); // Reset engine before moving to next set/exercise
+
     if (newDone >= step.sets) {
       const next = stepIndex + 1;
       if (next < routine.steps.length) {
@@ -576,7 +591,7 @@ function RunnerView({
     } else {
       setSetsDone(newDone);
     }
-  }, [step, setsDone, stepIndex, routine.steps, setExercise, endWorkout, onComplete, preloadInclineFor, setInclineLevel]);
+  }, [step, setsDone, stepIndex, routine.steps, setExercise, endWorkout, onComplete, preloadInclineFor, setInclineLevel, adaptiveResetToIdle]);
 
   // Skip the current exercise entirely and move to the next step.
   const skipExercise = useCallback(() => {
@@ -599,25 +614,25 @@ function RunnerView({
 
   // ---- Voice auto start/stop (mirrors Tracker) ----
   useEffect(() => {
-    if (repCountingMode === 'voice') {
+    if (effectiveMode === 'voice') {
       if (isSetActive && !isVoiceListening && !showConfirmModal) {
         startVoiceListening();
       } else if ((!isSetActive || showConfirmModal) && isVoiceListening) {
         stopVoiceListening();
       }
     }
-  }, [isSetActive, repCountingMode, isVoiceListening, showConfirmModal, startVoiceListening, stopVoiceListening]);
+  }, [isSetActive, effectiveMode, isVoiceListening, showConfirmModal, startVoiceListening, stopVoiceListening]);
 
   // ---- Sync adaptive rep count to workout store ----
   useEffect(() => {
-    if (repCountingMode === 'motion' && isSetActive && adaptiveSetState === 'SET_ACTIVE') {
+    if (effectiveMode === 'motion' && isSetActive && adaptiveSetState === 'SET_ACTIVE') {
       setReps(adaptiveRepCount);
     }
-  }, [adaptiveRepCount, repCountingMode, isSetActive, adaptiveSetState, setReps]);
+  }, [adaptiveRepCount, effectiveMode, isSetActive, adaptiveSetState, setReps]);
 
   // ---- Start adaptive set when a set starts ----
   useEffect(() => {
-    if (repCountingMode !== 'motion') return;
+    if (effectiveMode !== 'motion') return;
     if (isSetActive && adaptiveSetState === 'SET_IDLE' && !showConfirmModal) {
       adaptiveStartSet(
         currentExercise,
@@ -628,19 +643,19 @@ function RunnerView({
         setupDelayMs,
       );
     }
-  }, [isSetActive, adaptiveSetState, repCountingMode, currentExercise, currentInclineLevel, adaptiveStartSet, motionSensitivity, minRepDurationMs, repCooldownMs, setupDelayMs, showConfirmModal]);
+  }, [isSetActive, adaptiveSetState, effectiveMode, currentExercise, currentInclineLevel, adaptiveStartSet, motionSensitivity, minRepDurationMs, repCooldownMs, setupDelayMs, showConfirmModal]);
 
   // ---- Process motion data ----
   useEffect(() => {
-    if (!isSetActive || !isListening || adaptiveSetState !== 'SET_ACTIVE' || repCountingMode !== 'motion') return;
+    if (!isSetActive || !isListening || adaptiveSetState !== 'SET_ACTIVE' || effectiveMode !== 'motion') return;
     const { x, y, z } = motion.accelerationIncludingGravity;
     const accelMagnitude = Math.sqrt(x * x + y * y + z * z);
     adaptiveProcessMotion(accelMagnitude);
-  }, [motion, isSetActive, isListening, adaptiveSetState, repCountingMode, adaptiveProcessMotion]);
+  }, [motion, isSetActive, isListening, adaptiveSetState, effectiveMode, adaptiveProcessMotion]);
 
   // ---- "Get into position" countdown ----
   useEffect(() => {
-    const isSettingUp = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && repCountingMode === 'motion';
+    const isSettingUp = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
     if (!isSettingUp) {
       setSetupSecondsLeft(0);
       return;
@@ -652,7 +667,7 @@ function RunnerView({
     update();
     const interval = setInterval(update, 250);
     return () => clearInterval(interval);
-  }, [ignoreMotion, adaptiveSetState, repCountingMode, adaptiveSetStartTime, setupDelayMs]);
+  }, [ignoreMotion, adaptiveSetState, effectiveMode, adaptiveSetStartTime, setupDelayMs]);
 
   // ---- Pre-set "get into position" countdown (both counting modes) ----
   // Ticks once a second; when it reaches 0 the set actually begins. This runs
@@ -673,7 +688,7 @@ function RunnerView({
   // ---- Handle motion auto-end (inactivity) ----
   const autoEndHandled = useRef(false);
   useEffect(() => {
-    if (adaptiveSetState === 'SET_ENDED' && isSetActive && repCountingMode === 'motion' && !autoEndHandled.current) {
+    if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
       autoEndHandled.current = true;
       setPendingSetSummary({ repCount: adaptiveRepCount, needsConfirmation: true });
       setShowConfirmModal(true);
@@ -682,11 +697,11 @@ function RunnerView({
     if (!isSetActive) {
       autoEndHandled.current = false;
     }
-  }, [adaptiveSetState, isSetActive, repCountingMode, adaptiveRepCount, adaptiveResetToIdle]);
+  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveRepCount, adaptiveResetToIdle]);
 
   // ---- End set (manual) ----
   const handleEndSet = useCallback(() => {
-    if (repCountingMode === 'motion') {
+    if (effectiveMode === 'motion') {
       const summary = adaptiveEndSet();
       if (summary.repCount >= 0) {
         // Capture TUT (convert ms to seconds)
@@ -695,21 +710,23 @@ function RunnerView({
         setShowConfirmModal(true);
         return;
       }
-    } else if (repCountingMode === 'voice') {
+    } else if (effectiveMode === 'voice') {
       stopVoiceListening();
 
       if (isVoiceProcessing) {
-        console.log('[VOICE] Delaying summary modal until final transcription finishes...');
         setIsWaitingForVoiceToEndSet(true);
       } else {
         setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
         setShowConfirmModal(true);
       }
       return;
+    } else if (effectiveMode === 'timed') {
+      timedRunnerRef.current?.finalize();
+      return;
     }
     endSet();
     advanceAfterSet();
-  }, [repCountingMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, advanceAfterSet, isVoiceProcessing]);
+  }, [effectiveMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, advanceAfterSet, isVoiceProcessing, setCurrentTUT]);
 
   // When we're waiting for the final voice transcription to finish, watch the
   // processing flag. Once it drops to false, we can safely show the summary
@@ -770,12 +787,14 @@ function RunnerView({
 
   // Start a set, but first give the user a visible "get into position" countdown.
   const beginSet = useCallback(() => {
-    if (getReadySeconds <= 0) {
+    if (isTimed) {
+      startSet();
+    } else if (getReadySeconds <= 0) {
       startSet();
     } else {
       setGetReadyLeft(getReadySeconds);
     }
-  }, [getReadySeconds, startSet]);
+  }, [isTimed, getReadySeconds, startSet]);
 
   const cancelGetReady = useCallback(() => {
     setGetReadyLeft(null);
@@ -916,9 +935,12 @@ function RunnerView({
             <View className="flex-row items-center">
               <View className="mr-3">
                 <RepModeToggle
-                  value={repCountingMode === 'voice' ? 'voice' : 'motion'}
+                  value={effectiveMode === 'voice' ? 'voice' : 'motion'}
                   isLarge={isLarge}
+                  labelOverride={isTimed ? 'TIMED' : undefined}
+                  disabled={isTimed}
                   onToggle={() => {
+                    if (isTimed) return;
                     setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice');
                   }}
                 />
@@ -947,7 +969,7 @@ function RunnerView({
         </View>
 
         {/* Status indicators */}
-        {isSetActive && repCountingMode === 'motion' && (
+        {isSetActive && !isTimed && effectiveMode === 'motion' && (
           <View className="mt-3">
             {isStabilizing ? (
               <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
@@ -969,7 +991,7 @@ function RunnerView({
             )}
           </View>
         )}
-        {isSetActive && repCountingMode === 'voice' && (
+        {isSetActive && !isTimed && effectiveMode === 'voice' && (
           <View className="mt-3">
             {voiceError ? (
               <View className="flex-row items-center justify-center bg-red-500/20 rounded-lg py-2 px-4">
@@ -996,7 +1018,21 @@ function RunnerView({
 
         {/* Rep counter - doubles as the "get into position" countdown before a set */}
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className={`mt-4 border-2 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[150px]' : 'min-h-[180px]'}`}>
-          {getReadyLeft !== null ? (
+          {isTimed ? (
+            <TimedExerciseRunner
+              ref={timedRunnerRef}
+              exercise={step?.exercise ?? ''}
+              durationSeconds={30}
+              isSetActive={isSetActive}
+              isLarge={isLarge}
+              onSetDuration={() => {}}
+              onFinalized={(h) => {
+                setReps(0);
+                setCurrentTUT(h);
+                handleConfirmReps(0);
+              }}
+            />
+          ) : getReadyLeft !== null ? (
             <>
               <Text className={`text-yellow-500 tracking-wide font-semibold ${isLarge ? 'text-sm' : 'text-base'}`}>GET INTO POSITION</Text>
               <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 font-bold ${isLarge ? 'text-7xl' : 'text-8xl'}`}>

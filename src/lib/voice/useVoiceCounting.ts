@@ -486,6 +486,10 @@ export function useVoiceCounting(
     shouldListenRef.current = true;
     setIsListening(true);
     console.log('[VOICE] Listening started');
+
+    // Emergency reset before starting a new listening session to ensure the mic slot is free
+    await releaseActiveRecorder();
+
     await startChunk();
   }, [startChunk]);
 

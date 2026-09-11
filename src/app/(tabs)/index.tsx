@@ -331,10 +331,7 @@ export default function TrackerScreen() {
       }
       return;
     } else if (effectiveMode === 'timed') {
-      const held = timedRunnerRef.current?.stop();
-      if (held != null) {
-        endTimedSet(held);
-      }
+      timedRunnerRef.current?.finalize();
       return;
     }
     endSet();
