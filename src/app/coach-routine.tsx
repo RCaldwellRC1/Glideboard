@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, {
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import { getRoutine, useCoachStore, medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS, type CoachCompletion, type CoachRoutine, type RoutineStep } from '@/lib/coach';
 import { useWorkoutStore, type Workout, EXERCISE_GROUPS } from '@/lib/workout';
+import { getExerciseCategory } from '@/lib/workout/categories';
 import { useSettingsStore, useTextScaleSubscription, useTheme } from '@/lib/settings';
 import { useAdaptiveRepStore, useMotionContext } from '@/lib/motion';
 import { useVoiceCounting } from '@/lib/voice';
@@ -37,7 +38,6 @@ export default function CoachRoutineScreen() {
   const customRoutines = useCoachStore(s => s.customRoutines);
   const customizedRoutines = useCoachStore(s => s.customizedRoutines);
 
-  // Resolution order: Customized > User-built (customRoutines) > Built-in defaults.
   const baseRoutine = getRoutine(routineId) ?? customRoutines.find(r => r.id === routineId);
   const routine = customizedRoutines[routineId] ?? baseRoutine;
 
@@ -54,9 +54,7 @@ export default function CoachRoutineScreen() {
   const [phase, setPhase] = useState<Phase>('instructions');
   const [dontShowChecked, setDontShowChecked] = useState(false);
   const [completion, setCompletion] = useState<CoachCompletion | null>(null);
-  // The finished workout, captured so the post-confetti summary can show it.
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
-  // Ensures we only auto-decide the initial phase once, after stores load.
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -64,7 +62,6 @@ export default function CoachRoutineScreen() {
     loadCoach();
   }, []);
 
-  // Once coach prefs are loaded, skip the instructions if the user opted out.
   useEffect(() => {
     if (!coachLoaded || initializedRef.current) return;
     initializedRef.current = true;
@@ -74,8 +71,6 @@ export default function CoachRoutineScreen() {
   }, [coachLoaded]);
 
   if (!routine) {
-    // Custom routines live in the coach store - don't flash "not found" while it
-    // is still loading from the device.
     if (!coachLoaded) {
       return <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} />;
     }
@@ -145,8 +140,7 @@ export default function CoachRoutineScreen() {
 }
 
 // ---------------------------------------------------------------------------
-// Routine Preview - list of exercises (no instructions, no setup).
-// Reused by the disclaimer/instructions screen and the warmup-complete screen.
+// Routine Preview
 // ---------------------------------------------------------------------------
 
 function RoutinePreview({
@@ -170,7 +164,6 @@ function RoutinePreview({
   const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
   const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
 
-  // Sync steps with routine when not editing (e.g. on Reset)
   useEffect(() => {
     if (!isEditing) setSteps(routine.steps);
   }, [routine.steps, isEditing]);
@@ -362,7 +355,6 @@ function InstructionsView({
   const [showPreview, setShowPreview] = useState(false);
   const resetRoutine = useCoachStore(s => s.resetRoutine);
 
-  // Preview list of the exercises in this routine (no instructions, no setup).
   if (showPreview) {
     return <RoutinePreview routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} />;
   }
@@ -439,7 +431,7 @@ function InstructionsView({
 }
 
 // ---------------------------------------------------------------------------
-// Runner - guided, auto-advancing. Reuses the Tracker's motion/voice counting.
+// Runner
 // ---------------------------------------------------------------------------
 
 function RunnerView({
@@ -453,20 +445,16 @@ function RunnerView({
   const insets = useSafeAreaInsets();
   const theme = useTheme();
 
-  // -1 = warmup intro; 0..n-1 = active exercise step.
   const [stepIndex, setStepIndex] = useState(-1);
   const [setsDone, setSetsDone] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
-  const [learningMsg, setLearningMsg] = useState<string | null>(null);
+  const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
   const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
-
-  // Seconds left on the pre-set "get into position" countdown (null = not counting).
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
 
-  // Settings
   const repCountingMode = useSettingsStore(s => s.repCountingMode);
   const setRepCountingMode = useSettingsStore(s => s.setRepCountingMode);
   const motionSensitivity = useSettingsStore(s => s.motionSensitivity);
@@ -478,15 +466,9 @@ function RunnerView({
   const expectedRepMs = (paceSettings.liftTime + paceSettings.holdTime + paceSettings.downTime) * 1000;
   const minRepDurationMs = jitterFloorMsMap[motionSensitivity];
   const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity], Math.round(expectedRepMs * 0.85));
-  // "Get into position" prep shown before EVERY set, in BOTH counting modes, so
-  // every exercise behaves identically. Length comes from the user's pace setting.
   const getReadySeconds = Math.max(0, Math.round(paceSettings.delayToStart));
-  // Motion counting still needs a short window to read a steady baseline once the
-  // set begins - but the actual positioning is handled by the get-ready countdown
-  // above, so keep this brief to avoid making the user wait twice.
   const setupDelayMs = 900;
 
-  // Workout store
   const isWorkoutActive = useWorkoutStore(s => s.isWorkoutActive);
   const isSetActive = useWorkoutStore(s => s.isSetActive);
   const currentExercise = useWorkoutStore(s => s.currentExercise);
@@ -505,9 +487,6 @@ function RunnerView({
 
   const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
 
-  // The incline to start an exercise at: the level you last used for it, so each
-  // exercise comes "preloaded" to where you left off. Falls back to whatever's
-  // currently set if you've never done this exercise before.
   const preloadInclineFor = useCallback((exercise: string): number | null => {
     const matches = exerciseHistory.filter(h => h.exercise === exercise);
     if (matches.length === 0) return null;
@@ -517,7 +496,6 @@ function RunnerView({
     return latest.inclineLevel;
   }, [exerciseHistory]);
 
-  // Adaptive rep store
   const adaptiveSetState = useAdaptiveRepStore(s => s.setState);
   const adaptiveRepCount = useAdaptiveRepStore(s => s.repCount);
   const adaptiveSetStartTime = useAdaptiveRepStore(s => s.setStartTime);
@@ -530,8 +508,7 @@ function RunnerView({
   const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
   const loadAdaptiveProfiles = useAdaptiveRepStore(s => s.loadFromStorage);
 
-  const { isLoaded: workoutLoaded, customExercises, endTimedSet } = useWorkoutStore(s => ({
-    isLoaded: s.isLoaded,
+  const { customExercises, endTimedSet } = useWorkoutStore(s => ({
     customExercises: s.customExercises,
     endTimedSet: s.endTimedSet,
   }));
@@ -558,20 +535,23 @@ function RunnerView({
     error: voiceError,
     startListening: startVoiceListening,
     stopListening: stopVoiceListening,
-  } = useVoiceCounting(handleVoiceRepCounted, isSetActive && repCountingMode === 'voice');
+  } = useVoiceCounting(handleVoiceRepCounted, isSetActive && effectiveMode === 'voice');
 
   useEffect(() => {
     loadAdaptiveProfiles();
   }, []);
 
-  // The active step's definition (null during warmup intro / after finish).
+  // Force engine reset when switching exercises to prevent Set 1 skip
+  useEffect(() => {
+    adaptiveResetToIdle();
+  }, [stepIndex, adaptiveResetToIdle]);
+
   const step = stepIndex >= 0 && stepIndex < routine.steps.length ? routine.steps[stepIndex] : null;
 
-  // Advance after a set has been saved to the workout store.
   const advanceAfterSet = useCallback(() => {
     if (!step) return;
     const newDone = setsDone + 1;
-    adaptiveResetToIdle(); // Reset engine before moving to next set/exercise
+    adaptiveResetToIdle();
 
     if (newDone >= step.sets) {
       const next = stepIndex + 1;
@@ -580,11 +560,9 @@ function RunnerView({
         setStepIndex(next);
         setSetsDone(0);
         setExercise(nextExercise);
-        // Preload this exercise's last-used incline (user can still change it).
         const preload = preloadInclineFor(nextExercise);
         if (preload != null) setInclineLevel(preload);
       } else {
-        // Finished the whole routine.
         const workout = endWorkout({ routineId: routine.id, routineTitle: routine.title });
         onComplete(workout);
       }
@@ -593,7 +571,6 @@ function RunnerView({
     }
   }, [step, setsDone, stepIndex, routine.steps, setExercise, endWorkout, onComplete, preloadInclineFor, setInclineLevel, adaptiveResetToIdle]);
 
-  // Skip the current exercise entirely and move to the next step.
   const skipExercise = useCallback(() => {
     if (!step) return;
     remoteLog('coach_exercise_skipped', { routineId: routine.id, exercise: step.exercise });
@@ -612,7 +589,6 @@ function RunnerView({
     }
   }, [step, stepIndex, routine, setExercise, endWorkout, onComplete, preloadInclineFor, setInclineLevel]);
 
-  // ---- Voice auto start/stop (mirrors Tracker) ----
   useEffect(() => {
     if (effectiveMode === 'voice') {
       if (isSetActive && !isVoiceListening && !showConfirmModal) {
@@ -623,14 +599,12 @@ function RunnerView({
     }
   }, [isSetActive, effectiveMode, isVoiceListening, showConfirmModal, startVoiceListening, stopVoiceListening]);
 
-  // ---- Sync adaptive rep count to workout store ----
   useEffect(() => {
     if (effectiveMode === 'motion' && isSetActive && adaptiveSetState === 'SET_ACTIVE') {
       setReps(adaptiveRepCount);
     }
   }, [adaptiveRepCount, effectiveMode, isSetActive, adaptiveSetState, setReps]);
 
-  // ---- Start adaptive set when a set starts ----
   useEffect(() => {
     if (effectiveMode !== 'motion') return;
     if (isSetActive && adaptiveSetState === 'SET_IDLE' && !showConfirmModal) {
@@ -645,7 +619,6 @@ function RunnerView({
     }
   }, [isSetActive, adaptiveSetState, effectiveMode, currentExercise, currentInclineLevel, adaptiveStartSet, motionSensitivity, minRepDurationMs, repCooldownMs, setupDelayMs, showConfirmModal]);
 
-  // ---- Process motion data ----
   useEffect(() => {
     if (!isSetActive || !isListening || adaptiveSetState !== 'SET_ACTIVE' || effectiveMode !== 'motion') return;
     const { x, y, z } = motion.accelerationIncludingGravity;
@@ -653,7 +626,6 @@ function RunnerView({
     adaptiveProcessMotion(accelMagnitude);
   }, [motion, isSetActive, isListening, adaptiveSetState, effectiveMode, adaptiveProcessMotion]);
 
-  // ---- "Get into position" countdown ----
   useEffect(() => {
     const isSettingUp = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
     if (!isSettingUp) {
@@ -669,9 +641,6 @@ function RunnerView({
     return () => clearInterval(interval);
   }, [ignoreMotion, adaptiveSetState, effectiveMode, adaptiveSetStartTime, setupDelayMs]);
 
-  // ---- Pre-set "get into position" countdown (both counting modes) ----
-  // Ticks once a second; when it reaches 0 the set actually begins. This runs
-  // before every set so each exercise gives the same time to get set up.
   useEffect(() => {
     if (getReadyLeft === null) return;
     if (getReadyLeft <= 0) {
@@ -685,7 +654,6 @@ function RunnerView({
     return () => clearTimeout(t);
   }, [getReadyLeft, startSet]);
 
-  // ---- Handle motion auto-end (inactivity) ----
   const autoEndHandled = useRef(false);
   useEffect(() => {
     if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
@@ -699,12 +667,10 @@ function RunnerView({
     }
   }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveRepCount, adaptiveResetToIdle]);
 
-  // ---- End set (manual) ----
   const handleEndSet = useCallback(() => {
     if (effectiveMode === 'motion') {
       const summary = adaptiveEndSet();
       if (summary.repCount >= 0) {
-        // Capture TUT (convert ms to seconds)
         setCurrentTUT(summary.totalActiveDuration / 1000);
         setPendingSetSummary(summary);
         setShowConfirmModal(true);
@@ -728,12 +694,8 @@ function RunnerView({
     advanceAfterSet();
   }, [effectiveMode, adaptiveEndSet, endSet, currentReps, stopVoiceListening, advanceAfterSet, isVoiceProcessing, setCurrentTUT]);
 
-  // When we're waiting for the final voice transcription to finish, watch the
-  // processing flag. Once it drops to false, we can safely show the summary
-  // with the absolute latest count.
   useEffect(() => {
     if (isWaitingForVoiceToEndSet && !isVoiceProcessing) {
-      console.log('[VOICE] Final transcription finished, showing summary modal.');
       setIsWaitingForVoiceToEndSet(false);
       setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
       setShowConfirmModal(true);
@@ -744,29 +706,20 @@ function RunnerView({
     setReps(confirmedCount);
     if (repCountingMode === 'motion' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
       applyUserOverride(currentExercise, currentInclineLevel, confirmedCount);
-
-      // Update TUT proportionally based on the user's correction so the
-      // Intensity (seconds per rep) stays consistent.
       if (pendingSetSummary.repCount > 0) {
         const measuredTUT = pendingSetSummary.totalActiveDuration / 1000;
         const adjustedTUT = (measuredTUT / pendingSetSummary.repCount) * confirmedCount;
         setCurrentTUT(adjustedTUT);
       }
     }
-    // Record voice auto-count vs. the user's correction so we can measure and
-    // keep tuning voice accuracy.
     if (repCountingMode === 'voice' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
-      remoteLog('voice_set_corrected', {
-        exercise: currentExercise,
-        auto: pendingSetSummary.repCount,
-        confirmed: confirmedCount,
-      });
+      remoteLog('voice_set_corrected', { exercise: currentExercise, auto: pendingSetSummary.repCount, confirmed: confirmedCount });
     }
     endSet();
     setShowConfirmModal(false);
     setPendingSetSummary(null);
     advanceAfterSet();
-  }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, repCountingMode, advanceAfterSet]);
+  }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, repCountingMode, advanceAfterSet, setCurrentTUT]);
 
   const handleDismissModal = useCallback(() => {
     endSet();
@@ -775,18 +728,15 @@ function RunnerView({
     advanceAfterSet();
   }, [endSet, advanceAfterSet]);
 
-  // Delete & redo: throw this set away (nothing recorded) and stay on the same
-  // set so the user can start it over. Used when "End Set" was tapped by mistake.
   const handleRedoSet = useCallback(() => {
     adaptiveResetToIdle();
     cancelSet();
     setShowConfirmModal(false);
     setPendingSetSummary(null);
-    // No advanceAfterSet() - setsDone is unchanged, so the same set is next up.
   }, [adaptiveResetToIdle, cancelSet]);
 
-  // Start a set, but first give the user a visible "get into position" countdown.
   const beginSet = useCallback(() => {
+    adaptiveResetToIdle();
     if (isTimed) {
       startSet();
     } else if (getReadySeconds <= 0) {
@@ -794,13 +744,12 @@ function RunnerView({
     } else {
       setGetReadyLeft(getReadySeconds);
     }
-  }, [isTimed, getReadySeconds, startSet]);
+  }, [isTimed, getReadySeconds, startSet, adaptiveResetToIdle]);
 
   const cancelGetReady = useCallback(() => {
     setGetReadyLeft(null);
   }, []);
 
-  // ---- Begin the routine (from warmup intro) ----
   const beginRoutine = () => {
     startWorkout();
     const first = routine.steps[0].exercise;
@@ -811,10 +760,9 @@ function RunnerView({
     setSetsDone(0);
   };
 
-  const isStabilizing = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && repCountingMode === 'motion';
-  const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && repCountingMode === 'motion';
+  const isStabilizing = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
+  const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
 
-  // ---- Warmup intro ----
   if (stepIndex < 0) {
     if (showPreview) {
       return <RoutinePreview routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} />;
@@ -845,11 +793,7 @@ function RunnerView({
               style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
               className="flex-1 mr-2 px-4 py-4 rounded-2xl items-center justify-center active:opacity-60"
             >
-              <Text
-                numberOfLines={2}
-                style={{ color: theme.text }}
-                className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
-              >
+              <Text numberOfLines={2} style={{ color: theme.text }} className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}>
                 Preview{"\n"}Routine
               </Text>
             </Pressable>
@@ -857,10 +801,7 @@ function RunnerView({
               onPress={beginRoutine}
               className="flex-1 ml-2 bg-orange-500 px-4 py-4 rounded-2xl items-center justify-center active:opacity-80"
             >
-              <Text
-                numberOfLines={2}
-                className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
-              >
+              <Text numberOfLines={2} className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}>
                 Begin{"\n"}Routine
               </Text>
             </Pressable>
@@ -888,7 +829,6 @@ function RunnerView({
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Progress dots */}
         <View className="flex-row justify-center mt-1 mb-4">
           {routine.steps.map((_, i) => (
             <View
@@ -900,7 +840,6 @@ function RunnerView({
           ))}
         </View>
 
-        {/* Current exercise card */}
         <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 border-2 border-orange-500">
           <View className="flex-row items-center justify-between mb-1">
             <Text style={{ color: theme.subText }} className={isLarge ? 'text-xs' : 'text-sm'}>
@@ -920,8 +859,6 @@ function RunnerView({
             {step?.exercise}
           </Text>
 
-          {/* Rep-range target + the incline picker (preloaded to your last level
-              for this exercise, changeable any time) + Rep Mode Toggle. */}
           <View className="flex-row items-center justify-between mt-3" style={{ zIndex: 50 }}>
             <View className="flex-1 mr-2">
               <Text className={`text-orange-500 font-semibold ${isLarge ? 'text-sm' : 'text-base'}`}>
@@ -955,7 +892,6 @@ function RunnerView({
             </View>
           </View>
 
-          {/* Set progress */}
           <View className="flex-row items-center mt-4">
             {step && Array.from({ length: step.sets }).map((_, i) => (
               <View
@@ -968,7 +904,6 @@ function RunnerView({
           </View>
         </View>
 
-        {/* Status indicators */}
         {isSetActive && !isTimed && effectiveMode === 'motion' && (
           <View className="mt-3">
             {isStabilizing ? (
@@ -1016,7 +951,6 @@ function RunnerView({
           </View>
         )}
 
-        {/* Rep counter - doubles as the "get into position" countdown before a set */}
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className={`mt-4 border-2 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[150px]' : 'min-h-[180px]'}`}>
           {isTimed ? (
             <TimedExerciseRunner
@@ -1050,7 +984,6 @@ function RunnerView({
           )}
         </View>
 
-        {/* Start / End / Cancel button */}
         <Pressable
           onPress={() => {
             if (isSetActive) handleEndSet();
@@ -1086,10 +1019,6 @@ function RunnerView({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Completion - confetti + trophy (plus a Mr. Olympia finale on the 12th)
-// ---------------------------------------------------------------------------
-
 function CompleteView({
   completion, isLarge, onNext,
 }: {
@@ -1102,7 +1031,6 @@ function CompleteView({
   const tier = medalTierForIndex(completion.index);
   const isFinale = tier === 'olympia';
 
-  // Flashing background for the finale.
   const flash = useSharedValue(0);
   const trophyScale = useSharedValue(0.6);
 
@@ -1128,7 +1056,6 @@ function CompleteView({
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
-      {/* Flashing finale backdrop */}
       {isFinale && (
         <Animated.View
           pointerEvents="none"
@@ -1196,10 +1123,6 @@ function CompleteView({
     </View>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Summary - the full breakdown of the workout just completed.
-// ---------------------------------------------------------------------------
 
 function SummaryView({
   workout, completion, isLarge, onDone,

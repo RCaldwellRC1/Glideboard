@@ -490,6 +490,9 @@ export function useVoiceCounting(
     // Emergency reset before starting a new listening session to ensure the mic slot is free
     await releaseActiveRecorder();
 
+    // Tiny delay to allow native hardware to fully release the session
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     await startChunk();
   }, [startChunk]);
 
@@ -527,6 +530,9 @@ export function useVoiceCounting(
     await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
     setIsListening(false);
     console.log('[VOICE] Listening stopped');
+
+    // Extra safety: ensure mic is fully released when set ends
+    await releaseActiveRecorder();
   }, [transcribeAndProcess]);
 
   // Start a fresh count without stopping the mic. Used when the user switches
