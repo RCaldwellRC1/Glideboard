@@ -297,6 +297,12 @@ export function useVoiceCommands(
     startingRef.current = false;
     shouldListenRef.current = true;
     setIsListening(true);
+
+    // Emergency reset to ensure the mic slot is free for commands
+    await releaseActiveRecorder();
+    // Tiny delay for hardware session handover
+    await new Promise(resolve => setTimeout(resolve, 100));
+
     await startChunk();
   }, [startChunk]);
 
@@ -315,6 +321,9 @@ export function useVoiceCommands(
     }
     try { await Audio.setAudioModeAsync({ allowsRecordingIOS: false }); } catch { /* ignore */ }
     setIsListening(false);
+
+    // Extra safety: ensure mic is fully released when command hook stops
+    await releaseActiveRecorder();
   }, []);
 
   // Drive listening from the isActive flag.

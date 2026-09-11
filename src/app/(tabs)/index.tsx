@@ -113,10 +113,6 @@ export default function TrackerScreen() {
   const minRepDurationMs = jitterFloorMsMap[motionSensitivity];
   const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity], Math.round(expectedRepMs * 0.85));
 
-  // Motion counting needs a brief window to read a steady baseline once the
-  // set begins. The actual positioning is now handled by the big "GET READY"
-  // countdown in the Reps box, so we keep this brief (900ms) to avoid
-  // making the user wait twice.
   const setupDelayMs = 900;
 
   const router = useRouter();
@@ -388,7 +384,6 @@ export default function TrackerScreen() {
           />
         )}
 
-        {/* Header Buttons */}
         <View className="flex-row justify-between items-start px-3 pt-2">
           <Pressable
             onPress={(e) => {
@@ -472,7 +467,7 @@ export default function TrackerScreen() {
           ) : null}
         </View>
 
-        {isSetActive && effectiveMode === 'motion' && !showSensorFailure && (
+        {isSetActive && !isTimed && effectiveMode === 'motion' && !showSensorFailure && (
           <View className="mx-3 mt-3">
             {ignoreMotion ? (
               <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
@@ -497,7 +492,7 @@ export default function TrackerScreen() {
           </View>
         )}
 
-        {isSetActive && effectiveMode === 'voice' && (
+        {isSetActive && !isTimed && effectiveMode === 'voice' && (
           <View className="mx-3 mt-3">
             {voiceError ? (
               <View className="flex-row items-center justify-center bg-red-500/20 rounded-lg py-2 px-4">

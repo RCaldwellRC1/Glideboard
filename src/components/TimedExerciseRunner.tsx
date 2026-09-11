@@ -120,7 +120,7 @@ export const TimedExerciseRunner = forwardRef<TimedRunnerHandle, Props>(function
   const handleCommand = useCallback((cmd: VoiceCommand) => {
     if (cmd === 'start' && phaseRef.current === 'armed') {
       beginRun();
-    } else if (cmd === 'done' && phaseRef.current === 'running') {
+    } else if ((cmd === 'done' || cmd === 'stop') && phaseRef.current === 'running') {
       const elapsed = Math.round((Date.now() - startAtRef.current) / 1000);
       finish(Math.max(1, elapsed), false);
     }
