@@ -10,13 +10,15 @@ interface ExerciseBlock {
   sets: WorkoutSet[];
 }
 
-// Group a workout's flat set list into per-exercise blocks, preserving the
-// order exercises were first performed (so a Coach Routine reads top-to-bottom
-// the way it was done). Consecutive runs of the same exercise stay together.
+// Group a workout's flat set list into per-exercise blocks.
+// Added strict safety checks to prevent "Cannot convert undefined to object" crashes.
 function groupByExercise(sets: WorkoutSet[]): ExerciseBlock[] {
   const blocks: ExerciseBlock[] = [];
   if (!sets || !Array.isArray(sets)) return blocks;
+
   for (const set of sets) {
+    if (!set || !set.exercise) continue;
+
     const last = blocks[blocks.length - 1];
     if (last && last.exercise === set.exercise) {
       last.sets.push(set);
@@ -35,9 +37,6 @@ function formatDuration(seconds: number): string {
   return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-// A full breakdown of a single completed workout: exercises, the incline level
-// and reps for each set, plus totals. Used by the Coach Routine completion
-// summary and the Trophies weekly-summary screen.
 export function WorkoutSummary({
   workout,
   isLarge,
@@ -48,19 +47,26 @@ export function WorkoutSummary({
   accentColor?: string;
 }) {
   const theme = useTheme();
-  const blocks = useMemo(() => groupByExercise(workout.sets), [workout.sets]);
-  const totalReps = useMemo(() => workout.sets.reduce((s, set) => s + set.reps, 0), [workout.sets]);
 
-  const dateLabel = new Date(workout.date).toLocaleDateString('en-US', {
-    weekday: 'short', month: 'short', day: 'numeric',
-  });
+  // Guard against missing workout object entirely
+  if (!workout) return null;
+
+  const sets = workout.sets || [];
+  const blocks = useMemo(() => groupByExercise(sets), [sets]);
+  const totalReps = useMemo(() => sets.reduce((s, set) => s + (set?.reps || 0), 0), [sets]);
+
+  const dateLabel = workout.date
+    ? new Date(workout.date).toLocaleDateString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+      })
+    : '';
 
   return (
     <View style={{ backgroundColor: theme.card }} className="rounded-2xl overflow-hidden">
       {/* Header */}
       <View style={{ borderBottomColor: theme.divider }} className="px-4 pt-4 pb-3 border-b">
         <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-lg' : 'text-xl'}`} numberOfLines={2}>
-          {workout.routineTitle ?? 'Workout'}
+          {workout.routineTitle || 'Workout'}
         </Text>
         <Text style={{ color: theme.subText }} className={`mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'}`}>{dateLabel}</Text>
 
@@ -69,18 +75,18 @@ export function WorkoutSummary({
           <View className="flex-row items-center mr-4">
             <Dumbbell size={isLarge ? 14 : 16} color={accentColor} />
             <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>
-              {workout.sets.length} {workout.sets.length === 1 ? 'set' : 'sets'}
+              {sets.length} {sets.length === 1 ? 'set' : 'sets'}
             </Text>
           </View>
           <View className="flex-row items-center mr-4">
             <Repeat size={isLarge ? 14 : 16} color={accentColor} />
             <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>{totalReps} reps</Text>
           </View>
-          {workout.duration > 0 && (
+          {(workout.duration || 0) > 0 && (
             <View className="flex-row items-center">
               <Clock size={isLarge ? 14 : 16} color={accentColor} />
               <Text style={{ color: theme.text }} className={`ml-1.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-80`}>
-                {formatDuration(workout.duration)}
+                {formatDuration(workout.duration || 0)}
               </Text>
             </View>
           )}
@@ -90,7 +96,9 @@ export function WorkoutSummary({
       {/* Per-exercise breakdown */}
       <View className="px-4 py-2">
         {blocks.map((block, bi) => {
-          const best = Math.max(...block.sets.map(s => s.reps));
+          const validReps = block.sets.map(s => s.reps).filter(r => typeof r === 'number');
+          const best = validReps.length > 0 ? Math.max(...validReps) : 0;
+
           return (
             <View key={`${block.exercise}-${bi}`} style={{ borderBottomColor: theme.divider }} className="py-2.5 border-b">
               <View className="flex-row items-center justify-between">
@@ -103,7 +111,6 @@ export function WorkoutSummary({
                 </View>
               </View>
 
-              {/* Each set: reps + the incline it was done at */}
               <View className="flex-row flex-wrap mt-1.5">
                 {block.sets.map((s, si) => (
                   <View
@@ -112,7 +119,7 @@ export function WorkoutSummary({
                     className="flex-row items-baseline rounded-lg px-2.5 py-1 mr-2 mb-1.5"
                   >
                     <Text className={`font-bold ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: accentColor }}>
-                      {s.reps}
+                      {s.reps || 0}
                     </Text>
                     <Text style={{ color: theme.subText }} className={`ml-1 ${isLarge ? 'text-[10px]' : 'text-xs'}`}>
                       reps · Lvl {s.inclineLevel}
