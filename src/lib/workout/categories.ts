@@ -34,7 +34,7 @@ export function getExerciseCategory(
   if (BUILTIN_TIMED_EXERCISES.some(e => e.toLowerCase() === name)) return 'timed';
 
   const inGroup = (group: string) =>
-    (customExercises[group] ?? []).some(e => e.trim().toLowerCase() === name);
+    (customExercises?.[group] ?? []).some(e => e.trim().toLowerCase() === name);
 
   if (inGroup(TIMED_GROUP)) return 'timed';
   if (inGroup(FREE_STYLE_GROUP)) return 'freestyle';

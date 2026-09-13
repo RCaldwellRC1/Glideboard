@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -35,21 +35,24 @@ export default function CoachRoutineScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string }>();
   const routineId = params.id ?? '';
+
+  // Use individual selectors for stability
   const customRoutines = useCoachStore(s => s.customRoutines);
   const customizedRoutines = useCoachStore(s => s.customizedRoutines);
-
-  const baseRoutine = getRoutine(routineId) ?? customRoutines.find(r => r.id === routineId);
-  const routine = customizedRoutines[routineId] ?? baseRoutine;
-
-  const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
-  useTextScaleSubscription();
-  const loadSettings = useSettingsStore(s => s.loadFromStorage);
-
   const dontShowInstructions = useCoachStore(s => s.dontShowInstructions);
   const setDontShowInstructions = useCoachStore(s => s.setDontShowInstructions);
   const recordCompletion = useCoachStore(s => s.recordCompletion);
   const loadCoach = useCoachStore(s => s.loadFromStorage);
   const coachLoaded = useCoachStore(s => s.isLoaded);
+
+  const routine = useMemo(() => {
+    const base = getRoutine(routineId) ?? customRoutines.find(r => r.id === routineId);
+    return customizedRoutines[routineId] ?? base;
+  }, [routineId, customRoutines, customizedRoutines]);
+
+  const largeDisplayMode = useSettingsStore(s => s.largeDisplayMode);
+  useTextScaleSubscription();
+  const loadSettings = useSettingsStore(s => s.loadFromStorage);
 
   const [phase, setPhase] = useState<Phase>('instructions');
   const [dontShowChecked, setDontShowChecked] = useState(false);
@@ -66,14 +69,12 @@ export default function CoachRoutineScreen() {
     if (!coachLoaded || initializedRef.current) return;
     initializedRef.current = true;
     if (dontShowInstructions[routineId]) {
-      startRunning();
+      setPhase('running');
     }
-  }, [coachLoaded]);
+  }, [coachLoaded, routineId, dontShowInstructions]);
 
   if (!routine) {
-    if (!coachLoaded) {
-      return <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} />;
-    }
+    if (!coachLoaded) return <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} />;
     return (
       <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} className="items-center justify-center">
         <Text style={{ color: theme.text }} className="text-lg">Routine not found.</Text>
@@ -84,11 +85,11 @@ export default function CoachRoutineScreen() {
     );
   }
 
-  function startRunning() {
+  const startRunning = () => {
     if (dontShowChecked) setDontShowInstructions(routineId, true);
     remoteLog('coach_routine_started', { routineId });
     setPhase('running');
-  }
+  };
 
   const handleComplete = (workout: Workout | null) => {
     const entry = recordCompletion(routineId, workout?.id);
@@ -141,292 +142,10 @@ export default function CoachRoutineScreen() {
   );
 }
 
-function RoutinePreview({
-  routine, isLarge, onClose,
-}: {
-  routine: CoachRoutine;
-  isLarge: boolean;
-  onClose: () => void;
-}) {
-  const insets = useSafeAreaInsets();
-  const theme = useTheme();
-  const [isEditing, setIsEditing] = useState(false);
-  const [steps, setSteps] = useState<RoutineStep[]>(routine.steps);
-  const [showPicker, setShowPicker] = useState(false);
-
-  const customizeRoutine = useCoachStore(s => s.customizeRoutine);
-  const resetRoutine = useCoachStore(s => s.resetRoutine);
-  const isCustomized = useCoachStore(s => !!s.customizedRoutines[routine.id]);
-
-  const customExercises = useWorkoutStore(s => s.customExercises);
-  const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
-  const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
-
-  useEffect(() => {
-    if (!isEditing) setSteps(routine.steps);
-  }, [routine.steps, isEditing]);
-
-  const updateSetCount = (index: number, delta: number) => {
-    const newSteps = [...steps];
-    newSteps[index] = {
-      ...newSteps[index],
-      sets: Math.max(1, newSteps[index].sets + delta),
-    };
-    setSteps(newSteps);
-  };
-
-  const removeStep = (index: number) => {
-    setSteps(steps.filter((_, i) => i !== index));
-  };
-
-  const addStep = (exercise: string, group: string) => {
-    const newStep: RoutineStep = {
-      group,
-      exercise,
-      sets: 2,
-      repRangeLabel: '10-15 Reps',
-    };
-    setSteps([...steps, newStep]);
-    setShowPicker(false);
-  };
-
-  const handleDoneEditing = () => {
-    customizeRoutine({ ...routine, steps });
-    setIsEditing(false);
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <View className="flex-row items-center px-3 py-2">
-        <Pressable onPress={onClose} hitSlop={12} className="active:opacity-60 p-1">
-          <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
-        </Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
-          Preview - {routine.title}
-        </Text>
-        <Pressable
-          onPress={() => setIsEditing(!isEditing)}
-          style={{ backgroundColor: isEditing ? '#f97316' : theme.divider }}
-          className={`w-10 h-10 items-center justify-center rounded-full ml-2`}
-        >
-          <Pencil size={isLarge ? 20 : 22} color={isEditing ? '#fff' : '#f97316'} />
-        </Pressable>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={{ color: theme.subText }} className={`mb-2 ${isLarge ? 'text-sm' : 'text-base'} opacity-70`}>
-          {steps.length} {steps.length === 1 ? 'exercise' : 'exercises'} in this routine.
-        </Text>
-
-        {isCustomized && !isEditing && (
-          <View style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.3)' }} className="flex-row items-center rounded-xl px-4 py-3 mb-4 border">
-            <Text className="text-orange-400 font-medium flex-1 text-sm">
-              You've customized this routine.
-            </Text>
-            <Pressable
-              onPress={() => resetRoutine(routine.id)}
-              className="flex-row items-center bg-orange-500/20 px-3 py-1.5 rounded-lg active:opacity-70"
-            >
-              <RotateCcw size={14} color="#f97316" />
-              <Text className="text-orange-500 font-bold ml-1.5 text-xs uppercase tracking-wider">Reset</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {steps.map((s, i) => (
-          <View
-            key={`${s.exercise}-${i}`}
-            style={{ backgroundColor: theme.card }}
-            className="flex-row items-center rounded-xl px-4 py-3 mb-2"
-          >
-            <View className="w-8 h-8 rounded-full bg-orange-500/20 items-center justify-center mr-3">
-              <Text className={`text-orange-500 font-bold ${isLarge ? 'text-sm' : 'text-base'}`}>{i + 1}</Text>
-            </View>
-            <View className="flex-1">
-              <Text style={{ color: theme.text }} className={`font-semibold ${isLarge ? 'text-base' : 'text-lg'}`}>{s.exercise}</Text>
-              <Text style={{ color: theme.subText }} className={`mt-0.5 ${isLarge ? 'text-xs' : 'text-sm'} opacity-70`}>
-                {s.group} - {s.repRangeLabel}
-              </Text>
-            </View>
-
-            {isEditing ? (
-              <View className="flex-row items-center">
-                <View style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-row items-center rounded-lg p-1 mr-3">
-                  <Pressable
-                    onPress={() => updateSetCount(i, -1)}
-                    className="w-8 h-8 items-center justify-center active:bg-gray-700 rounded-md"
-                  >
-                    <Minus size={16} color="#f97316" />
-                  </Pressable>
-                  <View className="w-8 items-center">
-                    <Text style={{ color: theme.text }} className="font-bold text-base">{s.sets}</Text>
-                  </View>
-                  <Pressable
-                    onPress={() => updateSetCount(i, 1)}
-                    className="w-8 h-8 items-center justify-center active:bg-gray-700 rounded-md"
-                  >
-                    <Plus size={16} color="#f97316" />
-                  </Pressable>
-                </View>
-                <Pressable
-                  onPress={() => removeStep(i)}
-                  style={{ backgroundColor: 'rgba(239,68,68,0.1)' }}
-                  className="w-9 h-9 items-center justify-center rounded-lg active:bg-red-500/20"
-                >
-                  <Trash2 size={18} color="#ef4444" />
-                </Pressable>
-              </View>
-            ) : (
-              <Text className="text-orange-500 font-bold text-lg">{s.sets} sets</Text>
-            )}
-          </View>
-        ))}
-
-        {isEditing && (
-          <Pressable
-            onPress={() => setShowPicker(true)}
-            style={{ borderColor: theme.divider }}
-            className="mt-2 py-4 rounded-xl items-center border-2 border-dashed active:opacity-60"
-          >
-            <View className="flex-row items-center">
-              <Plus size={18} color="#f97316" />
-              <Text className="text-orange-500 font-bold ml-2 text-lg">Add Exercise</Text>
-            </View>
-          </Pressable>
-        )}
-      </ScrollView>
-
-      <View style={{ borderTopColor: theme.border, backgroundColor: theme.background, paddingBottom: insets.bottom + 12 }} className="px-4 pt-3 border-t">
-        {isEditing ? (
-          <Pressable
-            onPress={handleDoneEditing}
-            className="py-4 rounded-xl items-center bg-green-600 active:opacity-80"
-          >
-            <Text className={`text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>Done Editing</Text>
-          </Pressable>
-        ) : (
-          <Pressable
-            onPress={onClose}
-            className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80"
-          >
-            <Text className={`text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>Return</Text>
-          </Pressable>
-        )}
-      </View>
-
-      <ExercisePickerModal
-        visible={showPicker}
-        onClose={() => setShowPicker(false)}
-        onSelect={addStep}
-        isLarge={isLarge}
-        customExercises={customExercises}
-        onAddCustom={addCustomExercise}
-        onRenameCustom={renameCustomExercise}
-        showCoachRoutines={false}
-        title="Add to Routine"
-      />
-    </View>
-  );
-}
-
-function InstructionsView({
-  routine, isLarge, dontShowChecked, onToggleDontShow, onBegin, onBack, isCustomized,
-}: {
-  routine: CoachRoutine;
-  isLarge: boolean;
-  dontShowChecked: boolean;
-  onToggleDontShow: () => void;
-  onBegin: () => void;
-  onBack: () => void;
-  isCustomized: boolean;
-}) {
-  const insets = useSafeAreaInsets();
-  const theme = useTheme();
-  const [showPreview, setShowPreview] = useState(false);
-  const resetRoutine = useCoachStore(s => s.resetRoutine);
-
-  if (showPreview) {
-    return <RoutinePreview routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} />;
-  }
-
-  return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <View className="flex-row items-center px-3 py-2">
-        <Pressable onPress={onBack} hitSlop={12} className="active:opacity-60 p-1">
-          <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
-        </Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
-          {routine.title}
-        </Text>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {isCustomized && (
-          <View style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.3)' }} className="flex-row items-center rounded-xl px-4 py-3 mb-4 border">
-            <Text className="text-orange-400 font-medium flex-1 text-sm">
-              You've customized this routine.
-            </Text>
-            <Pressable
-              onPress={() => resetRoutine(routine.id)}
-              className="flex-row items-center bg-orange-500/20 px-3 py-1.5 rounded-lg active:opacity-70"
-            >
-              <RotateCcw size={14} color="#f97316" />
-              <Text className="text-orange-500 font-bold ml-1.5 text-xs uppercase tracking-wider">Reset</Text>
-            </Pressable>
-          </View>
-        )}
-
-        <Text style={{ color: theme.text }} className={`leading-7 ${isLarge ? 'text-base' : 'text-lg'} opacity-90`}>
-          {routine.instructions}
-        </Text>
-      </ScrollView>
-
-      <View
-        style={{ borderTopColor: theme.border }}
-        className="px-4 pt-3 border-t"
-      >
-        <Pressable onPress={onToggleDontShow} className="flex-row items-center mb-3 active:opacity-70">
-          <View
-            style={{ backgroundColor: dontShowChecked ? '#f97316' : theme.divider, borderColor: theme.border }}
-            className={`w-6 h-6 rounded items-center justify-center mr-2 ${!dontShowChecked ? 'border' : ''}`}
-          >
-            {dontShowChecked && <Check size={16} color="#fff" />}
-          </View>
-          <Text style={{ color: theme.subText }} className={isLarge ? 'text-sm' : 'text-base'}>Don't show me this again</Text>
-        </Pressable>
-
-        <View className="flex-row">
-          <Pressable
-            onPress={() => setShowPreview(true)}
-            style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
-            className="flex-1 mr-2 py-4 rounded-xl items-center active:opacity-60"
-          >
-            <Text style={{ color: theme.text }} className={`font-semibold ${isLarge ? 'text-lg' : 'text-xl'}`}>Preview Routine</Text>
-          </Pressable>
-          <Pressable
-            onPress={onBegin}
-            className="flex-1 ml-2 py-4 rounded-xl items-center bg-orange-500 active:opacity-80"
-          >
-            <Text className={`text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>Ready to Begin</Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
-}
-
 function RunnerView({
   routine, isLarge, onExit, onComplete,
 }: {
-  routine: NonNullable<ReturnType<typeof getRoutine>>;
+  routine: CoachRoutine;
   isLarge: boolean;
   onExit: () => void;
   onComplete: (workout: Workout | null) => void;
@@ -437,9 +156,8 @@ function RunnerView({
   const [stepIndex, setStepIndex] = useState(-1);
   const [setsDone, setSetsDone] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
+  const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; totalActiveDuration: number; needsConfirmation: boolean } | null>(null);
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
-  const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
@@ -449,20 +167,12 @@ function RunnerView({
   const motionSensitivity = useSettingsStore(s => s.motionSensitivity);
   const paceSettings = useSettingsStore(s => s.paceSettings);
 
-  const sensitivityMultiplierMap = { low: 1.5, medium: 1.0, high: 0.6 } as const;
-  const jitterFloorMsMap = { low: 140, medium: 100, high: 70 } as const;
-  const cooldownFloorMsMap = { low: 1000, medium: 700, high: 450 } as const;
-  const expectedRepMs = (paceSettings.liftTime + paceSettings.holdTime + paceSettings.downTime) * 1000;
-  const minRepDurationMs = jitterFloorMsMap[motionSensitivity];
-  const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity], Math.round(expectedRepMs * 0.85));
-  const getReadySeconds = Math.max(0, Math.round(paceSettings.delayToStart));
-  const setupDelayMs = 900;
-
   const isWorkoutActive = useWorkoutStore(s => s.isWorkoutActive);
   const isSetActive = useWorkoutStore(s => s.isSetActive);
   const currentExercise = useWorkoutStore(s => s.currentExercise);
   const currentInclineLevel = useWorkoutStore(s => s.currentInclineLevel);
   const currentReps = useWorkoutStore(s => s.currentReps);
+  const currentSet = useWorkoutStore(s => s.currentSet);
   const startWorkout = useWorkoutStore(s => s.startWorkout);
   const endWorkout = useWorkoutStore(s => s.endWorkout);
   const startSet = useWorkoutStore(s => s.startSet);
@@ -473,11 +183,21 @@ function RunnerView({
   const setInclineLevel = useWorkoutStore(s => s.setInclineLevel);
   const setCurrentTUT = useWorkoutStore(s => s.setCurrentTUT);
   const exerciseHistory = useWorkoutStore(s => s.exerciseHistory);
+  const customExercises = useWorkoutStore(s => s.customExercises);
 
   const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
 
+  const sensitivityMultiplierMap = { low: 1.5, medium: 1.0, high: 0.6 } as const;
+  const jitterFloorMsMap = { low: 140, medium: 100, high: 70 } as const;
+  const cooldownFloorMsMap = { low: 1000, medium: 700, high: 450 } as const;
+  const expectedRepMs = (paceSettings.liftTime + paceSettings.holdTime + paceSettings.downTime) * 1000;
+  const minRepDurationMs = jitterFloorMsMap[motionSensitivity] || 100;
+  const baseRepCooldownMs = Math.max(cooldownFloorMsMap[motionSensitivity] || 700, Math.round(expectedRepMs * 0.85));
+  const getReadySeconds = Math.max(0, Math.round(paceSettings.delayToStart));
+  const setupDelayMs = 900;
+
   const preloadInclineFor = useCallback((exercise: string): number | null => {
-    const matches = exerciseHistory.filter(h => h.exercise === exercise);
+    const matches = (exerciseHistory || []).filter(h => h.exercise === exercise);
     if (matches.length === 0) return null;
     const latest = matches.reduce((a, b) =>
       new Date(b.lastDate).getTime() > new Date(a.lastDate).getTime() ? b : a
@@ -497,12 +217,14 @@ function RunnerView({
   const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
   const loadAdaptiveProfiles = useAdaptiveRepStore(s => s.loadFromStorage);
 
-  const { customExercises, endTimedSet } = useWorkoutStore(s => ({
-    customExercises: s.customExercises,
-    endTimedSet: s.endTimedSet,
-  }));
+  const step = useMemo(() =>
+    (stepIndex >= 0 && stepIndex < routine.steps.length) ? routine.steps[stepIndex] : null,
+  [stepIndex, routine.steps]);
 
-  const category = step ? getExerciseCategory(step.exercise, customExercises ?? {}) : 'standard';
+  const category = useMemo(() =>
+    step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard',
+  [step, customExercises]);
+
   const isTimed = category === 'timed';
   const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
 
@@ -533,8 +255,6 @@ function RunnerView({
   useEffect(() => {
     adaptiveResetToIdle();
   }, [stepIndex, adaptiveResetToIdle]);
-
-  const step = stepIndex >= 0 && stepIndex < routine.steps.length ? routine.steps[stepIndex] : null;
 
   const advanceAfterSet = useCallback(() => {
     if (!step) return;
@@ -599,7 +319,7 @@ function RunnerView({
       adaptiveStartSet(
         currentExercise,
         currentInclineLevel,
-        sensitivityMultiplierMap[motionSensitivity],
+        sensitivityMultiplierMap[motionSensitivity] || 1.0,
         minRepDurationMs,
         repCooldownMs,
         setupDelayMs,
@@ -627,16 +347,11 @@ function RunnerView({
     return () => clearTimeout(t);
   }, [getReadyLeft, startSet]);
 
-  const autoEndHandled = useRef(false);
   useEffect(() => {
-    if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
-      autoEndHandled.current = true;
-      setPendingSetSummary({ repCount: adaptiveRepCount, needsConfirmation: true });
+    if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion') {
+      setPendingSetSummary({ repCount: adaptiveRepCount, totalActiveDuration: 0, needsConfirmation: true });
       setShowConfirmModal(true);
       adaptiveResetToIdle();
-    }
-    if (!isSetActive) {
-      autoEndHandled.current = false;
     }
   }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveRepCount, adaptiveResetToIdle]);
 
@@ -651,11 +366,10 @@ function RunnerView({
       }
     } else if (effectiveMode === 'voice') {
       stopVoiceListening();
-
       if (isVoiceProcessing) {
         setIsWaitingForVoiceToEndSet(true);
       } else {
-        setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+        setPendingSetSummary({ repCount: currentReps, totalActiveDuration: 0, needsConfirmation: true });
         setShowConfirmModal(true);
       }
       return;
@@ -670,7 +384,7 @@ function RunnerView({
   useEffect(() => {
     if (isWaitingForVoiceToEndSet && !isVoiceProcessing) {
       setIsWaitingForVoiceToEndSet(false);
-      setPendingSetSummary({ repCount: currentReps, needsConfirmation: true });
+      setPendingSetSummary({ repCount: currentReps, totalActiveDuration: 0, needsConfirmation: true });
       setShowConfirmModal(true);
     }
   }, [isWaitingForVoiceToEndSet, isVoiceProcessing, currentReps]);
@@ -679,7 +393,6 @@ function RunnerView({
     setReps(confirmedCount);
     if (repCountingMode === 'motion' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
       applyUserOverride(currentExercise, currentInclineLevel, confirmedCount);
-
       if (pendingSetSummary.repCount > 0) {
         const measuredTUT = pendingSetSummary.totalActiveDuration / 1000;
         const adjustedTUT = (measuredTUT / pendingSetSummary.repCount) * confirmedCount;
@@ -687,31 +400,13 @@ function RunnerView({
       }
     }
     if (repCountingMode === 'voice' && pendingSetSummary && confirmedCount !== pendingSetSummary.repCount) {
-      remoteLog('voice_set_corrected', {
-        exercise: currentExercise,
-        auto: pendingSetSummary.repCount,
-        confirmed: confirmedCount,
-      });
+      remoteLog('voice_set_corrected', { exercise: currentExercise, auto: pendingSetSummary.repCount, confirmed: confirmedCount });
     }
     endSet();
     setShowConfirmModal(false);
     setPendingSetSummary(null);
     advanceAfterSet();
   }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, repCountingMode, advanceAfterSet, setCurrentTUT]);
-
-  const handleDismissModal = useCallback(() => {
-    endSet();
-    setShowConfirmModal(false);
-    setPendingSetSummary(null);
-    advanceAfterSet();
-  }, [endSet, advanceAfterSet]);
-
-  const handleRedoSet = useCallback(() => {
-    adaptiveResetToIdle();
-    cancelSet();
-    setShowConfirmModal(false);
-    setPendingSetSummary(null);
-  }, [adaptiveResetToIdle, cancelSet]);
 
   const beginSet = useCallback(() => {
     if (isTimed) {
@@ -722,10 +417,6 @@ function RunnerView({
       setGetReadyLeft(getReadySeconds);
     }
   }, [isTimed, getReadySeconds, startSet]);
-
-  const cancelGetReady = useCallback(() => {
-    setGetReadyLeft(null);
-  }, []);
 
   const beginRoutine = () => {
     startWorkout();
@@ -741,53 +432,24 @@ function RunnerView({
   const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
 
   if (stepIndex < 0) {
-    if (showPreview) {
-      return <RoutinePreview routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} />;
-    }
+    if (showPreview) return <RoutinePreview routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} />;
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <View className="flex-row items-center px-3 py-2">
-          <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60 p-1">
-            <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
-          </Pressable>
-          <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
-            {routine.title}
-          </Text>
+          <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={isLarge ? 26 : 30} color="#f97316" /></Pressable>
+          <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>{routine.title}</Text>
         </View>
-
         <View className="flex-1 items-center justify-center px-8">
-          <Text className={isLarge ? 'text-5xl' : 'text-6xl'}>READY</Text>
-          <Text style={{ color: theme.text }} className={`font-bold text-center mt-4 ${isLarge ? 'text-2xl' : 'text-3xl'}`}>
-            Warmup Complete?
-          </Text>
+          <Text style={{ color: theme.text }} className={`font-bold text-center mt-4 ${isLarge ? 'text-2xl' : 'text-3xl'}`}>Warmup Complete?</Text>
           <Text style={{ color: theme.subText }} className={`text-center mt-3 leading-6 ${isLarge ? 'text-base' : 'text-lg'} opacity-80`}>
-            Make sure you've warmed up. When you're ready, we'll guide you through each
-            exercise. The app loads the next one automatically once you finish your sets.
+            Make sure you've warmed up. When you're ready, we'll guide you through each exercise.
           </Text>
           <View className="flex-row items-stretch mt-8 w-full">
-            <Pressable
-              onPress={() => setShowPreview(true)}
-              style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
-              className="flex-1 mr-2 px-4 py-4 rounded-2xl items-center justify-center active:opacity-60"
-            >
-              <Text
-                numberOfLines={2}
-                style={{ color: theme.text }}
-                className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
-              >
-                Preview Routine
-              </Text>
+            <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-1 mr-2 px-4 py-4 rounded-2xl items-center justify-center active:opacity-60">
+              <Text numberOfLines={2} style={{ color: theme.text }} className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}>Preview Routine</Text>
             </Pressable>
-            <Pressable
-              onPress={beginRoutine}
-              className="flex-1 ml-2 bg-orange-500 px-4 py-4 rounded-2xl items-center justify-center active:opacity-80"
-            >
-              <Text
-                numberOfLines={2}
-                className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
-              >
-                Begin Routine
-              </Text>
+            <Pressable onPress={beginRoutine} className="flex-1 ml-2 bg-orange-500 px-4 py-4 rounded-2xl items-center justify-center active:opacity-80">
+              <Text numberOfLines={2} className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}>Begin Routine</Text>
             </Pressable>
           </View>
         </View>
@@ -795,95 +457,43 @@ function RunnerView({
     );
   }
 
-  const totalSteps = routine.steps.length;
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <View className="flex-row items-center px-3 py-2">
-        <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60 p-1">
-          <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
-        </Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
-          {routine.title}
-        </Text>
+        <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={isLarge ? 26 : 30} color="#f97316" /></Pressable>
+        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}>{routine.title}</Text>
       </View>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         <View className="flex-row justify-center mt-1 mb-4">
           {routine.steps.map((_, i) => (
-            <View
-              key={i}
-              className={`h-2 rounded-full mx-1 ${
-                i < stepIndex ? 'bg-orange-500 w-6' : i === stepIndex ? 'bg-orange-400 w-8' : (theme.background === '#ffffff' ? 'bg-gray-300 w-6' : 'bg-gray-700 w-6')
-              }`}
-            />
+            <View key={i} className={`h-2 rounded-full mx-1 ${i < stepIndex ? 'bg-orange-500 w-6' : i === stepIndex ? 'bg-orange-400 w-8' : (theme.background === '#ffffff' ? 'bg-gray-300 w-6' : 'bg-gray-700 w-6')}`} />
           ))}
         </View>
 
         <View style={{ backgroundColor: theme.card }} className="rounded-2xl p-4 border-2 border-orange-500">
           <View className="flex-row items-center justify-between mb-1">
-            <Text style={{ color: theme.subText }} className={isLarge ? 'text-xs' : 'text-sm'}>
-              Exercise {stepIndex + 1} of {totalSteps} - {step?.group}
-            </Text>
-            <Pressable
-              onPress={skipExercise}
-              style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }}
-              className="flex-row items-center px-3 py-1.5 rounded-lg active:opacity-60"
-            >
-              <FastForward size={14} color={theme.subText} />
-              <Text style={{ color: theme.subText }} className="font-bold ml-1.5 text-xs uppercase tracking-wider">Skip</Text>
+            <Text style={{ color: theme.subText }} className={isLarge ? 'text-xs' : 'text-sm'}>Exercise {stepIndex + 1} of {routine.steps.length} - {step?.group}</Text>
+            <Pressable onPress={skipExercise} style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-row items-center px-3 py-1.5 rounded-lg active:opacity-60">
+              <FastForward size={14} color={theme.subText} /><Text style={{ color: theme.subText }} className="font-bold ml-1.5 text-xs uppercase tracking-wider">Skip</Text>
             </Pressable>
           </View>
-
-          <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-xl' : 'text-2xl'}`}>
-            {step?.exercise}
-          </Text>
-
+          <Text style={{ color: theme.text }} className={`font-bold ${isLarge ? 'text-xl' : 'text-2xl'}`}>{step?.exercise}</Text>
           <View className="flex-row items-center justify-between mt-3" style={{ zIndex: 50 }}>
             <View className="flex-1 mr-2">
-              <Text className={`text-orange-500 font-semibold ${isLarge ? 'text-sm' : 'text-base'}`}>
-                {step?.repRangeLabel}
-              </Text>
-              <Text style={{ color: theme.subText }} className={`mt-2 ${isLarge ? 'text-xs' : 'text-sm'} opacity-70`}>
-                Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets} {isSetActive ? '- in progress' : ''}
-              </Text>
+              <Text className="text-orange-500 font-semibold">{step?.repRangeLabel}</Text>
+              <Text style={{ color: theme.subText }} className="mt-2 opacity-70">Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets}</Text>
             </View>
-
             <View className="flex-row items-center">
               <View className="mr-3">
-                <RepModeToggle
-                  value={effectiveMode === 'voice' ? 'voice' : 'motion'}
-                  isLarge={isLarge}
-                  labelOverride={isTimed ? 'TIMED' : undefined}
-                  disabled={isTimed}
-                  onToggle={() => {
-                    if (isTimed) return;
-                    setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice');
-                  }}
-                />
+                <RepModeToggle value={effectiveMode === 'voice' ? 'voice' : 'motion'} isLarge={isLarge} labelOverride={isTimed ? 'TIMED' : undefined} disabled={isTimed} onToggle={() => { if (!isTimed) setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice'); }} />
               </View>
-              <InclineDropdown
-                value={currentInclineLevel}
-                onSelect={setInclineLevel}
-                isOpen={inclineDropdownOpen}
-                onToggle={() => setInclineDropdownOpen(o => !o)}
-                isLarge={isLarge}
-              />
+              <InclineDropdown value={currentInclineLevel} onSelect={setInclineLevel} isOpen={inclineDropdownOpen} onToggle={() => setInclineDropdownOpen(o => !o)} isLarge={isLarge} />
             </View>
           </View>
-
           <View className="flex-row items-center mt-4">
             {step && Array.from({ length: step.sets }).map((_, i) => (
-              <View
-                key={i}
-                className={`flex-1 h-2.5 rounded-full mr-1.5 ${
-                  i < setsDone ? 'bg-green-500' : i === setsDone && isSetActive ? 'bg-orange-500' : (theme.background === '#ffffff' ? 'bg-gray-300' : 'bg-gray-700')
-                }`}
-              />
+              <View key={i} className={`flex-1 h-2.5 rounded-full mr-1.5 ${i < setsDone ? 'bg-green-500' : i === setsDone && isSetActive ? 'bg-orange-500' : (theme.background === '#ffffff' ? 'bg-gray-300' : 'bg-gray-700')}`} />
             ))}
           </View>
         </View>
@@ -891,268 +501,100 @@ function RunnerView({
         {isSetActive && !isTimed && effectiveMode === 'motion' && (
           <View className="mt-3">
             {isStabilizing ? (
-              <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4">
-                <Loader size={16} color="#eab308" />
-                <Text className={`text-yellow-500 ml-2 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Get into position...
-                </Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-yellow-500/20 rounded-lg py-2 px-4"><Loader size={16} color="#eab308" /><Text className="text-yellow-500 ml-2 font-medium">Get into position...</Text></View>
             ) : showLearningIndicator ? (
-              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4">
-                <Text className={`text-blue-400 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Learning your movement pattern...
-                </Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4"><Text className="text-blue-400 font-medium">Learning movement...</Text></View>
             ) : (
-              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4">
-                <Text className={`text-green-500 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>Counting reps</Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4"><Text className="text-green-500 font-medium">Counting reps</Text></View>
             )}
           </View>
         )}
         {isSetActive && !isTimed && effectiveMode === 'voice' && (
           <View className="mt-3">
             {voiceError ? (
-              <View className="flex-row items-center justify-center bg-red-500/20 rounded-lg py-2 px-4">
-                <Text numberOfLines={2} className={`text-red-400 font-medium text-center ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  {voiceError}
-                </Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-red-500/20 rounded-lg py-2 px-4"><Text numberOfLines={2} className="text-red-400 font-medium text-center">{voiceError}</Text></View>
             ) : isVoiceProcessing ? (
-              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4">
-                <Loader size={16} color="#60a5fa" />
-                <Text className={`text-blue-400 ml-2 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Counting your voice...
-                </Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-blue-500/20 rounded-lg py-2 px-4"><Loader size={16} color="#60a5fa" /><Text className="text-blue-400 ml-2 font-medium">Counting voice...</Text></View>
             ) : (
-              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4">
-                <Text className={`text-green-500 font-medium ${isLarge ? 'text-sm' : 'text-base'}`}>
-                  Listening - count your reps out loud
-                </Text>
-              </View>
+              <View className="flex-row items-center justify-center bg-green-500/20 rounded-lg py-2 px-4"><Text className="text-green-500 font-medium">Listening...</Text></View>
             )}
           </View>
         )}
 
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className={`mt-4 border-2 rounded-2xl p-3 items-center justify-center ${isLarge ? 'min-h-[150px]' : 'min-h-[180px]'}`}>
           {isTimed ? (
-            <TimedExerciseRunner
-              ref={timedRunnerRef}
-              exercise={step?.exercise ?? ''}
-              durationSeconds={30}
-              isSetActive={isSetActive}
-              isLarge={isLarge}
-              onSetDuration={() => {}}
-              onFinalized={(h) => {
-                setReps(0);
-                if (typeof setCurrentTUT === 'function') {
-                  setCurrentTUT(h);
-                }
-                handleConfirmReps(0);
-              }}
-            />
+            <TimedExerciseRunner ref={timedRunnerRef} exercise={step?.exercise ?? ''} durationSeconds={30} isSetActive={isSetActive} isLarge={isLarge} onSetDuration={() => {}} onFinalized={(h) => { setReps(0); setCurrentTUT(h); handleConfirmReps(0); }} />
           ) : getReadyLeft !== null ? (
-            <>
-              <Text className={`text-yellow-500 tracking-wide font-semibold ${isLarge ? 'text-sm' : 'text-base'}`}>GET INTO POSITION</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 font-bold ${isLarge ? 'text-7xl' : 'text-8xl'}`}>
-                {getReadyLeft}
-              </Text>
-              <Text style={{ color: theme.subText }} className={`${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>Starting soon...</Text>
-            </>
+            <><Text className="text-yellow-500 tracking-wide font-semibold">GET INTO POSITION</Text><Text numberOfLines={1} adjustsFontSizeToFit className="text-yellow-500 font-bold text-7xl">{getReadyLeft}</Text><Text style={{ color: theme.subText }} className="opacity-60">Starting soon...</Text></>
           ) : (
-            <>
-              <Text style={{ color: theme.subText }} className={`tracking-wide ${isLarge ? 'text-sm' : 'text-base'} opacity-70`}>REPS</Text>
-              <Text numberOfLines={1} adjustsFontSizeToFit className={`text-orange-500 font-bold ${isLarge ? 'text-7xl' : 'text-8xl'}`}>
-                {currentReps}
-              </Text>
-            </>
+            <><Text style={{ color: theme.subText }} className="tracking-wide opacity-70">REPS</Text><Text numberOfLines={1} adjustsFontSizeToFit className="text-orange-500 font-bold text-7xl">{currentReps}</Text></>
           )}
         </View>
 
-        <Pressable
-          onPress={() => {
-            if (isSetActive) handleEndSet();
-            else if (getReadyLeft !== null) cancelGetReady();
-            else beginSet();
-          }}
-          style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? (theme.background === '#ffffff' ? '#e5e7eb' : '#374151') : '#16a34a' }}
-          className={`mt-4 py-5 rounded-2xl items-center active:opacity-80`}
-        >
-          <Text className={`text-white font-bold ${isLarge ? 'text-xl' : 'text-2xl'}`}>
-            {isSetActive
-              ? 'END SET'
-              : getReadyLeft !== null
-                ? 'CANCEL'
-                : `START SET ${Math.min(setsDone + 1, step?.sets ?? 1)}`}
-          </Text>
+        <Pressable onPress={() => { if (isSetActive) handleEndSet(); else if (getReadyLeft !== null) setGetReadyLeft(null); else beginSet(); }} style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }} className="mt-4 py-5 rounded-2xl items-center active:opacity-80">
+          <Text className="text-white font-bold text-xl">{isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : `START SET ${Math.min(setsDone + 1, step?.sets ?? 1)}`}</Text>
         </Pressable>
-
-        <Text style={{ color: theme.subText }} className={`text-center mt-3 ${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>
-          Rest about 60 seconds between sets. The next exercise loads automatically.
-        </Text>
       </ScrollView>
 
-      <RepConfirmationModal
-        visible={showConfirmModal}
-        autoCount={pendingSetSummary?.repCount ?? 0}
-        onConfirm={handleConfirmReps}
-        onDismiss={handleDismissModal}
-        onRedo={handleRedoSet}
-        isLarge={isLarge}
-      />
+      <RepConfirmationModal visible={showConfirmModal} autoCount={pendingSetSummary?.repCount ?? 0} onConfirm={handleConfirmReps} onDismiss={() => { endSet(); setShowConfirmModal(false); setPendingSetSummary(null); advanceAfterSet(); }} onRedo={handleRedoSet} isLarge={isLarge} />
     </View>
   );
 }
 
-function CompleteView({
-  completion, isLarge, onNext,
-}: {
-  completion: CoachCompletion;
-  isLarge: boolean;
-  onNext: () => void;
-}) {
+function CompleteView({ completion, isLarge, onNext }: { completion: CoachCompletion; isLarge: boolean; onNext: () => void; }) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const tier = medalTierForIndex(completion.index);
   const isFinale = tier === 'olympia';
-
   const flash = useSharedValue(0);
   const trophyScale = useSharedValue(0.6);
 
   useEffect(() => {
-    trophyScale.value = withSequence(
-      withTiming(1.15, { duration: 350 }),
-      withTiming(1, { duration: 250 })
-    );
-    if (isFinale) {
-      flash.value = withRepeat(withTiming(1, { duration: 450 }), -1, true);
-    }
+    trophyScale.value = withSequence(withTiming(1.15, { duration: 350 }), withTiming(1, { duration: 250 }));
+    if (isFinale) flash.value = withRepeat(withTiming(1, { duration: 450 }), -1, true);
   }, []);
 
   const flashStyle = useAnimatedStyle(() => ({ opacity: flash.value * 0.35 }));
   const trophyStyle = useAnimatedStyle(() => ({ transform: [{ scale: trophyScale.value }] }));
-
   const TierIcon = tier === 'ribbon' ? Ribbon : tier === 'olympia' ? Crown : tier === 'gold' ? Trophy : Medal;
   const tierColor = MEDAL_COLORS[tier];
 
-  const dateLabel = new Date(completion.completedAt).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
-      {isFinale && (
-        <Animated.View
-          pointerEvents="none"
-          style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fde047' }, flashStyle]}
-        />
-      )}
-
+      {isFinale && <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#fde047' }, flashStyle]} />}
       <View className="flex-1 items-center justify-center px-8">
         <Animated.View style={trophyStyle} className="items-center">
-          <View
-            className="w-32 h-32 rounded-full items-center justify-center mb-2"
-            style={{ backgroundColor: isFinale ? 'rgba(253,224,71,0.18)' : 'rgba(249,115,22,0.15)' }}
-          >
+          <View className="w-32 h-32 rounded-full items-center justify-center mb-2" style={{ backgroundColor: isFinale ? 'rgba(253,224,71,0.18)' : 'rgba(249,115,22,0.15)' }}>
             <TierIcon size={isLarge ? 64 : 72} color={tierColor} />
           </View>
         </Animated.View>
-
-        {isFinale ? (
-          <>
-            <View className="flex-row items-center mt-3">
-              <PartyPopper size={isLarge ? 24 : 28} color="#fde047" />
-              <Text className={`text-yellow-300 font-bold mx-2 text-center ${isLarge ? 'text-3xl' : 'text-4xl'}`}>
-                CHAMPION!
-              </Text>
-              <PartyPopper size={isLarge ? 24 : 28} color="#fde047" />
-            </View>
-            <Text style={{ color: theme.text }} className={`font-bold text-center mt-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
-              You finished the full 4-week program!
-            </Text>
-            <Text style={{ color: theme.subText }} className={`text-center mt-2 leading-6 ${isLarge ? 'text-base' : 'text-lg'} opacity-90`}>
-              That's all 12 sessions. You earned the Mr. Olympia trophy. You are stronger than when you
-              started - be proud of the work you put in.
-            </Text>
-          </>
-        ) : (
-          <>
-            <Text style={{ color: theme.text }} className={`font-bold text-center mt-3 ${isLarge ? 'text-2xl' : 'text-3xl'}`}>
-              Routine Complete!
-            </Text>
-            <Text className={`font-semibold text-center mt-2 ${isLarge ? 'text-lg' : 'text-xl'}`} style={{ color: tierColor }}>
-              {MEDAL_LABELS[tier]} earned - Session #{completion.index}
-            </Text>
-            <Text style={{ color: theme.subText }} className={`text-center mt-2 leading-6 ${isLarge ? 'text-base' : 'text-lg'} opacity-90`}>
-              Great work. Your trophy has been added to your shelf. Keep it up - consistency is what builds
-              strength.
-            </Text>
-          </>
-        )}
-
-        <Text style={{ color: theme.subText }} className={`text-center mt-4 ${isLarge ? 'text-sm' : 'text-base'} opacity-60`}>
-          {dateLabel}
-        </Text>
-
-        <Pressable
-          onPress={onNext}
-          className="mt-8 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 flex-row items-center"
-        >
-          <Text className={`text-white font-bold mr-2 ${isLarge ? 'text-xl' : 'text-2xl'}`}>Next</Text>
-          <ChevronRight size={isLarge ? 22 : 26} color="#fff" />
+        <Text style={{ color: theme.text }} className="font-bold text-center mt-3 text-2xl">Routine Complete!</Text>
+        <Text className="font-semibold text-center mt-2 text-lg" style={{ color: tierColor }}>{MEDAL_LABELS[tier]} earned</Text>
+        <Pressable onPress={onNext} className="mt-8 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 flex-row items-center">
+          <Text className="text-white font-bold mr-2 text-xl">Next</Text><ChevronRight size={22} color="#fff" />
         </Pressable>
       </View>
-
-      {/* Confetti on top */}
       <Confetti active intense={isFinale} />
     </View>
   );
 }
 
-function SummaryView({
-  workout, completion, isLarge, onDone,
-}: {
-  workout: Workout;
-  completion: CoachCompletion | null;
-  isLarge: boolean;
-  onDone: () => void;
-}) {
+function SummaryView({ workout, completion, isLarge, onDone }: { workout: Workout; completion: CoachCompletion | null; isLarge: boolean; onDone: () => void; }) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const tier = completion ? medalTierForIndex(completion.index) : 'ribbon';
-  const tierColor = MEDAL_COLORS[tier];
+  const tierColor = completion ? MEDAL_COLORS[medalTierForIndex(completion.index)] : '#f97316';
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       <View className="flex-row items-center px-4 py-2">
-        <Text style={{ color: theme.text }} className={`font-bold flex-1 ${isLarge ? 'text-xl' : 'text-2xl'}`}>
-          Workout Summary
-        </Text>
-        {completion && (
-          <Text className={`font-semibold ${isLarge ? 'text-sm' : 'text-base'}`} style={{ color: tierColor }}>
-            {MEDAL_LABELS[tier]} - #{completion.index}
-          </Text>
-        )}
+        <Text style={{ color: theme.text }} className="font-bold flex-1 text-xl">Workout Summary</Text>
       </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
         <WorkoutSummary workout={workout} isLarge={isLarge} accentColor={tierColor} />
-        <Text style={{ color: theme.subText }} className={`text-center mt-4 ${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>
-          Nice work. This summary is saved - you can revisit it any time from the Trophies page.
-        </Text>
       </ScrollView>
-
       <View style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }} className="px-4 pt-3 border-t">
-        <Pressable
-          onPress={onDone}
-          className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80"
-        >
-          <Text className={`text-white font-bold ${isLarge ? 'text-lg' : 'text-xl'}`}>View Trophies</Text>
+        <Pressable onPress={onDone} className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80">
+          <Text className="text-white font-bold text-lg">View Trophies</Text>
         </Pressable>
       </View>
     </View>
