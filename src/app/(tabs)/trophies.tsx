@@ -832,13 +832,34 @@ export default function TrophiesScreen() {
         earned: stats.weeklyStreak >= 8,
         dateLabel: dateFor(getWeeklyStreakEarnedDate(workoutHistory, 8)),
       },
+      {
+        icon: 'trending' as const,
+        title: 'Three Months Weekly Streak',
+        description: 'Hit a 12 week weekly streak',
+        earned: stats.weeklyStreak >= 12,
+        dateLabel: dateFor(getWeeklyStreakEarnedDate(workoutHistory, 12)),
+      },
+      {
+        icon: 'trending' as const,
+        title: 'Four Months Weekly Streak',
+        description: 'Hit a 16 week weekly streak',
+        earned: stats.weeklyStreak >= 16,
+        dateLabel: dateFor(getWeeklyStreakEarnedDate(workoutHistory, 16)),
+      },
+      {
+        icon: 'trending' as const,
+        title: 'Five Months Weekly Streak',
+        description: 'Hit a 20 week weekly streak',
+        earned: stats.weeklyStreak >= 20,
+        dateLabel: dateFor(getWeeklyStreakEarnedDate(workoutHistory, 20)),
+      },
     ];
   }, [workoutHistory, stats.workoutsThisWeek, stats.streak, stats.weeklyStreak]);
 
   // Rep milestones. `dateLabel` is the date cumulative reps first crossed the
   // target (only shown when earned).
   const repMilestones = useMemo(() => {
-    return [100, 500, 1000, 2000, 5000, 7500, 10000, 15000, 20000].map(reps => {
+    return [100, 500, 1000, 2000, 5000, 7500, 10000, 15000, 20000, 25000, 30000, 35000, 40000].map(reps => {
       const earned = stats.totalReps >= reps;
       const date = earned ? getRepMilestoneDate(workoutHistory, reps) : null;
       return { reps, earned, dateLabel: date ? formatTrophyDate(date) : null };
