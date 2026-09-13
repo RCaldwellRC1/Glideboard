@@ -694,6 +694,20 @@ function RunnerView({
     advanceAfterSet();
   }, [pendingSetSummary, currentExercise, currentInclineLevel, applyUserOverride, setReps, endSet, repCountingMode, advanceAfterSet, setCurrentTUT]);
 
+  const handleDismissModal = useCallback(() => {
+    endSet();
+    setShowConfirmModal(false);
+    setPendingSetSummary(null);
+    advanceAfterSet();
+  }, [endSet, advanceAfterSet]);
+
+  const handleRedoSet = useCallback(() => {
+    adaptiveResetToIdle();
+    cancelSet();
+    setShowConfirmModal(false);
+    setPendingSetSummary(null);
+  }, [adaptiveResetToIdle, cancelSet]);
+
   const beginSet = useCallback(() => {
     if (isTimed) {
       startSet();
@@ -822,7 +836,7 @@ function RunnerView({
         </Pressable>
       </ScrollView>
 
-      <RepConfirmationModal visible={showConfirmModal} autoCount={pendingSetSummary?.repCount ?? 0} onConfirm={handleConfirmReps} onDismiss={() => { endSet(); setShowConfirmModal(false); setPendingSetSummary(null); advanceAfterSet(); }} onRedo={handleRedoSet} isLarge={isLarge} />
+      <RepConfirmationModal visible={showConfirmModal} autoCount={pendingSetSummary?.repCount ?? 0} onConfirm={handleConfirmReps} onDismiss={handleDismissModal} onRedo={handleRedoSet} isLarge={isLarge} />
     </View>
   );
 }
