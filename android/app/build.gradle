@@ -92,8 +92,8 @@ android {
         applicationId 'com.robertcaldwell.vibecode'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 327
-        versionName "1.5.6"
+        versionCode 328
+        versionName "1.5.7"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }

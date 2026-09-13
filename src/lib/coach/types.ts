@@ -352,7 +352,7 @@ const PPL_PROGRAM: CoachProgram = {
         { group: 'LEGS', exercise: 'Squats', sets: 2, repRangeLabel: '30 Reps target', targetReps: 30 },
         { group: 'LEGS', exercise: 'Calf Raise', sets: 2, repRangeLabel: '40 Reps target', targetReps: 40 },
         { group: 'LEGS', exercise: 'Hamstring Curl', sets: 2, repRangeLabel: '20 Reps target', targetReps: 20 },
-        { group: 'LEGS', exercise: 'Alternating Lunges', sets: 2, repRangeLabel: '20 Reps target', targetReps: 20 },
+        { group: 'LEGS', exercise: 'Tibialis Raise', sets: 2, repRangeLabel: '20 Reps target', targetReps: 20 },
         { group: 'LEGS', exercise: 'Glute Bridge', sets: 2, repRangeLabel: '10 Reps target', targetReps: 10 },
         { group: 'CORE', exercise: 'Crunch', sets: 2, repRangeLabel: '15 Reps target', targetReps: 15 },
       ],
