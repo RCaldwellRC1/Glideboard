@@ -98,10 +98,6 @@ export default function CoachRoutineScreen() {
     setPhase('complete');
   };
 
-  const handleNextPhase = () => {
-    setPhase('summary');
-  };
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
       {phase === 'instructions' && (
@@ -129,7 +125,7 @@ export default function CoachRoutineScreen() {
         <CompleteView
           completion={completion}
           isLarge={largeDisplayMode}
-          onNext={handleNextPhase}
+          onNext={() => setPhase('summary')}
         />
       )}
 
@@ -443,6 +439,7 @@ function RunnerView({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; needsConfirmation: boolean } | null>(null);
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
+  const [setupSecondsLeft, setSetupSecondsLeft] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
@@ -759,7 +756,7 @@ function RunnerView({
         </View>
 
         <View className="flex-1 items-center justify-center px-8">
-          <Text className={isLarge ? 'text-5xl' : 'text-6xl'}>🔥</Text>
+          <Text className={isLarge ? 'text-5xl' : 'text-6xl'}>READY</Text>
           <Text style={{ color: theme.text }} className={`font-bold text-center mt-4 ${isLarge ? 'text-2xl' : 'text-3xl'}`}>
             Warmup Complete?
           </Text>
@@ -778,7 +775,7 @@ function RunnerView({
                 style={{ color: theme.text }}
                 className={`font-semibold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
               >
-                Preview{"\n"}Routine
+                Preview Routine
               </Text>
             </Pressable>
             <Pressable
@@ -789,7 +786,7 @@ function RunnerView({
                 numberOfLines={2}
                 className={`text-white font-bold text-center ${isLarge ? 'text-base' : 'text-lg'}`}
               >
-                Begin{"\n"}Routine
+                Begin Routine
               </Text>
             </Pressable>
           </View>
@@ -806,7 +803,7 @@ function RunnerView({
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60 p-1">
           <ChevronLeft size={isLarge ? 26 : 30} color="#f97316" />
         </Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-base' : 'text-lg'}`}>
+        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>
           {routine.title}
         </Text>
       </View>
