@@ -224,8 +224,15 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     const sens = state._sensitivityMultiplier;
     const paceFactor = Math.max(0.5, Math.min(1.0, 2.0 / (state._expectedRepMs / 1000 || 2.0)));
 
-    const triggerThreshold = state.isLearningROM ? 0.05 * sens * paceFactor : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
-    const returnThreshold = 0.04 * sens;
+    // Short Range of Motion (ROM) exercises like Calf Raises need more sensitivity.
+    const isShortROM = exId.toLowerCase().includes('calf') || exId.toLowerCase().includes('tibialis');
+    const romMultiplier = isShortROM ? 0.65 : 1.0;
+
+    const triggerThreshold = state.isLearningROM
+      ? 0.05 * sens * paceFactor * romMultiplier
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor * romMultiplier, 0.05 * romMultiplier);
+
+    const returnThreshold = 0.04 * sens * romMultiplier;
 
     if (deviation > state.peakDeviation) set({ peakDeviation: deviation });
 
@@ -244,9 +251,12 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       const repDuration = now - (state.repStartTime ?? now);
       const peak = state.peakDeviation;
       const rawMinPeak = state.isLearningROM ? MIN_PEAK_FOR_REP : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
-      const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor, 0.07);
+      const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor * romMultiplier, 0.05 * romMultiplier);
 
-      if (repDuration >= state._minRepDurationMs && peak >= activeMinPeak) {
+      // Calf raises can be very fast, so we lower the jitter floor if needed.
+      const minRepMs = isShortROM ? Math.min(state._minRepDurationMs, 80) : state._minRepDurationMs;
+
+      if (repDuration >= minRepMs && peak >= activeMinPeak) {
         const newRepCount = state.repCount + 1;
         const timing: RepTiming = { startTime: state.repStartTime ?? now, upReachedTime: null, endTime: now, duration: repDuration };
         const newPeaks = [...state.measuredPeaks, peak];
