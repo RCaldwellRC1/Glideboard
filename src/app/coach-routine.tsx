@@ -1038,7 +1038,7 @@ function RunnerView({
               <Text numberOfLines={1} adjustsFontSizeToFit className={`text-yellow-500 font-bold ${isLarge ? 'text-7xl' : 'text-8xl'}`}>
                 {getReadyLeft}
               </Text>
-              <Text style={{ color: theme.subText }} className={`${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>Starting soonâ€¦</Text>
+              <Text style={{ color: theme.subText }} className={`${isLarge ? 'text-xs' : 'text-sm'} opacity-60`}>Starting soon...</Text>
             </>
           ) : (
             <>
