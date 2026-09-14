@@ -222,7 +222,6 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     const smoothedAccel = recentAccel.reduce((a, b) => a + b, 0) / recentAccel.length;
     const deviation = Math.abs(smoothedAccel - state.baselineAccel);
     const sens = state._sensitivityMultiplier;
-    const paceFactor = Math.max(0.5, Math.min(1.0, 2.0 / (state._expectedRepMs / 1000 || 2.0)));
 
     // Short Range of Motion (ROM) exercises like Calf Raises need extreme sensitivity.
     const isShortROM = exId.toLowerCase().includes('calf') || exId.toLowerCase().includes('tibialis');
