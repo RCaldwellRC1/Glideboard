@@ -21,6 +21,150 @@ import { remoteLog } from '@/lib/remoteLog';
 
 type Phase = 'instructions' | 'running' | 'complete' | 'summary';
 
+// --- SUB-COMPONENTS (Defined outside main export for stability) ---
+
+function RoutinePreviewInternal({
+  routine, isLarge, onClose, customExercises, addCustomExercise, renameCustomExercise,
+}: {
+  routine: CoachRoutine;
+  isLarge: boolean;
+  onClose: () => void;
+  customExercises: any;
+  addCustomExercise: any;
+  renameCustomExercise: any;
+}) {
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const [isEditing, setIsEditing] = useState(false);
+  const [steps, setSteps] = useState<RoutineStep[]>(routine.steps || []);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const customizeRoutine = useCoachStore(s => s.customizeRoutine);
+  const resetRoutine = useCoachStore(s => s.resetRoutine);
+  const isCustomized = useCoachStore(s => !!s.customizedRoutines?.[routine.id]);
+
+  useEffect(() => {
+    if (!isEditing) setSteps(routine.steps || []);
+  }, [routine.steps, isEditing]);
+
+  const updateSetCount = (index: number, delta: number) => {
+    const newSteps = [...steps];
+    newSteps[index] = { ...newSteps[index], sets: Math.max(1, newSteps[index].sets + delta) };
+    setSteps(newSteps);
+  };
+
+  const removeStep = (index: number) => {
+    setSteps(steps.filter((_, i) => i !== index));
+  };
+
+  const addStep = (exercise: string, group: string) => {
+    const newStep: RoutineStep = { group, exercise, sets: 2, repRangeLabel: '10-15 Reps' };
+    setSteps([...steps, newStep]);
+    setShowPicker(false);
+  };
+
+  const handleDoneEditing = () => {
+    customizeRoutine({ ...routine, steps });
+    setIsEditing(false);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View className="flex-row items-center px-3 py-2">
+        <Pressable onPress={onClose} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={isLarge ? 26 : 30} color="#f97316" /></Pressable>
+        <Text numberOfLines={1} style={{ color: theme.text }} className={`font-bold ml-1 flex-1 ${isLarge ? 'text-lg' : 'text-xl'}`}>Preview - {routine.title}</Text>
+        <Pressable onPress={() => setIsEditing(!isEditing)} style={{ backgroundColor: isEditing ? '#f97316' : theme.divider }} className="w-10 h-10 items-center justify-center rounded-full ml-2">
+          <Pencil size={isLarge ? 20 : 22} color={isEditing ? '#fff' : '#f97316'} />
+        </Pressable>
+      </View>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 100 }}>
+        {isCustomized && !isEditing && (
+          <View style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.3)' }} className="flex-row items-center rounded-xl px-4 py-3 mb-4 border">
+            <Text className="text-orange-400 font-medium flex-1 text-sm">You have customized this routine.</Text>
+            <Pressable onPress={() => resetRoutine(routine.id)} className="flex-row items-center bg-orange-500/20 px-3 py-1.5 rounded-lg"><RotateCcw size={14} color="#f97316" /><Text className="text-orange-500 font-bold ml-1.5 text-xs uppercase">Reset</Text></Pressable>
+          </View>
+        )}
+        {steps.map((s, i) => (
+          <View key={`${s.exercise}-${i}`} style={{ backgroundColor: theme.card }} className="flex-row items-center rounded-xl px-4 py-3 mb-2">
+            <View className="w-8 h-8 rounded-full bg-orange-500/20 items-center justify-center mr-3"><Text className="text-orange-500 font-bold">{i + 1}</Text></View>
+            <View className="flex-1"><Text style={{ color: theme.text }} className="font-semibold">{s.exercise}</Text><Text style={{ color: theme.subText }} className="text-xs opacity-70">{s.group} - {s.repRangeLabel}</Text></View>
+            {isEditing ? (
+              <View className="flex-row items-center">
+                <Pressable onPress={() => updateSetCount(i, -1)} className="p-2"><Minus size={16} color="#f97316" /></Pressable>
+                <Text style={{ color: theme.text }} className="font-bold px-2">{s.sets}</Text>
+                <Pressable onPress={() => updateSetCount(i, 1)} className="p-2"><Plus size={16} color="#f97316" /></Pressable>
+                <Pressable onPress={() => removeStep(i)} className="ml-2 p-2"><Trash2 size={18} color="#ef4444" /></Pressable>
+              </View>
+            ) : <Text className="text-orange-500 font-bold">{s.sets} sets</Text>}
+          </View>
+        ))}
+        {isEditing && (
+          <Pressable onPress={() => setShowPicker(true)} style={{ borderColor: theme.divider }} className="mt-2 py-4 rounded-xl items-center border-2 border-dashed">
+            <View className="flex-row items-center"><Plus size={18} color="#f97316" /><Text className="text-orange-500 font-bold ml-2">Add Exercise</Text></View>
+          </Pressable>
+        )}
+      </ScrollView>
+      <View style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }} className="px-4 pt-3 border-t">
+        <Pressable onPress={isEditing ? handleDoneEditing : onClose} className="py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold">{isEditing ? 'Done Editing' : 'Return'}</Text></Pressable>
+      </View>
+      <ExercisePickerModal visible={showPicker} onClose={() => setShowPicker(false)} onSelect={addStep} isLarge={isLarge} customExercises={customExercises} onAddCustom={addCustomExercise} onRenameCustom={renameCustomExercise} showCoachRoutines={false} />
+    </View>
+  );
+}
+
+function InstructionsViewInternal({
+  routine, isLarge, dontShowChecked, onToggleDontShow, onBegin, onBack, isCustomized, customExercises, addCustomExercise, renameCustomExercise,
+}: {
+  routine: CoachRoutine;
+  isLarge: boolean;
+  dontShowChecked: boolean;
+  onToggleDontShow: () => void;
+  onBegin: () => void;
+  onBack: () => void;
+  isCustomized: boolean;
+  customExercises: any;
+  addCustomExercise: any;
+  renameCustomExercise: any;
+}) {
+  const theme = useTheme();
+  const [showPreview, setShowPreview] = useState(false);
+  const resetRoutine = useCoachStore(s => s.resetRoutine);
+
+  if (showPreview) return <RoutinePreviewInternal routine={routine} isLarge={isLarge} onClose={() => setShowPreview(false)} customExercises={customExercises} addCustomExercise={addCustomExercise} renameCustomExercise={renameCustomExercise} />;
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View className="flex-row items-center px-3 py-2">
+        <Pressable onPress={onBack} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={isLarge ? 26 : 30} color="#f97316" /></Pressable>
+        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-xl">{routine.title}</Text>
+      </View>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 20 }}>
+        {isCustomized && (
+          <View style={{ backgroundColor: 'rgba(249,115,22,0.1)', borderColor: 'rgba(249,115,22,0.3)' }} className="flex-row items-center rounded-xl px-4 py-3 mb-4 border">
+            <Text className="text-orange-400 font-medium flex-1 text-sm">You have customized this routine.</Text>
+            <Pressable onPress={() => resetRoutine(routine.id)} className="flex-row items-center bg-orange-500/20 px-3 py-1.5 rounded-lg"><RotateCcw size={14} color="#f97316" /><Text className="text-orange-500 font-bold ml-1.5 text-xs uppercase">Reset</Text></Pressable>
+          </View>
+        )}
+        <Text style={{ color: theme.text }} className="text-lg leading-7 opacity-90">{routine.instructions}</Text>
+      </ScrollView>
+      <View style={{ borderTopColor: theme.border }} className="px-4 pt-3 border-t">
+        <Pressable onPress={onToggleDontShow} className="flex-row items-center mb-3">
+          <View style={{ backgroundColor: dontShowChecked ? '#f97316' : theme.divider, borderColor: theme.border }} className="w-6 h-6 rounded items-center justify-center mr-2 border">
+            {dontShowChecked && <Check size={16} color="#fff" />}
+          </View>
+          <Text style={{ color: theme.subText }}>Do not show me again</Text>
+        </Pressable>
+        <View className="flex-row">
+          <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-1 mr-2 py-4 rounded-xl items-center"><Text style={{ color: theme.text }} className="font-semibold">Preview</Text></Pressable>
+          <Pressable onPress={onBegin} className="flex-1 ml-2 py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold">Start</Text></Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// -- MAIN COMPONENT --
+
 export default function CoachRoutineScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -42,7 +186,6 @@ export default function CoachRoutineScreen() {
   const currentExercise = useWorkoutStore(s => s.currentExercise);
   const currentInclineLevel = useWorkoutStore(s => s.currentInclineLevel);
   const currentReps = useWorkoutStore(s => s.currentReps);
-  const currentSetNum = useWorkoutStore(s => s.currentSet);
   const startWorkout = useWorkoutStore(s => s.startWorkout);
   const endWorkout = useWorkoutStore(s => s.endWorkout);
   const startSet = useWorkoutStore(s => s.startSet);
@@ -54,6 +197,8 @@ export default function CoachRoutineScreen() {
   const setCurrentTUT = useWorkoutStore(s => s.setCurrentTUT);
   const exerciseHistory = useWorkoutStore(s => s.exerciseHistory || []);
   const customExercises = useWorkoutStore(s => s.customExercises);
+  const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
+  const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
 
   const repCountingMode = useSettingsStore(s => s.repCountingMode);
   const setRepCountingMode = useSettingsStore(s => s.setRepCountingMode);
@@ -78,10 +223,10 @@ export default function CoachRoutineScreen() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; totalActiveDuration: number; needsConfirmation: boolean } | null>(null);
   const [isWaitingForVoiceToEndSet, setIsWaitingForVoiceToEndSet] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
   const [completion, setCompletion] = useState<CoachCompletion | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
+  const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
 
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
   const autoEndHandledRef = useRef(false);
@@ -106,7 +251,6 @@ export default function CoachRoutineScreen() {
 
   // -- Lifecycle --
   useEffect(() => {
-    useSettingsStore.getState().loadFromStorage();
     loadCoach();
     loadAdaptiveProfiles();
   }, []);
@@ -119,7 +263,6 @@ export default function CoachRoutineScreen() {
     }
   }, [coachLoaded, routineId, dontShowInstructions]);
 
-  // Force reset when set state changes to prevent auto-finish ghosts
   useEffect(() => {
     if (isSetActive) {
       autoEndHandledRef.current = false;
@@ -188,7 +331,6 @@ export default function CoachRoutineScreen() {
         return;
       }
     } else if (effectiveMode === 'voice') {
-      // Voice end set logic simplified for stability
       setPendingSetSummary({ repCount: currentReps, totalActiveDuration: 0, needsConfirmation: true });
       setShowConfirmModal(true);
       return;
@@ -333,26 +475,23 @@ export default function CoachRoutineScreen() {
   // --- Default: Instructions/Intro Phase ---
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
-      <View className="flex-row items-center px-3 py-2"><Pressable onPress={() => router.back()} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable><Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-xl">{routine.title}</Text></View>
-      <ScrollView className="flex-1" contentContainerStyle={{ padding: 20 }}>
-         {stepIndex < 0 ? (
-           <View className="items-center justify-center mt-10">
-              <Sparkles size={60} color="#f97316" />
-              <Text style={{ color: theme.text }} className="font-bold text-3xl mt-6 text-center">Warmup Complete?</Text>
-              <Text style={{ color: theme.subText }} className="text-center mt-4 leading-6 text-lg">We will guide you through each exercise automatically. Ensure you are warmed up before beginning.</Text>
-              <View className="flex-row w-full mt-10">
-                 <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.divider }} className="flex-1 mr-2 py-4 rounded-xl items-center"><Text style={{ color: theme.text }} className="font-semibold">Preview</Text></Pressable>
-                 <Pressable onPress={beginRoutine} className="flex-1 ml-2 py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold">Begin</Text></Pressable>
-              </View>
-           </View>
-         ) : (
-           <Text style={{ color: theme.text }} className="text-lg leading-7">{routine.instructions}</Text>
-         )}
-      </ScrollView>
-      {stepIndex < 0 && (
-        <View style={{ borderTopColor: theme.border }} className="p-4 border-t"><Pressable onPress={() => setDontShowChecked(!dontShowChecked)} className="flex-row items-center mb-4"><View style={{ backgroundColor: dontShowChecked ? '#f97316' : theme.divider }} className="w-6 h-6 rounded mr-3 border">{dontShowChecked && <Check size={16} color="#fff" />}</View><Text style={{ color: theme.subText }}>Do not show instructions again</Text></Pressable><Pressable onPress={startRunning} className="py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold text-lg">Continue</Text></Pressable></View>
+      <InstructionsViewInternal
+        routine={routine}
+        isLarge={largeDisplayMode}
+        dontShowChecked={dontShowChecked}
+        onToggleDontShow={() => setDontShowChecked(!dontShowChecked)}
+        onBegin={startRunning}
+        onBack={() => router.back()}
+        isCustomized={!!customizedRoutines[routineId]}
+        customExercises={customExercises}
+        addCustomExercise={addCustomExercise}
+        renameCustomExercise={renameCustomExercise}
+      />
+      {stepIndex < 0 && phase === 'running' && (
+        <View style={{ position: 'absolute', bottom: insets.bottom + 40, left: 20, right: 20 }}>
+           <Pressable onPress={beginRoutine} className="py-4 rounded-xl items-center bg-orange-500 shadow-lg"><Text className="text-white font-bold text-xl">Confirm Warmup Complete</Text></Pressable>
+        </View>
       )}
-      {showPreview && <RoutinePreview routine={routine} isLarge={largeDisplayMode} onClose={() => setShowPreview(false)} />}
     </View>
   );
 }
