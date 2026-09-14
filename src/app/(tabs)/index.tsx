@@ -308,8 +308,9 @@ export default function TrackerScreen() {
       const summary = adaptiveEndSet();
       setPendingSetSummary(summary);
       setShowConfirmModal(true);
+      adaptiveResetToIdle(); // Force back to idle immediately
     }
-  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveEndSet]);
+  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveEndSet, adaptiveResetToIdle]);
 
   const handleEndSet = useCallback(() => {
     if (effectiveMode === 'motion') {
@@ -648,7 +649,7 @@ export default function TrackerScreen() {
         visible={showConfirmModal}
         autoCount={pendingSetSummary?.repCount ?? 0}
         onConfirm={handleConfirmReps}
-        onDismiss={() => { endSet(); setShowConfirmModal(false); setPendingSetSummary(null); }}
+        onDismiss={() => handleConfirmReps(currentReps)}
         onRedo={() => {
           adaptiveResetToIdle();
           cancelSet();

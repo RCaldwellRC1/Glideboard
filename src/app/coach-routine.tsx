@@ -15,6 +15,7 @@ import { RepConfirmationModal } from '@/components/RepConfirmationModal';
 import { InclineDropdown } from '@/components/InclineDropdown';
 import { TimedExerciseRunner, type TimedRunnerHandle } from '@/components/TimedExerciseRunner';
 import { RepModeToggle } from '@/components/RepModeToggle';
+import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { WorkoutSummary } from '@/components/WorkoutSummary';
 import { Confetti } from '@/components/Confetti';
 import { remoteLog } from '@/lib/remoteLog';
@@ -46,7 +47,7 @@ function RoutinePreview({ routine, onClose, customExercises, addCustomExercise, 
   const handleDone = () => { customizeRoutine({ ...routine, steps }); setIsEditing(false); };
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: insets.top }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 20) }]}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onClose} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-lg">Preview - {routine.title}</Text>
@@ -92,7 +93,6 @@ function RoutinePreview({ routine, onClose, customExercises, addCustomExercise, 
 function InstructionsView({ routine, onBegin, onBack, customExercises, addCustomExercise, renameCustomExercise }: any) {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const isLarge = useSettingsStore(s => s.largeDisplayMode);
   const [showPreview, setShowPreview] = useState(false);
   const [dontShow, setDontShow] = useState(false);
 
@@ -108,7 +108,7 @@ function InstructionsView({ routine, onBegin, onBack, customExercises, addCustom
   if (showPreview) return <RoutinePreview routine={routine} onClose={() => setShowPreview(false)} customExercises={customExercises} addCustomExercise={addCustomExercise} renameCustomExercise={renameCustomExercise} />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onBack} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-xl">{routine.title}</Text>
@@ -296,7 +296,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   if (stepIndex < 0) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', paddingTop: Math.max(insets.top, 20) }}>
         <Sparkles size={60} color="#f97316" />
         <Text style={{ color: theme.text }} className="font-bold text-3xl mt-6 text-center">Warmup Complete?</Text>
         <Text style={{ color: theme.subText }} className="text-center mt-4 text-lg px-8">We will guide you through each exercise automatically.</Text>
@@ -305,15 +305,14 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
     );
   }
 
-  // Find results for the current exercise from the store to color the set bars.
   const currentExSetsResults = useMemo(() => {
     if (!step) return [];
-    // We assume the last `setsDone` confirmed sets in the store are for this step.
-    return currentWorkoutSets.slice(-setsDone);
+    // Only grab sets from THIS specific exercise step from the session history
+    return currentWorkoutSets.filter(s => s.exercise === step.exercise).slice(-setsDone);
   }, [currentWorkoutSets, setsDone, step]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
       {/* Header aligned with iOS image */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
@@ -360,6 +359,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
                if (i < setsDone) {
                  const result = currentExSetsResults[i];
                  const target = step.targetReps || 0;
+                 // Yoda logic: Green if hit target, Orange if short
                  barColor = (result && result.reps >= target) ? '#22c55e' : '#f97316';
                } else if (i === setsDone && isSetActive) {
                  barColor = '#f97316';
@@ -458,7 +458,7 @@ export default function CoachRoutineScreen() {
 
   if (phase === 'summary' && completedWorkout) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
         <View className="px-4 py-2 border-b" style={{ borderBottomColor: theme.divider }}><Text style={{ color: theme.text }} className="font-bold text-xl">Workout Summary</Text></View>
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}><WorkoutSummary workout={completedWorkout} isLarge={useSettingsStore.getState().largeDisplayMode} accentColor={'#f97316'} /></ScrollView>
         <View className="p-4 border-t" style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }}><Pressable onPress={() => router.replace('/(tabs)/trophies')} className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80"><Text className="text-white font-bold text-lg">View Trophies</Text></Pressable></View>
@@ -469,7 +469,7 @@ export default function CoachRoutineScreen() {
   if (phase === 'complete' && completion) {
     const tier = medalTierForIndex(completion.index);
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} className="items-center justify-center px-8">
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }} className="items-center justify-center px-8">
         <Trophy size={80} color={MEDAL_COLORS[tier]} />
         <Text style={{ color: theme.text }} className="font-bold text-3xl mt-4">Routine Complete!</Text>
         <Text className="font-semibold text-xl mt-2" style={{ color: MEDAL_COLORS[tier] }}>{MEDAL_LABELS[tier]} Earned</Text>

@@ -79,7 +79,7 @@ export const ADAPTIVE_REP_CONSTANTS = {
   SINGLE_ARM_DOWN_ADJUST: 1.05,
 
   // Auto end-set
-  INACTIVITY_TIMEOUT_MS: 8000,          // 8 seconds
+  INACTIVITY_TIMEOUT_MS: 12000,          // 12 seconds
 
   // Confidence
   CONFIDENCE_THRESHOLD: 0.85,           // Show confirmation if below
