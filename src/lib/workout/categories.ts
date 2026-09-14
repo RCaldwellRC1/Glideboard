@@ -50,4 +50,4 @@ export function exerciseColor(
 }
 
 export const DEFAULT_TIMED_SECONDS = 30;
-export const TIMED_DURATION_OPTIONS = [10, 15, 20, 30, 45, 60, 90, 120, 180, 300];
+export const TIMED_DURATION_OPTIONS = [10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 360, 420, 480, 540, 600];
