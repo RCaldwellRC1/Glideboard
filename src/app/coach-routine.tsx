@@ -185,8 +185,14 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
+  // Moved hooks to very top
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
+  const currentExSetsResults = useMemo(() => {
+    if (!step) return [];
+    return currentWorkoutSets.filter(s => s.exercise === step.exercise).slice(-setsDone);
+  }, [currentWorkoutSets, setsDone, step]);
+
   const isTimed = category === 'timed';
   const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
 
@@ -305,12 +311,6 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
     );
   }
 
-  const currentExSetsResults = useMemo(() => {
-    if (!step) return [];
-    // Only grab sets from THIS specific exercise step from the session history
-    return currentWorkoutSets.filter(s => s.exercise === step.exercise).slice(-setsDone);
-  }, [currentWorkoutSets, setsDone, step]);
-
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
       {/* Header aligned with iOS image */}
@@ -338,7 +338,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
         {/* Main Exercise Card with Orange Border */}
         <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-2xl p-5 border-2 mt-2">
            <Text style={{ color: theme.subText }} className="text-xs uppercase font-bold tracking-tight opacity-60">
-             Exercise {stepIndex + 1} of {routine.steps.length} · {step?.group}
+             Exercise {stepIndex + 1} of {routine.steps.length} . {step?.group}
            </Text>
            <Text style={{ color: theme.text }} className="font-bold text-3xl mt-1">{step?.exercise}</Text>
 
