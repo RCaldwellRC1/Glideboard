@@ -15,6 +15,7 @@ import { RepConfirmationModal } from '@/components/RepConfirmationModal';
 import { InclineDropdown } from '@/components/InclineDropdown';
 import { TimedExerciseRunner, type TimedRunnerHandle } from '@/components/TimedExerciseRunner';
 import { RepModeToggle } from '@/components/RepModeToggle';
+import { ExercisePickerModal } from '@/components/ExercisePickerModal';
 import { WorkoutSummary } from '@/components/WorkoutSummary';
 import { Confetti } from '@/components/Confetti';
 import { remoteLog } from '@/lib/remoteLog';
