@@ -226,13 +226,13 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
 
     // Short Range of Motion (ROM) exercises like Calf Raises need more sensitivity.
     const isShortROM = exId.toLowerCase().includes('calf') || exId.toLowerCase().includes('tibialis');
-    const romMultiplier = isShortROM ? 0.65 : 1.0;
+    const romMultiplier = isShortROM ? 0.45 : 1.0;
 
     const triggerThreshold = state.isLearningROM
-      ? 0.05 * sens * paceFactor * romMultiplier
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor * romMultiplier, 0.05 * romMultiplier);
+      ? 0.04 * sens * paceFactor * romMultiplier
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor * romMultiplier, 0.04 * romMultiplier);
 
-    const returnThreshold = 0.04 * sens * romMultiplier;
+    const returnThreshold = 0.03 * sens * romMultiplier;
 
     if (deviation > state.peakDeviation) set({ peakDeviation: deviation });
 
@@ -251,10 +251,10 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
       const repDuration = now - (state.repStartTime ?? now);
       const peak = state.peakDeviation;
       const rawMinPeak = state.isLearningROM ? MIN_PEAK_FOR_REP : safeNum(profile?.minPeak, MIN_PEAK_FOR_REP);
-      const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor * romMultiplier, 0.05 * romMultiplier);
+      const activeMinPeak = Math.max(rawMinPeak * adjustment * sens * paceFactor * romMultiplier, 0.04 * romMultiplier);
 
       // Calf raises can be very fast, so we lower the jitter floor if needed.
-      const minRepMs = isShortROM ? Math.min(state._minRepDurationMs, 80) : state._minRepDurationMs;
+      const minRepMs = isShortROM ? Math.min(state._minRepDurationMs, 60) : state._minRepDurationMs;
 
       if (repDuration >= minRepMs && peak >= activeMinPeak) {
         const newRepCount = state.repCount + 1;
