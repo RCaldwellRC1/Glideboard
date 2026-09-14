@@ -31,17 +31,13 @@ function RoutinePreview({ routine, onClose }: { routine: CoachRoutine; onClose: 
   const [steps, setSteps] = useState<RoutineStep[]>(routine.steps || []);
   const [showPicker, setShowPicker] = useState(false);
 
-  const { customizeRoutine, resetRoutine, customizedRoutines } = useCoachStore(s => ({
-    customizeRoutine: s.customizeRoutine,
-    resetRoutine: s.resetRoutine,
-    customizedRoutines: s.customizedRoutines || {},
-  }));
+  const customizeRoutine = useCoachStore(s => s.customizeRoutine);
+  const resetRoutine = useCoachStore(s => s.resetRoutine);
+  const customizedRoutines = useCoachStore(s => s.customizedRoutines || {});
 
-  const { customExercises, addCustomExercise, renameCustomExercise } = useWorkoutStore(s => ({
-    customExercises: s.customExercises,
-    addCustomExercise: s.addCustomExercise,
-    renameCustomExercise: s.renameCustomExercise,
-  }));
+  const customExercises = useWorkoutStore(s => s.customExercises);
+  const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
+  const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
 
   useEffect(() => { if (!isEditing) setSteps(routine.steps || []); }, [routine.steps, isEditing]);
 
@@ -54,7 +50,7 @@ function RoutinePreview({ routine, onClose }: { routine: CoachRoutine; onClose: 
   const handleDone = () => { customizeRoutine({ ...routine, steps }); setIsEditing(false); };
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100 }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: insets.top }]}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onClose} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-lg">Preview - {routine.title}</Text>
@@ -98,16 +94,19 @@ function RoutinePreview({ routine, onClose }: { routine: CoachRoutine; onClose: 
 }
 
 function InstructionsView({ routine, onBegin, onBack }: { routine: CoachRoutine; onBegin: () => void; onBack: () => void; }) {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const isLarge = useSettingsStore(s => s.largeDisplayMode);
   const [showPreview, setShowPreview] = useState(false);
   const [dontShow, setDontShow] = useState(false);
 
-  const { setDontShowInstructions, resetRoutine, customizedRoutines } = useCoachStore(s => ({
-    setDontShowInstructions: s.setDontShowInstructions,
-    resetRoutine: s.resetRoutine,
-    customizedRoutines: s.customizedRoutines || {},
-  }));
+  const setDontShowInstructions = useCoachStore(s => s.setDontShowInstructions);
+  const resetRoutine = useCoachStore(s => s.resetRoutine);
+  const customizedRoutines = useCoachStore(s => s.customizedRoutines || {});
+
+  const customExercises = useWorkoutStore(s => s.customExercises);
+  const addCustomExercise = useWorkoutStore(s => s.addCustomExercise);
+  const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
 
   const handleStart = () => {
     if (dontShow) setDontShowInstructions(routine.id, true);
@@ -133,11 +132,11 @@ function InstructionsView({ routine, onBegin, onBack }: { routine: CoachRoutine;
       </ScrollView>
       <View style={{ borderTopColor: theme.border }} className="px-4 pt-3 pb-8 border-t">
         <Pressable onPress={() => setDontShow(!dontShow)} className="flex-row items-center mb-4">
-          <View style={{ backgroundColor: dontShow ? '#f97316' : theme.divider }} className="w-6 h-6 rounded mr-3 border">{dontShow && <Check size={16} color="#fff" />}</View>
+          <View style={{ backgroundColor: dontShow ? '#f97316' : theme.divider, borderColor: theme.border }} className="w-6 h-6 rounded mr-3 border">{dontShow && <Check size={16} color="#fff" />}</View>
           <Text style={{ color: theme.subText }}>Do not show instructions again</Text>
         </Pressable>
         <View className="flex-row">
-          <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.divider }} className="flex-1 mr-2 py-4 rounded-xl items-center"><Text style={{ color: theme.text }} className="font-semibold">Preview</Text></Pressable>
+          <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-1 mr-2 py-4 rounded-xl items-center"><Text style={{ color: theme.text }} className="font-semibold">Preview</Text></Pressable>
           <Pressable onPress={handleStart} className="flex-1 ml-2 py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold">Begin</Text></Pressable>
         </View>
       </View>
@@ -145,7 +144,7 @@ function InstructionsView({ routine, onBegin, onBack }: { routine: CoachRoutine;
   );
 }
 
-// --- MAIN RUNNER VIEW ---
+// --- RUNNER VIEW ---
 
 function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; onExit: () => void; onComplete: (w: Workout | null) => void; }) {
   const insets = useSafeAreaInsets();
@@ -157,11 +156,39 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingSetSummary, setPendingSetSummary] = useState<{ repCount: number; totalActiveDuration: number; needsConfirmation: boolean } | null>(null);
   const [getReadyLeft, setGetReadyLeft] = useState<number | null>(null);
+  const [inclineDropdownOpen, setInclineDropdownOpen] = useState(false);
   const autoEndHandledRef = useRef(false);
 
-  const { isSetActive, currentExercise, currentInclineLevel, currentReps, startWorkout, endWorkout, startSet, endSet, cancelSet, setReps, setExercise, setInclineLevel, setCurrentTUT, exerciseHistory, customExercises } = useWorkoutStore();
-  const { repCountingMode, motionSensitivity, paceSettings, setRepCountingMode } = useSettingsStore();
-  const { setState: adaptiveSetState, repCount: adaptiveRepCount, startSet: adaptiveStartSet, endSet: adaptiveEndSet, processMotion: adaptiveProcessMotion, applyUserOverride, resetToIdle: adaptiveResetToIdle } = useAdaptiveRepStore();
+  const isSetActive = useWorkoutStore(s => s.isSetActive);
+  const currentExercise = useWorkoutStore(s => s.currentExercise);
+  const currentInclineLevel = useWorkoutStore(s => s.currentInclineLevel);
+  const currentReps = useWorkoutStore(s => s.currentReps);
+  const startWorkout = useWorkoutStore(s => s.startWorkout);
+  const endWorkout = useWorkoutStore(s => s.endWorkout);
+  const startSet = useWorkoutStore(s => s.startSet);
+  const endSet = useWorkoutStore(s => s.endSet);
+  const cancelSet = useWorkoutStore(s => s.cancelSet);
+  const setReps = useWorkoutStore(s => s.setReps);
+  const setExercise = useWorkoutStore(s => s.setExercise);
+  const setInclineLevel = useWorkoutStore(s => s.setInclineLevel);
+  const setCurrentTUT = useWorkoutStore(s => s.setCurrentTUT);
+  const exerciseHistory = useWorkoutStore(s => s.exerciseHistory || []);
+  const customExercises = useWorkoutStore(s => s.customExercises);
+
+  const repCountingMode = useSettingsStore(s => s.repCountingMode);
+  const setRepCountingMode = useSettingsStore(s => s.setRepCountingMode);
+  const motionSensitivity = useSettingsStore(s => s.motionSensitivity);
+  const paceSettings = useSettingsStore(s => s.paceSettings);
+
+  const adaptiveSetState = useAdaptiveRepStore(s => s.setState);
+  const adaptiveRepCount = useAdaptiveRepStore(s => s.repCount);
+  const adaptiveStartSet = useAdaptiveRepStore(s => s.startSet);
+  const adaptiveEndSet = useAdaptiveRepStore(s => s.endSet);
+  const adaptiveProcessMotion = useAdaptiveRepStore(s => s.processMotion);
+  const applyUserOverride = useAdaptiveRepStore(s => s.applyUserOverride);
+  const adaptiveResetToIdle = useAdaptiveRepStore(s => s.resetToIdle);
+
+  const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
@@ -173,7 +200,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
   }, [adaptiveSetState]);
 
   const preloadInclineFor = (ex: string) => {
-    const matches = (exerciseHistory || []).filter(h => h.exercise === ex);
+    const matches = exerciseHistory.filter(h => h.exercise === ex);
     if (matches.length === 0) return null;
     const latest = matches.reduce((a, b) => new Date(b.lastDate).getTime() > new Date(a.lastDate).getTime() ? b : a);
     return latest.inclineLevel;
@@ -257,10 +284,11 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
   useEffect(() => {
     if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandledRef.current) {
       autoEndHandledRef.current = true;
-      setPendingSetSummary({ repCount: adaptiveRepCount, totalActiveDuration: 0, needsConfirmation: true });
-      setShowConfirmModal(true); adaptiveResetToIdle();
+      const summary = adaptiveEndSet();
+      setPendingSetSummary(summary);
+      setShowConfirmModal(true);
     }
-  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveRepCount]);
+  }, [adaptiveSetState, isSetActive, effectiveMode]);
 
   useEffect(() => {
     if (getReadyLeft === null) return;
@@ -271,13 +299,11 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   if (stepIndex < 0) {
     return (
-      <View className="flex-1 items-center justify-center px-8">
+      <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', px: 20 }}>
         <Sparkles size={60} color="#f97316" />
-        <Text style={{ color: theme.text }} className="font-bold text-3xl mt-6">Warmup Complete?</Text>
-        <Text style={{ color: theme.subText }} className="text-center mt-4 text-lg">We'll guide you through each exercise automatically.</Text>
-        <View className="flex-row w-full mt-10">
-          <Pressable onPress={() => setStepIndex(0)} className="flex-1 py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold text-xl">Confirm & Begin</Text></Pressable>
-        </View>
+        <Text style={{ color: theme.text }} className="font-bold text-3xl mt-6 text-center">Warmup Complete?</Text>
+        <Text style={{ color: theme.subText }} className="text-center mt-4 text-lg px-8">We will guide you through each exercise automatically.</Text>
+        <Pressable onPress={() => { startWorkout(); setStepIndex(0); setSetsDone(0); }} className="mt-10 bg-orange-500 px-12 py-4 rounded-2xl"><Text className="text-white font-bold text-xl">Begin</Text></Pressable>
       </View>
     );
   }
@@ -297,7 +323,13 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
            </View>
         </View>
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className="mt-4 border-2 rounded-2xl p-6 items-center justify-center min-h-[180px]">
-          {getReadyLeft !== null ? <><Text className="text-yellow-500 font-bold text-lg">GET READY</Text><Text className="text-yellow-500 font-bold text-8xl">{getReadyLeft}</Text></> : <><Text style={{ color: theme.subText }} className="text-lg">REPS</Text><Text className="text-orange-500 font-bold text-9xl">{currentReps}</Text></>}
+          {isTimed ? (
+            <TimedExerciseRunner ref={timedRunnerRef} exercise={step?.exercise ?? ''} durationSeconds={30} isSetActive={isSetActive} isLarge={isLarge} onSetDuration={() => {}} onFinalized={(h) => { setReps(0); setCurrentTUT(h); handleConfirmReps(0); }} />
+          ) : getReadyLeft !== null ? (
+            <><Text className="text-yellow-500 font-bold text-lg">GET READY</Text><Text className="text-yellow-500 font-bold text-8xl">{getReadyLeft}</Text></>
+          ) : (
+            <><Text style={{ color: theme.subText }} className="text-lg">REPS</Text><Text className="text-orange-500 font-bold text-9xl">{currentReps}</Text></>
+          )}
         </View>
         <Pressable onPress={() => { if (isSetActive) handleEndSet(); else if (getReadyLeft !== null) setGetReadyLeft(null); else { const d = paceSettings.delayToStart; if (d > 0) setGetReadyLeft(Math.round(d)); else startSet(); } }} style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }} className="mt-6 py-5 rounded-2xl items-center"><Text className="text-white font-bold text-2xl">{isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : 'START SET'}</Text></Pressable>
       </ScrollView>
@@ -311,17 +343,22 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 export default function CoachRoutineScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string }>();
   const routineId = params.id ?? '';
 
-  const { customRoutines, customizedRoutines, dontShowInstructions, loadCoach, coachLoaded } = useCoachStore();
+  const customRoutines = useCoachStore(s => s.customRoutines);
+  const customizedRoutines = useCoachStore(s => s.customizedRoutines || {});
+  const dontShowInstructions = useCoachStore(s => s.dontShowInstructions || {});
+  const loadCoach = useCoachStore(s => s.loadFromStorage);
+  const coachLoaded = useCoachStore(s => s.isLoaded);
+
   const routine = useMemo(() => {
     const base = getRoutine(routineId) ?? (customRoutines || []).find(r => r.id === routineId);
     return (customizedRoutines || {})[routineId] ?? base;
   }, [routineId, customRoutines, customizedRoutines]);
 
   const [phase, setPhase] = useState<Phase>('instructions');
-  const [completion, setCompletion] = useState<CoachCompletion | null>(null);
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
 
   useEffect(() => { loadCoach(); }, []);
@@ -334,21 +371,21 @@ export default function CoachRoutineScreen() {
 
   if (phase === 'summary' && completedWorkout) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background }} className="px-4 py-8">
-        <Text style={{ color: theme.text }} className="font-bold text-xl mb-4">Workout Summary</Text>
-        <WorkoutSummary workout={completedWorkout} isLarge={useSettingsStore.getState().largeDisplayMode} accentColor={completion ? MEDAL_COLORS[medalTierForIndex(completion.index)] : '#f97316'} />
-        <Pressable onPress={() => router.replace('/(tabs)/trophies')} className="mt-8 py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold text-lg">View Trophies</Text></Pressable>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+        <View className="px-4 py-2"><Text style={{ color: theme.text }} className="font-bold text-xl">Workout Summary</Text></View>
+        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}><WorkoutSummary workout={completedWorkout} isLarge={useSettingsStore.getState().largeDisplayMode} accentColor={'#f97316'} /></ScrollView>
+        <View className="p-4 border-t" style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }}><Pressable onPress={() => router.replace('/(tabs)/trophies')} className="py-4 rounded-xl items-center bg-orange-500"><Text className="text-white font-bold text-lg">View Trophies</Text></Pressable></View>
       </View>
     );
   }
 
-  if (phase === 'complete' && completion) {
+  if (phase === 'complete') {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background }} className="items-center justify-center px-8">
-        <Trophy size={80} color={MEDAL_COLORS[medalTierForIndex(completion.index)]} />
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }} className="items-center justify-center px-8">
+        <Trophy size={80} color="#fde047" />
         <Text style={{ color: theme.text }} className="font-bold text-3xl mt-4">Routine Complete!</Text>
-        <Pressable onPress={() => setPhase('summary')} className="mt-10 bg-orange-500 px-12 py-4 rounded-2xl"><Text className="text-white font-bold text-xl">Next</Text></Pressable>
-        <Confetti active intense={medalTierForIndex(completion.index) === 'olympia'} />
+        <Pressable onPress={() => setPhase('summary')} className="mt-10 bg-orange-500 px-12 py-4 rounded-2xl"><Text className="text-white font-bold text-xl">View Summary</Text></Pressable>
+        <Confetti active intense={true} />
       </View>
     );
   }
