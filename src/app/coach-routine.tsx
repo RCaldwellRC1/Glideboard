@@ -129,10 +129,10 @@ function InstructionsView({ routine, onBegin, onBack, customExercises, addCustom
           </View>
           <Text style={{ color: theme.subText }}>Do not show instructions again</Text>
         </Pressable>
-        <div className="flex-row">
+        <View className="flex-row">
           <Pressable onPress={() => setShowPreview(true)} style={{ backgroundColor: theme.background === '#ffffff' ? '#e5e7eb' : '#1f2937' }} className="flex-1 mr-2 py-4 rounded-xl items-center active:opacity-70"><Text style={{ color: theme.text }} className="font-semibold">Preview</Text></Pressable>
           <Pressable onPress={handleStart} className="flex-1 ml-2 py-4 rounded-xl items-center bg-orange-500 active:opacity-80"><Text className="text-white font-bold">Begin</Text></Pressable>
-        </div>
+        </View>
       </View>
     </View>
   );
