@@ -297,16 +297,19 @@ export default function TrackerScreen() {
   const autoEndHandled = React.useRef(false);
 
   useEffect(() => {
-    if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
-      autoEndHandled.current = true;
-      setPendingSetSummary({ repCount: adaptiveRepCount, needsConfirmation: true });
-      setShowConfirmModal(true);
-      adaptiveResetToIdle();
-    }
-    if (!isSetActive) {
+    if (adaptiveSetState === 'SET_ACTIVE') {
       autoEndHandled.current = false;
     }
-  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveRepCount, adaptiveResetToIdle]);
+  }, [adaptiveSetState]);
+
+  useEffect(() => {
+    if (adaptiveSetState === 'SET_ENDED' && isSetActive && effectiveMode === 'motion' && !autoEndHandled.current) {
+      autoEndHandled.current = true;
+      const summary = adaptiveEndSet();
+      setPendingSetSummary(summary);
+      setShowConfirmModal(true);
+    }
+  }, [adaptiveSetState, isSetActive, effectiveMode, adaptiveEndSet]);
 
   const handleEndSet = useCallback(() => {
     if (effectiveMode === 'motion') {
