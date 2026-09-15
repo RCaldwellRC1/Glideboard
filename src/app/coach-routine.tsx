@@ -47,7 +47,7 @@ function RoutinePreview({ routine, onClose, customExercises, addCustomExercise, 
   const handleDone = () => { customizeRoutine({ ...routine, steps }); setIsEditing(false); };
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 24) }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 20) }]}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onClose} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-lg">Preview - {routine.title}</Text>
@@ -108,7 +108,7 @@ function InstructionsView({ routine, onBegin, onBack, customExercises, addCustom
   if (showPreview) return <RoutinePreview routine={routine} onClose={() => setShowPreview(false)} customExercises={customExercises} addCustomExercise={addCustomExercise} renameCustomExercise={renameCustomExercise} />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onBack} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-xl">{routine.title}</Text>
@@ -187,17 +187,17 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
+  // CRITICAL: ALL HOOKS AT TOP
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
+  const isTimed = category === 'timed';
+  const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
+
   const currentExSetsResults = useMemo(() => {
     if (!step) return [];
     return currentWorkoutSets.filter(s => s.exercise === step.exercise).slice(-setsDone);
   }, [currentWorkoutSets, setsDone, step]);
 
-  const isTimed = category === 'timed';
-  const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
-
-  // Status flags for the indicator - Guaranteed to be defined before JSX
   const isStabilizing = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
   const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
 
@@ -230,6 +230,20 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
       }
     } else { setSetsDone(newDone); }
   }, [step, setsDone, stepIndex, routine, setExercise, endWorkout, preloadInclineFor, setInclineLevel, adaptiveResetToIdle, onComplete]);
+
+  const skipExercise = useCallback(() => {
+    if (!step) return;
+    remoteLog('coach_exercise_skipped', { routineId: routine.id, exercise: step.exercise });
+    const next = stepIndex + 1;
+    if (next < routine.steps.length) {
+      const nextEx = routine.steps[next].exercise;
+      setStepIndex(next); setSetsDone(0); setExercise(nextEx);
+      const preload = preloadInclineFor(nextEx); if (preload != null) setInclineLevel(preload);
+    } else {
+      const workout = endWorkout({ routineId: routine.id, routineTitle: routine.title });
+      onComplete(workout);
+    }
+  }, [step, stepIndex, routine, setExercise, endWorkout, preloadInclineFor, setInclineLevel, onComplete]);
 
   const handleEndSet = useCallback(() => {
     if (effectiveMode === 'motion') {
@@ -318,77 +332,56 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
-      {/* Header aligned with iOS image */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-2xl">{routine.title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
-        {/* Top Exercise Progress Bars */}
         <View className="flex-row justify-between mt-1 mb-4 px-1">
           {routine.steps.map((_, i) => (
-            <View
-              key={i}
-              className="h-1.5 rounded-full"
-              style={{
-                flex: 1,
-                marginHorizontal: 1.5,
-                backgroundColor: i < stepIndex ? 'rgba(249,115,22,0.4)' : i === stepIndex ? '#f97316' : (theme.background === '#ffffff' ? '#e5e7eb' : '#374151')
-              }}
-            />
+            <View key={i} className="h-1.5 rounded-full" style={{ flex: 1, marginHorizontal: 1.5, backgroundColor: i < stepIndex ? 'rgba(249,115,22,0.4)' : i === stepIndex ? '#f97316' : (theme.background === '#ffffff' ? '#e5e7eb' : '#374151') }} />
           ))}
         </View>
 
-        {/* Main Exercise Card with Orange Border - Made smaller as requested */}
         <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-xl p-4 border-2 mt-1">
-           <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">
-             Exercise {stepIndex + 1} of {routine.steps.length} . {step?.group}
-           </Text>
+           <View className="flex-row items-center justify-between mb-1">
+             <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} · {step?.group}</Text>
+             <Pressable onPress={skipExercise} className="bg-gray-700/50 px-2 py-1 rounded-md flex-row items-center active:opacity-60">
+               <FastForward size={12} color={theme.subText} /><Text className="text-xs font-bold text-gray-400 ml-1">SKIP</Text>
+             </Pressable>
+           </View>
            <Text style={{ color: theme.text }} className="font-bold text-2xl mt-0.5">{step?.exercise}</Text>
 
            <View className="flex-row items-end justify-between mt-4">
-              <View className="flex-1">
-                <Text className="text-orange-500 font-bold text-base">{step?.repRangeLabel}</Text>
-              </View>
+              <View className="flex-1"><Text className="text-orange-500 font-bold text-base">{step?.repRangeLabel}</Text></View>
               <View className="items-end">
-                <Text style={{ color: theme.subText }} className="text-[9px] uppercase font-bold mb-0.5 opacity-60">Incline</Text>
                 <InclineDropdown value={currentInclineLevel} onSelect={setInclineLevel} isOpen={inclineDropdownOpen} onToggle={() => setInclineDropdownOpen(!inclineDropdownOpen)} isLarge={isLarge} />
               </View>
            </View>
 
-           {/* Internal Sets Progress Bars - lights up Green/Orange */}
            <View className="flex-row items-center mt-5">
              {step && Array.from({ length: step.sets }).map((_, i) => {
                let barColor = (theme.background === '#ffffff' ? '#e5e7eb' : '#374151');
                if (i < setsDone) {
                  const result = currentExSetsResults[i];
                  const target = step.targetReps || 0;
-                 // Yoda logic: Green if hit target, Orange if short
                  barColor = (result && result.reps >= target) ? '#22c55e' : '#f97316';
-               } else if (i === setsDone && isSetActive) {
-                 barColor = '#f97316';
-               }
-               return (
-                 <View key={i} className="flex-1 h-1 rounded-full mr-1.5" style={{ backgroundColor: barColor }} />
-               );
+               } else if (i === setsDone && isSetActive) { barColor = '#f97316'; }
+               return <View key={i} className="flex-1 h-1 rounded-full mr-1.5" style={{ backgroundColor: barColor }} />;
              })}
            </View>
 
            <View className="flex-row items-center justify-between mt-3">
-              <Text style={{ color: theme.subText }} className="text-xs font-medium opacity-70">
-                Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets}
-              </Text>
+              <Text style={{ color: theme.subText }} className="text-xs font-medium opacity-70">Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets}</Text>
               <RepModeToggle value={effectiveMode === 'voice' ? 'voice' : 'motion'} isLarge={isLarge} disabled={isTimed} onToggle={() => { if (!isTimed) setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice'); }} />
            </View>
         </View>
 
-        {/* Status indicator bubble */}
         {isSetActive && !isTimed && effectiveMode === 'motion' && (
           <View className="mt-3 self-center bg-yellow-500/10 px-3 py-1 rounded-full"><Text className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">{isStabilizing ? 'Positioning...' : showLearningIndicator ? 'Learning ROM...' : 'Counting Reps'}</Text></View>
         )}
 
-        {/* Big Rep Counter / Timer Box - reduced height and font size */}
         <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className="mt-4 border-2 rounded-2xl p-4 items-center justify-center min-h-[160px]">
           {isTimed ? (
             <TimedExerciseRunner ref={timedRunnerRef} exercise={step?.exercise ?? ''} durationSeconds={30} isSetActive={isSetActive} isLarge={isLarge} onSetDuration={() => {}} onFinalized={(h) => { setReps(0); setCurrentTUT(h); handleConfirmReps(0); }} />
@@ -399,24 +392,8 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
           )}
         </View>
 
-        {/* Bottom Action Button - reduced vertical padding */}
-        <Pressable
-          onPress={() => {
-            if (isSetActive) handleEndSet();
-            else if (getReadyLeft !== null) setGetReadyLeft(null);
-            else {
-              adaptiveResetToIdle();
-              const d = paceSettings.delayToStart;
-              if (d > 0) setGetReadyLeft(Math.round(d));
-              else startSet();
-            }
-          }}
-          style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }}
-          className="mt-6 py-4 rounded-2xl items-center active:opacity-80 shadow-md"
-        >
-          <Text className="text-white font-black text-xl uppercase tracking-tighter">
-            {isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : `START SET ${Math.min(setsDone + 1, step?.sets ?? 1)}`}
-          </Text>
+        <Pressable onPress={() => { if (isSetActive) handleEndSet(); else if (getReadyLeft !== null) setGetReadyLeft(null); else { adaptiveResetToIdle(); const d = paceSettings.delayToStart; if (d > 0) setGetReadyLeft(Math.round(d)); else startSet(); } }} style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }} className="mt-6 py-4 rounded-2xl items-center active:opacity-80 shadow-md">
+          <Text className="text-white font-black text-xl uppercase tracking-tighter">{isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : `START SET ${Math.min(setsDone + 1, step?.sets ?? 1)}`}</Text>
         </Pressable>
       </ScrollView>
 
