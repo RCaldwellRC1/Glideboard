@@ -47,7 +47,7 @@ function RoutinePreview({ routine, onClose, customExercises, addCustomExercise, 
   const handleDone = () => { customizeRoutine({ ...routine, steps }); setIsEditing(false); };
 
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 20) }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 24) }]}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onClose} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-lg">Preview - {routine.title}</Text>
@@ -108,7 +108,7 @@ function InstructionsView({ routine, onBegin, onBack, customExercises, addCustom
   if (showPreview) return <RoutinePreview routine={routine} onClose={() => setShowPreview(false)} customExercises={customExercises} addCustomExercise={addCustomExercise} renameCustomExercise={renameCustomExercise} />;
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 20) }}>
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
       <View className="flex-row items-center px-3 py-2">
         <Pressable onPress={onBack} hitSlop={12} className="active:opacity-60 p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-xl">{routine.title}</Text>
@@ -190,13 +190,13 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
   // CRITICAL: ALL HOOKS AT TOP
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
-  const isTimed = category === 'timed';
-  const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
-
   const currentExSetsResults = useMemo(() => {
     if (!step) return [];
     return currentWorkoutSets.filter(s => s.exercise === step.exercise).slice(-setsDone);
   }, [currentWorkoutSets, setsDone, step]);
+
+  const isTimed = category === 'timed';
+  const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
 
   const isStabilizing = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
   const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
@@ -332,21 +332,24 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
+      {/* Header aligned with iOS image */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-2xl">{routine.title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* Top Exercise Progress Bars */}
         <View className="flex-row justify-between mt-1 mb-4 px-1">
           {routine.steps.map((_, i) => (
             <View key={i} className="h-1.5 rounded-full" style={{ flex: 1, marginHorizontal: 1.5, backgroundColor: i < stepIndex ? 'rgba(249,115,22,0.4)' : i === stepIndex ? '#f97316' : (theme.background === '#ffffff' ? '#e5e7eb' : '#374151') }} />
           ))}
         </View>
 
+        {/* Main Exercise Card with Orange Border - Made smaller as requested */}
         <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-xl p-4 border-2 mt-1">
            <View className="flex-row items-center justify-between mb-1">
-             <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} · {step?.group}</Text>
+             <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} Â· {step?.group}</Text>
              <Pressable onPress={skipExercise} className="bg-gray-700/50 px-2 py-1 rounded-md flex-row items-center active:opacity-60">
                <FastForward size={12} color={theme.subText} /><Text className="text-xs font-bold text-gray-400 ml-1">SKIP</Text>
              </Pressable>
@@ -378,6 +381,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
            </View>
         </View>
 
+        {/* Status indicator bubble */}
         {isSetActive && !isTimed && effectiveMode === 'motion' && (
           <View className="mt-3 self-center bg-yellow-500/10 px-3 py-1 rounded-full"><Text className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">{isStabilizing ? 'Positioning...' : showLearningIndicator ? 'Learning ROM...' : 'Counting Reps'}</Text></View>
         )}
