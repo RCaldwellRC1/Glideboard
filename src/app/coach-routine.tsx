@@ -330,10 +330,10 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
-      {/* Header */}
+      {/* Header aligned with iOS image */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-2xl">{routine.title}</Text>
+        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-xl">{routine.title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -489,7 +489,7 @@ export default function CoachRoutineScreen() {
         <Text style={{ color: theme.text }} className="font-bold text-4xl mt-6 text-center">CONGRATULATIONS!</Text>
         <Text style={{ color: theme.subText }} className="text-xl mt-3 text-center opacity-80">{MEDAL_LABELS[medalTierForIndex(completion.index)]} Earned</Text>
         <Text style={{ color: theme.subText }} className="text-lg mt-2 text-center opacity-60">You've completed {routine.title}. Great work!</Text>
-        <Pressable onPress={() => setPhase('summary')} className="mt-12 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 shadow-lg"><Text className="text-white font-bold text-xl uppercase">View Summary</Text></Pressable>
+        <Pressable onPress={() => setPhase('summary')} className="mt-12 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 shadow-md"><Text className="text-white font-bold text-xl uppercase">View Summary</Text></Pressable>
         <Confetti active intense={true} />
       </View>
     );
