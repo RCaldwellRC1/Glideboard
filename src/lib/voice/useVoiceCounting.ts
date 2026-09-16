@@ -12,17 +12,17 @@ import {
 const OPENAI_API_KEY = process.env.EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY;
 const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 
-const SPEECH_THRESHOLD = -35;
-const SILENCE_THRESHOLD = -45;
-const SILENCE_AFTER_SPEECH_MS = 400; // Snappier
-const MAX_CHUNK_MS = 1500;
+const SPEECH_THRESHOLD = -38;
+const SILENCE_THRESHOLD = -48;
+const SILENCE_AFTER_SPEECH_MS = 450;
+const MAX_CHUNK_MS = 1600;
 const MIN_CHUNK_MS = 250;
-const METERING_POLL_MS = 70;
+const METERING_POLL_MS = 75;
 const MAX_START_FAILURES = 3;
 const MAX_REP_JUMP = 5;
 const VOICE_REP_COOLDOWN_MS = 1000;
 
-// One-time audio mode setup
+// One-time audio mode setup to prevent bridge flickering
 let isAudioModeSet = false;
 async function ensureAudioMode() {
   if (isAudioModeSet) return;
@@ -34,8 +34,9 @@ async function ensureAudioMode() {
       shouldRouteAudioToSpeakerIfPreferred: true,
     });
     isAudioModeSet = true;
+    console.log('[VOICE] Audio hardware bridge established');
   } catch (err) {
-    console.warn('[VOICE] Mode error:', err);
+    console.warn('[VOICE] Bridge error:', err);
   }
 }
 
@@ -45,7 +46,6 @@ function extractNumbers(text: string): number[] {
   const textNumMap: Record<string, number> = {
     'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
     'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-    'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
     'to': 2, 'too': 2, 'for': 4, 'fore': 4, 'ate': 8, 'nan': 9, 'nein': 9,
   };
   const digitMatches = lowerText.match(/\b\d+\b/g);
@@ -71,14 +71,12 @@ export function useVoiceCounting(
 
   const shouldListenRef = useRef(false);
   const recordingRef = useRef<Audio.Recording | null>(null);
-  const startingRef = useRef(false);
   const meteringTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chunkStartTimeRef = useRef(0);
   const speechDetectedRef = useRef(false);
   const silenceStartRef = useRef<number | null>(null);
   const lastCountedRef = useRef(0);
   const lastRepTimestampRef = useRef(0);
-
   const onRepCountedRef = useRef(onRepCounted);
   onRepCountedRef.current = onRepCounted;
 
@@ -87,9 +85,14 @@ export function useVoiceCounting(
     setIsProcessing(true);
     try {
       const fd = new FormData();
-      // Use standard Android file form data
+      // Explicitly typed for Android tablet file picker
+      const file = {
+        uri,
+        name: 'rec.m4a',
+        type: 'audio/mp4',
+      };
       // @ts-ignore
-      fd.append('file', { uri, name: 'rec.m4a', type: 'audio/mp4' });
+      fd.append('file', file);
       fd.append('model', 'whisper-1');
       fd.append('language', 'en');
 
@@ -104,17 +107,14 @@ export function useVoiceCounting(
       const text = (data.text || '').trim();
       if (!text) return;
 
-      console.log('[VOICE] Transcription:', text);
+      console.log('[VOICE] Hear:', text);
       const numbers = extractNumbers(text);
 
       for (const num of numbers) {
         if (num > lastCountedRef.current) {
           const nowMs = Date.now();
           if (nowMs - lastRepTimestampRef.current < VOICE_REP_COOLDOWN_MS) continue;
-
-          const jump = num - lastCountedRef.current;
-          const target = jump > MAX_REP_JUMP ? lastCountedRef.current + 1 : num;
-
+          const target = num - lastCountedRef.current > MAX_REP_JUMP ? lastCountedRef.current + 1 : num;
           for (let i = lastCountedRef.current + 1; i <= target; i++) {
             onRepCountedRef.current(i);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -125,7 +125,7 @@ export function useVoiceCounting(
         }
       }
     } catch (err) {
-      console.error('[VOICE] Fetch error:', err);
+      console.error('[VOICE] Transcription failed:', err);
     } finally {
       setIsProcessing(false);
     }
@@ -142,17 +142,13 @@ export function useVoiceCounting(
         if (uri) transcribeAndProcess(uri);
       } catch { }
     }
-    // Automatically start next chunk if we should still be listening
     if (shouldListenRef.current) startChunk();
   }, [transcribeAndProcess]);
 
   const startChunk = useCallback(async () => {
-    if (!shouldListenRef.current || startingRef.current) return;
-    startingRef.current = true;
+    if (!shouldListenRef.current) return;
 
     try {
-      // NOTE: We do NOT releaseActiveRecorder() here to avoid hard resets and flickering
-      // Just ensure previous is cleared from our ref
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
@@ -162,7 +158,6 @@ export function useVoiceCounting(
       chunkStartTimeRef.current = Date.now();
       speechDetectedRef.current = false;
       silenceStartRef.current = null;
-      startingRef.current = false;
 
       const active = recording;
       const pollMetering = async () => {
@@ -192,9 +187,7 @@ export function useVoiceCounting(
       };
       meteringTimerRef.current = setTimeout(pollMetering, METERING_POLL_MS);
     } catch (err) {
-      startingRef.current = false;
       if (shouldListenRef.current) {
-        // Only if error, try a reset
         await releaseActiveRecorder();
         meteringTimerRef.current = setTimeout(() => startChunk(), 1000);
       }
@@ -229,8 +222,8 @@ export function useVoiceCounting(
 
   useEffect(() => {
     if (isActive) {
-      // Small delay to let UI transitions finish
-      const t = setTimeout(() => startListening(), 300);
+      // Small buffer to prevent overlap with UI transitions
+      const t = setTimeout(() => startListening(), 400);
       return () => clearTimeout(t);
     } else {
       stopListening();
