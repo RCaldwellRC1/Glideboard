@@ -187,7 +187,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
-  // CRITICAL: ALL HOOKS AT TOP
+  // Status flags for the indicator
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
   const currentExSetsResults = useMemo(() => {
@@ -197,7 +197,6 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   const isTimed = category === 'timed';
   const effectiveMode = isTimed ? 'timed' : (category === 'freestyle' ? 'voice' : repCountingMode);
-
   const isStabilizing = ignoreMotion && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
   const showLearningIndicator = isLearningROM && adaptiveSetState === 'SET_ACTIVE' && effectiveMode === 'motion';
 
@@ -346,9 +345,9 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
           ))}
         </View>
 
-        {/* Main Exercise Card - Ultra Slimmed Down */}
+        {/* Main Exercise Card - Ultra Slimmed Down to eliminate scrolling */}
         <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-xl p-3 border-2 mt-0.5">
-           <View className="flex-row items-center justify-between mb-1">
+           <View className="flex-row items-center justify-between mb-0.5">
              <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} · {step?.group}</Text>
              <Pressable onPress={skipExercise} className="bg-gray-700/50 px-2 py-1 rounded-md flex-row items-center active:opacity-60">
                <FastForward size={12} color={theme.subText} /><Text className="text-[9px] font-bold text-gray-400 ml-1">SKIP</Text>
