@@ -49,7 +49,7 @@ function RoutinePreview({ routine, onClose, customExercises, addCustomExercise, 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.background, zIndex: 100, paddingTop: Math.max(insets.top, 24) }]}>
       <View className="flex-row items-center px-3 py-2">
-        <Pressable onPress={onClose} className="p-1"><ChevronLeft size={30} color="#f97316" /></Pressable>
+        <Pressable onPress={onClose} className="p-1 active:opacity-60"><ChevronLeft size={30} color="#f97316" /></Pressable>
         <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-1 flex-1 text-lg">Preview - {routine.title}</Text>
         <Pressable onPress={() => setIsEditing(!isEditing)} style={{ backgroundColor: isEditing ? '#f97316' : theme.divider }} className="w-10 h-10 items-center justify-center rounded-full ml-2">
           <Pencil size={20} color={isEditing ? '#fff' : '#f97316'} />
@@ -187,7 +187,6 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   const timedRunnerRef = useRef<TimedRunnerHandle>(null);
 
-  // Status flags for the indicator
   const step = useMemo(() => (stepIndex >= 0 && routine.steps) ? routine.steps[stepIndex] : null, [stepIndex, routine]);
   const category = useMemo(() => step ? getExerciseCategory(step.exercise, customExercises || {}) : 'standard', [step, customExercises]);
   const currentExSetsResults = useMemo(() => {
@@ -334,7 +333,7 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
       {/* Header */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-xl">{routine.title}</Text>
+        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-2xl">{routine.title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
