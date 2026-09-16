@@ -16,26 +16,40 @@ const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 const SPEECH_THRESHOLD = -35;
 const SILENCE_THRESHOLD = -45;
 const SILENCE_AFTER_SPEECH_MS = 500;
-const MAX_CHUNK_MS = 1800; // Increased slightly
+const MAX_CHUNK_MS = 1800;
 const MIN_CHUNK_MS = 300;
 const METERING_POLL_MS = 80;
 const MAX_START_FAILURES = 4;
 const MAX_REP_JUMP = 6;
 const VOICE_REP_COOLDOWN_MS = 1100;
 
+// One-time audio mode setup to prevent screen flicker/bridge crashes
+let isAudioModeSet = false;
+async function ensureAudioMode() {
+  if (isAudioModeSet) return;
+  try {
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldRouteAudioToSpeakerIfPreferred: true,
+    });
+    isAudioModeSet = true;
+    console.log('[VOICE] Audio mode initialized');
+  } catch (err) {
+    console.warn('[VOICE] Mode initialization failed:', err);
+  }
+}
+
 function extractNumbers(text: string): number[] {
   const numbers: number[] = [];
   const lowerText = text.toLowerCase().trim();
-
-  // Custom number mapping to handle Whisper text variations
   const textNumMap: Record<string, number> = {
     'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
     'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
     'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
     'to': 2, 'too': 2, 'for': 4, 'fore': 4, 'ate': 8, 'nan': 9, 'nein': 9,
   };
-
-  // 1. Check for digit strings
   const digitMatches = lowerText.match(/\b\d+\b/g);
   if (digitMatches) {
     for (const match of digitMatches) {
@@ -43,12 +57,9 @@ function extractNumbers(text: string): number[] {
       if (num > 0 && num <= 100) numbers.push(num);
     }
   }
-
-  // 2. Check for word matches
   Object.keys(textNumMap).forEach(word => {
     if (lowerText.includes(word)) numbers.push(textNumMap[word]);
   });
-
   return [...new Set(numbers)].sort((a, b) => a - b);
 }
 
@@ -83,47 +94,41 @@ export function useVoiceCounting(
   onRepCountedRef.current = onRepCounted;
 
   const transcribeAndProcess = useCallback(async (uri: string) => {
-    if (!OPENAI_API_KEY) {
-      console.error('[VOICE] No API Key found');
-      return;
-    }
+    if (!OPENAI_API_KEY) return;
     setIsProcessing(true);
     try {
       const fd = new FormData();
+      // Use the robust structure for Android tablets
+      const fileData = {
+        uri: uri,
+        name: 'recording.m4a',
+        type: 'audio/mp4',
+      };
       // @ts-ignore
-      fd.append('file', { uri, name: 'recording.m4a', type: 'audio/mp4' });
+      fd.append('file', fileData);
       fd.append('model', 'whisper-1');
       fd.append('language', 'en');
 
-      console.log('[VOICE] Sending transcription request...');
       const response = await fetch(TRANSCRIBE_URL, {
         method: 'POST',
         body: fd,
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
       });
 
-      if (!response.ok) {
-        const errJson = await response.json();
-        console.error('[VOICE] OpenAI Error:', errJson);
-        return;
-      }
-
+      if (!response.ok) return;
       const data = await response.json();
       const text: string = data.text || '';
       if (!text) return;
 
-      console.log('[VOICE] Transcription:', text);
+      console.log('[VOICE] Hear:', text);
       const numbers = extractNumbers(text);
 
       for (const num of numbers) {
         if (num > lastCountedRef.current) {
           const nowMs = Date.now();
           if (nowMs - lastRepTimestampRef.current < VOICE_REP_COOLDOWN_MS) continue;
-
-          // Guard against unrealistic jumps
           const jump = num - lastCountedRef.current;
           const target = jump > MAX_REP_JUMP ? lastCountedRef.current + 1 : num;
-
           for (let i = lastCountedRef.current + 1; i <= target; i++) {
             onRepCountedRef.current(i);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -134,7 +139,7 @@ export function useVoiceCounting(
         }
       }
     } catch (err) {
-      console.error('[VOICE] Network Error:', err);
+      console.error('[VOICE] Request Failed:', err);
     } finally {
       setIsProcessing(false);
     }
@@ -167,13 +172,8 @@ export function useVoiceCounting(
     let recording: Audio.Recording | null = null;
     try {
       await releaseActiveRecorder();
-      // Note: setAudioModeAsync is now called only ONCE in startListening to reduce flicker
-
       recording = new Audio.Recording();
-      await recording.prepareToRecordAsync({
-        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-        isMeteringEnabled: true,
-      });
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await recording.startAsync();
 
       recordingRef.current = recording;
@@ -225,23 +225,9 @@ export function useVoiceCounting(
   const startListening = useCallback(async () => {
     if (shouldListenRef.current) return;
     const { status } = await Audio.requestPermissionsAsync();
-    if (status !== 'granted') {
-      setError('Microphone permission denied');
-      return;
-    }
+    if (status !== 'granted') return;
 
-    // Call audio mode setup ONCE here to prevent flickering later
-    try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: true,
-        shouldRouteAudioToSpeakerIfPreferred: true,
-      });
-    } catch (err) {
-      console.warn('[VOICE] Failed to set audio mode:', err);
-    }
-
+    await ensureAudioMode();
     shouldListenRef.current = true;
     setIsListening(true);
     await startChunk();
@@ -263,8 +249,7 @@ export function useVoiceCounting(
 
   useEffect(() => {
     if (isActive) {
-      // Small delay to ensure any existing audio focus transitions are finished
-      const t = setTimeout(() => startListening(), 100);
+      const t = setTimeout(() => startListening(), 250);
       return () => clearTimeout(t);
     } else stopListening();
   }, [isActive, startListening, stopListening]);
