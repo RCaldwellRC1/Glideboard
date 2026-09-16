@@ -16,49 +16,45 @@ const TRANSCRIBE_URL = "https://api.openai.com/v1/audio/transcriptions";
 const SPEECH_THRESHOLD = -35;
 const SILENCE_THRESHOLD = -45;
 const SILENCE_AFTER_SPEECH_MS = 500;
-const MAX_CHUNK_MS = 1500;
+const MAX_CHUNK_MS = 1800; // Increased slightly
 const MIN_CHUNK_MS = 300;
 const METERING_POLL_MS = 80;
 const MAX_START_FAILURES = 4;
 const MAX_REP_JUMP = 6;
-const VOICE_REP_COOLDOWN_MS = 1200;
-
-const HALLUCINATION_PHRASES = [
-  'thanks for watching', 'thank you for watching', 'please subscribe', 'see you next time',
-];
-
-const STANDALONE_HOMOPHONES: Record<string, number> = {
-  won: 1, to: 2, too: 2, tree: 3, for: 4, fore: 4, sex: 6, ate: 8, age: 8, nein: 9, nan: 9,
-};
-
-const RECORDING_OPTIONS: Audio.RecordingOptions = {
-  ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
-  isMeteringEnabled: true,
-};
-
-const NUMBER_WORDS: Record<string, number> = {
-  'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-  '1': 1, '2': 2, '3': 3, '4': 4, '5': 5,
-};
+const VOICE_REP_COOLDOWN_MS = 1100;
 
 function extractNumbers(text: string): number[] {
   const numbers: number[] = [];
   const lowerText = text.toLowerCase().trim();
+
+  // Custom number mapping to handle Whisper text variations
+  const textNumMap: Record<string, number> = {
+    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+    'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+    'to': 2, 'too': 2, 'for': 4, 'fore': 4, 'ate': 8, 'nan': 9, 'nein': 9,
+  };
+
+  // 1. Check for digit strings
   const digitMatches = lowerText.match(/\b\d+\b/g);
   if (digitMatches) {
     for (const match of digitMatches) {
       const num = parseInt(match, 10);
-      if (num > 0 && num <= 100 && !numbers.includes(num)) numbers.push(num);
+      if (num > 0 && num <= 100) numbers.push(num);
     }
   }
+
+  // 2. Check for word matches
+  Object.keys(textNumMap).forEach(word => {
+    if (lowerText.includes(word)) numbers.push(textNumMap[word]);
+  });
+
   return [...new Set(numbers)].sort((a, b) => a - b);
 }
 
 interface UseVoiceCountingResult {
   isListening: boolean;
   isProcessing: boolean;
-  lastTranscription: string;
   error: string | null;
   startListening: () => Promise<void>;
   stopListening: () => Promise<void>;
@@ -71,7 +67,6 @@ export function useVoiceCounting(
 ): UseVoiceCountingResult {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastTranscription, setLastTranscription] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const shouldListenRef = useRef(false);
@@ -88,35 +83,50 @@ export function useVoiceCounting(
   onRepCountedRef.current = onRepCounted;
 
   const transcribeAndProcess = useCallback(async (uri: string) => {
-    if (!OPENAI_API_KEY) return;
+    if (!OPENAI_API_KEY) {
+      console.error('[VOICE] No API Key found');
+      return;
+    }
     setIsProcessing(true);
     try {
       const fd = new FormData();
-      fd.append('file', { uri, name: 'recording.m4a', type: 'audio/mp4' } as unknown as Blob);
+      // @ts-ignore
+      fd.append('file', { uri, name: 'recording.m4a', type: 'audio/mp4' });
       fd.append('model', 'whisper-1');
       fd.append('language', 'en');
 
+      console.log('[VOICE] Sending transcription request...');
       const response = await fetch(TRANSCRIBE_URL, {
         method: 'POST',
         body: fd,
         headers: { 'Authorization': `Bearer ${OPENAI_API_KEY}` }
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        const errJson = await response.json();
+        console.error('[VOICE] OpenAI Error:', errJson);
+        return;
+      }
+
       const data = await response.json();
       const text: string = data.text || '';
       if (!text) return;
 
+      console.log('[VOICE] Transcription:', text);
       const numbers = extractNumbers(text);
+
       for (const num of numbers) {
         if (num > lastCountedRef.current) {
           const nowMs = Date.now();
           if (nowMs - lastRepTimestampRef.current < VOICE_REP_COOLDOWN_MS) continue;
 
-          const target = num - lastCountedRef.current > MAX_REP_JUMP ? lastCountedRef.current + 1 : num;
+          // Guard against unrealistic jumps
+          const jump = num - lastCountedRef.current;
+          const target = jump > MAX_REP_JUMP ? lastCountedRef.current + 1 : num;
+
           for (let i = lastCountedRef.current + 1; i <= target; i++) {
             onRepCountedRef.current(i);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           }
           lastCountedRef.current = target;
           lastRepTimestampRef.current = nowMs;
@@ -124,6 +134,7 @@ export function useVoiceCounting(
         }
       }
     } catch (err) {
+      console.error('[VOICE] Network Error:', err);
     } finally {
       setIsProcessing(false);
     }
@@ -156,10 +167,13 @@ export function useVoiceCounting(
     let recording: Audio.Recording | null = null;
     try {
       await releaseActiveRecorder();
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      // Note: setAudioModeAsync is now called only ONCE in startListening to reduce flicker
 
       recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(RECORDING_OPTIONS);
+      await recording.prepareToRecordAsync({
+        ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+        isMeteringEnabled: true,
+      });
       await recording.startAsync();
 
       recordingRef.current = recording;
@@ -211,7 +225,23 @@ export function useVoiceCounting(
   const startListening = useCallback(async () => {
     if (shouldListenRef.current) return;
     const { status } = await Audio.requestPermissionsAsync();
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      setError('Microphone permission denied');
+      return;
+    }
+
+    // Call audio mode setup ONCE here to prevent flickering later
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldRouteAudioToSpeakerIfPreferred: true,
+      });
+    } catch (err) {
+      console.warn('[VOICE] Failed to set audio mode:', err);
+    }
+
     shouldListenRef.current = true;
     setIsListening(true);
     await startChunk();
@@ -232,9 +262,12 @@ export function useVoiceCounting(
   const resetCount = useCallback(() => { lastCountedRef.current = 0; }, []);
 
   useEffect(() => {
-    if (isActive) startListening();
-    else stopListening();
+    if (isActive) {
+      // Small delay to ensure any existing audio focus transitions are finished
+      const t = setTimeout(() => startListening(), 100);
+      return () => clearTimeout(t);
+    } else stopListening();
   }, [isActive, startListening, stopListening]);
 
-  return { isListening, isProcessing, lastTranscription, error, startListening, stopListening, resetCount };
+  return { isListening, isProcessing, error, startListening, stopListening, resetCount };
 }

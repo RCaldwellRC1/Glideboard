@@ -5,20 +5,12 @@ import { Activity, Mic } from 'lucide-react-native';
 import { useTheme } from '@/lib/settings';
 
 /**
- * A vertical two-position switch that sits at the top of the Tracker screen
- * (where the Settings gear used to live) and picks how reps are counted:
+ * A horizontal two-position switch that picks how reps are counted:
  *
- *   top    = MOTION  (accelerometer counts your reps)
- *   bottom = VOICE   (you count out loud)
+ *   left   = MOTION  (accelerometer counts your reps)
+ *   right  = VOICE   (you count out loud)
  *
- * It reads and writes the SAME setting as the Voice Counting switch in App
- * Settings, so changing either one changes both. Tapping it also counts as an
- * explicit pick, which beats the app's automatic motion/voice selection (e.g.
- * forcing Motion on a Free Style exercise, which defaults to Voice).
- *
- * It's deliberately narrow so there's a wide dead zone
- * between the START/END WORKOUT and START/END SET buttons either side of it —
- * users were mis-tapping "START NEXT SET" when reaching for the old gear icon.
+ * Updated to horizontal layout for better space utilization.
  */
 export function RepModeToggle({
   value,
@@ -36,11 +28,11 @@ export function RepModeToggle({
   labelOverride?: string;
 }) {
   const theme = useTheme();
-  const PAD = 3;
-  const trackWidth = isLarge ? 40 : 44;
-  const trackHeight = isLarge ? 62 : 70;
-  const cellHeight = (trackHeight - PAD * 2) / 2;
-  const iconSize = isLarge ? 17 : 19;
+  const PAD = 2;
+  const trackWidth = isLarge ? 80 : 88;
+  const trackHeight = isLarge ? 32 : 36;
+  const cellWidth = (trackWidth - PAD * 2) / 2;
+  const iconSize = isLarge ? 15 : 17;
 
   const offset = useSharedValue(value === 'voice' ? 1 : 0);
 
@@ -49,7 +41,7 @@ export function RepModeToggle({
   }, [value, offset]);
 
   const knobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: offset.value * cellHeight }],
+    transform: [{ translateX: offset.value * cellWidth }],
   }));
 
   const activeColor = disabled ? '#4b5563' : '#f97316';
@@ -59,10 +51,7 @@ export function RepModeToggle({
     <Pressable
       onPress={onToggle}
       disabled={disabled}
-      hitSlop={{ top: 14, bottom: 14, left: 12, right: 12 }}
-      accessibilityRole="switch"
-      accessibilityLabel="Rep counting mode"
-      accessibilityState={{ checked: value === 'voice', disabled }}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       className="items-center justify-center flex-shrink-0 active:opacity-70"
     >
       <View
@@ -70,32 +59,32 @@ export function RepModeToggle({
           width: trackWidth,
           height: trackHeight,
           padding: PAD,
-          borderRadius: trackWidth / 2,
-          borderWidth: 2,
+          borderRadius: trackHeight / 2,
+          borderWidth: 1.5,
           borderColor: disabled ? theme.divider : '#f97316',
           backgroundColor: theme.background === '#ffffff' ? '#f3f4f6' : '#111827',
+          flexDirection: 'row',
         }}
       >
-        {/* Sliding knob behind the active half. */}
         <Animated.View
           style={[
             {
               position: 'absolute',
               left: PAD,
               top: PAD,
-              width: trackWidth - PAD * 2,
-              height: cellHeight,
-              borderRadius: (trackWidth - PAD * 2) / 2,
+              width: cellWidth,
+              height: trackHeight - PAD * 2,
+              borderRadius: (trackHeight - PAD * 2) / 2,
               backgroundColor: activeColor,
             },
             knobStyle,
           ]}
         />
 
-        <View style={{ height: cellHeight }} className="items-center justify-center">
+        <View style={{ width: cellWidth }} className="items-center justify-center">
           <Activity size={iconSize} color={value === 'motion' && !disabled ? '#000000' : theme.subText} />
         </View>
-        <View style={{ height: cellHeight }} className="items-center justify-center">
+        <View style={{ width: cellWidth }} className="items-center justify-center">
           <Mic size={iconSize} color={value === 'voice' && !disabled ? '#000000' : theme.subText} />
         </View>
       </View>
@@ -103,8 +92,8 @@ export function RepModeToggle({
       <Text
         allowFontScaling={false}
         numberOfLines={1}
-        style={{ fontSize: isLarge ? 9 : 10, color: disabled ? '#4b5563' : '#f97316' }}
-        className="font-bold mt-1 tracking-wide"
+        style={{ fontSize: isLarge ? 8 : 9, color: disabled ? '#4b5563' : '#f97316' }}
+        className="font-bold mt-0.5 tracking-tighter"
       >
         {label}
       </Text>

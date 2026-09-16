@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
-import { ChevronLeft, ChevronRight, Check, Loader, Trophy, Medal, Ribbon, Crown, PartyPopper, Pencil, Minus, Plus, Trash2, RotateCcw, FastForward, Sparkles, TriangleAlert, Mic } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Check, Loader, Trophy, Medal, Ribbon, Crown, PartyPopper, Pencil, Minus, Plus, Trash2, RotateCcw, FastForward, Sparkles, TriangleAlert, Mic, X } from 'lucide-react-native';
 
 import { getRoutine, useCoachStore, medalTierForIndex, MEDAL_LABELS, MEDAL_COLORS, type CoachCompletion, type CoachRoutine, type RoutineStep } from '@/lib/coach';
 import { useWorkoutStore, type Workout, EXERCISE_GROUPS } from '@/lib/workout';
@@ -332,10 +332,10 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
-      {/* Header aligned with iOS image */}
+      {/* Header */}
       <View className="flex-row items-center px-4 py-2">
         <Pressable onPress={onExit} hitSlop={12} className="active:opacity-60"><ChevronLeft size={28} color="#f97316" /></Pressable>
-        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-2xl">{routine.title}</Text>
+        <Text numberOfLines={1} style={{ color: theme.text }} className="font-bold ml-2 flex-1 text-xl">{routine.title}</Text>
       </View>
 
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
@@ -346,24 +346,27 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
           ))}
         </View>
 
-        {/* Main Exercise Card with Orange Border - Made smaller as requested */}
-        <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-xl p-4 border-2 mt-1">
-           <View className="flex-row items-center justify-between mb-1">
-             <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} Â· {step?.group}</Text>
+        {/* Main Exercise Card - Slimmed down more to save a lot of vertical space */}
+        <View style={{ backgroundColor: theme.card, borderColor: '#f97316' }} className="rounded-xl p-3 border-2 mt-0.5">
+           <View className="flex-row items-center justify-between mb-0.5">
+             <Text style={{ color: theme.subText }} className="text-[10px] uppercase font-bold tracking-tight opacity-60">Exercise {stepIndex + 1} of {routine.steps.length} · {step?.group}</Text>
              <Pressable onPress={skipExercise} className="bg-gray-700/50 px-2 py-1 rounded-md flex-row items-center active:opacity-60">
-               <FastForward size={12} color={theme.subText} /><Text className="text-xs font-bold text-gray-400 ml-1">SKIP</Text>
+               <FastForward size={12} color={theme.subText} /><Text className="text-[9px] font-bold text-gray-400 ml-1">SKIP</Text>
              </Pressable>
            </View>
-           <Text style={{ color: theme.text }} className="font-bold text-2xl mt-0.5">{step?.exercise}</Text>
 
-           <View className="flex-row items-end justify-between mt-4">
-              <View className="flex-1"><Text className="text-orange-500 font-bold text-base">{step?.repRangeLabel}</Text></View>
-              <View className="items-end">
-                <InclineDropdown value={currentInclineLevel} onSelect={setInclineLevel} isOpen={inclineDropdownOpen} onToggle={() => setInclineDropdownOpen(!inclineDropdownOpen)} isLarge={isLarge} />
-              </View>
+           <View className="flex-row items-center justify-between">
+             <Text style={{ color: theme.text }} className="font-bold text-xl flex-1 mr-2" numberOfLines={1}>{step?.exercise}</Text>
+             <InclineDropdown value={currentInclineLevel} onSelect={setInclineLevel} isOpen={inclineDropdownOpen} onToggle={() => setInclineDropdownOpen(!inclineDropdownOpen)} isLarge={isLarge} />
            </View>
 
-           <View className="flex-row items-center mt-5">
+           <View className="flex-row items-center justify-between mt-2">
+              <Text className="text-orange-500 font-bold text-sm">{step?.repRangeLabel}</Text>
+              <RepModeToggle value={effectiveMode === 'voice' ? 'voice' : 'motion'} isLarge={isLarge} disabled={isTimed} onToggle={() => { if (!isTimed) setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice'); }} />
+           </View>
+
+           {/* Progress bars moved up and made thinner */}
+           <View className="flex-row items-center mt-3">
              {step && Array.from({ length: step.sets }).map((_, i) => {
                let barColor = (theme.background === '#ffffff' ? '#e5e7eb' : '#374151');
                if (i < setsDone) {
@@ -371,32 +374,46 @@ function RunnerView({ routine, onExit, onComplete }: { routine: CoachRoutine; on
                  const target = step.targetReps || 0;
                  barColor = (result && result.reps >= target) ? '#22c55e' : '#f97316';
                } else if (i === setsDone && isSetActive) { barColor = '#f97316'; }
-               return <View key={i} className="flex-1 h-1 rounded-full mr-1.5" style={{ backgroundColor: barColor }} />;
+               return <View key={i} className="flex-1 h-1 rounded-full mr-1" style={{ backgroundColor: barColor }} />;
              })}
            </View>
 
-           <View className="flex-row items-center justify-between mt-3">
-              <Text style={{ color: theme.subText }} className="text-xs font-medium opacity-70">Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets}</Text>
-              <RepModeToggle value={effectiveMode === 'voice' ? 'voice' : 'motion'} isLarge={isLarge} disabled={isTimed} onToggle={() => { if (!isTimed) setRepCountingMode(repCountingMode === 'voice' ? 'motion' : 'voice'); }} />
-           </View>
+           <Text style={{ color: theme.subText }} className="text-[10px] font-medium opacity-70 mt-1.5">
+              Set {Math.min(setsDone + 1, step?.sets ?? 1)} of {step?.sets}
+           </Text>
         </View>
 
         {/* Status indicator bubble */}
         {isSetActive && !isTimed && effectiveMode === 'motion' && (
-          <View className="mt-3 self-center bg-yellow-500/10 px-3 py-1 rounded-full"><Text className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">{isStabilizing ? 'Positioning...' : showLearningIndicator ? 'Learning ROM...' : 'Counting Reps'}</Text></View>
+          <View className="mt-2 self-center bg-yellow-500/10 px-3 py-1 rounded-full"><Text className="text-yellow-500 font-bold text-[10px] uppercase tracking-widest">{isStabilizing ? 'Positioning...' : showLearningIndicator ? 'Learning ROM...' : 'Counting Reps'}</Text></View>
         )}
 
-        <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className="mt-4 border-2 rounded-2xl p-4 items-center justify-center min-h-[160px]">
+        {/* Big Rep Box - reduced size more */}
+        <View style={{ backgroundColor: theme.card, borderColor: getReadyLeft !== null ? '#eab308' : '#f97316' }} className="mt-2.5 border-2 rounded-2xl p-4 items-center justify-center min-h-[130px]">
           {isTimed ? (
             <TimedExerciseRunner ref={timedRunnerRef} exercise={step?.exercise ?? ''} durationSeconds={30} isSetActive={isSetActive} isLarge={isLarge} onSetDuration={() => {}} onFinalized={(h) => { setReps(0); setCurrentTUT(h); handleConfirmReps(0); }} />
           ) : getReadyLeft !== null ? (
-            <><Text className="text-yellow-500 font-black text-lg tracking-tighter">GET READY</Text><Text className="text-yellow-500 font-black text-7xl mt-1">{getReadyLeft}</Text></>
+            <><Text className="text-yellow-500 font-black text-base tracking-tighter">GET READY</Text><Text className="text-yellow-500 font-black text-6xl mt-1">{getReadyLeft}</Text></>
           ) : (
-            <><Text style={{ color: theme.subText }} className="font-bold tracking-widest text-sm opacity-60">REPS</Text><Text className="text-orange-500 font-black text-8xl mt-0.5">{currentReps}</Text></>
+            <><Text style={{ color: theme.subText }} className="font-bold tracking-widest text-xs opacity-60">REPS</Text><Text className="text-orange-500 font-black text-7xl mt-0.5">{currentReps}</Text></>
           )}
         </View>
 
-        <Pressable onPress={() => { if (isSetActive) handleEndSet(); else if (getReadyLeft !== null) setGetReadyLeft(null); else { adaptiveResetToIdle(); const d = paceSettings.delayToStart; if (d > 0) setGetReadyLeft(Math.round(d)); else startSet(); } }} style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }} className="mt-6 py-4 rounded-2xl items-center active:opacity-80 shadow-md">
+        {/* Bottom Action Button - Slimmed */}
+        <Pressable
+          onPress={() => {
+            if (isSetActive) handleEndSet();
+            else if (getReadyLeft !== null) setGetReadyLeft(null);
+            else {
+              adaptiveResetToIdle();
+              const d = paceSettings.delayToStart;
+              if (d > 0) setGetReadyLeft(Math.round(d));
+              else startSet();
+            }
+          }}
+          style={{ backgroundColor: isSetActive ? '#ef4444' : getReadyLeft !== null ? '#374151' : '#16a34a' }}
+          className="mt-4 py-4 rounded-2xl items-center active:opacity-80 shadow-md"
+        >
           <Text className="text-white font-black text-xl uppercase tracking-tighter">{isSetActive ? 'END SET' : getReadyLeft !== null ? 'CANCEL' : `START SET ${Math.min(setsDone + 1, step?.sets ?? 1)}`}</Text>
         </Pressable>
       </ScrollView>
@@ -419,6 +436,7 @@ export default function CoachRoutineScreen() {
   const customizedRoutines = useCoachStore(s => s.customizedRoutines || {});
   const dontShowInstructions = useCoachStore(s => s.dontShowInstructions || {});
   const loadCoach = useCoachStore(s => s.loadFromStorage);
+  const recordCompletion = useCoachStore(s => s.recordCompletion);
   const coachLoaded = useCoachStore(s => s.isLoaded);
 
   const routine = useMemo(() => {
@@ -435,7 +453,21 @@ export default function CoachRoutineScreen() {
   const renameCustomExercise = useWorkoutStore(s => s.renameCustomExercise);
 
   useEffect(() => { loadCoach(); }, []);
-  useEffect(() => { if (coachLoaded && routineId && dontShowInstructions?.[routineId]) { setPhase('running'); } }, [coachLoaded, routineId, dontShowInstructions]);
+
+  // Guard the phase skip to running only if we aren't already finishing
+  useEffect(() => {
+    if (coachLoaded && routineId && dontShowInstructions?.[routineId] && phase === 'instructions') {
+      setPhase('running');
+    }
+  }, [coachLoaded, routineId, dontShowInstructions, phase]);
+
+  const handleComplete = (workout: Workout | null) => {
+    const entry = recordCompletion(routineId, workout?.id);
+    remoteLog('coach_routine_completed', { routineId, index: entry.index });
+    setCompletion(entry);
+    setCompletedWorkout(workout);
+    setPhase('complete');
+  };
 
   if (!routine) {
     if (!coachLoaded) return <View style={{ flex: 1, backgroundColor: theme.background }} />;
@@ -447,26 +479,26 @@ export default function CoachRoutineScreen() {
       <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }}>
         <View className="px-4 py-2 border-b" style={{ borderBottomColor: theme.divider }}><Text style={{ color: theme.text }} className="font-bold text-xl">Workout Summary</Text></View>
         <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}><WorkoutSummary workout={completedWorkout} isLarge={useSettingsStore.getState().largeDisplayMode} accentColor={'#f97316'} /></ScrollView>
-        <View className="p-4 border-t" style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }}><Pressable onPress={() => router.replace('/(tabs)/trophies')} className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80 shadow-sm"><Text className="text-white font-bold text-lg">View Trophies</Text></Pressable></View>
+        <View className="p-4 border-t" style={{ borderTopColor: theme.border, paddingBottom: insets.bottom + 12 }}><Pressable onPress={() => router.replace('/(tabs)')} className="py-4 rounded-xl items-center bg-orange-500 active:opacity-80 shadow-sm"><Text className="text-white font-bold text-lg">Return to Tracker</Text></Pressable></View>
       </View>
     );
   }
 
   if (phase === 'complete' && completion) {
-    const tier = medalTierForIndex(completion.index);
     return (
       <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: Math.max(insets.top, 24) }} className="items-center justify-center px-8">
-        <Trophy size={80} color={MEDAL_COLORS[tier]} />
-        <Text style={{ color: theme.text }} className="font-bold text-3xl mt-4">Routine Complete!</Text>
-        <Text className="font-semibold text-xl mt-2" style={{ color: MEDAL_COLORS[tier] }}>{MEDAL_LABELS[tier]} Earned</Text>
-        <Pressable onPress={() => setPhase('summary')} className="mt-10 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 shadow-md"><Text className="text-white font-bold text-xl">View Summary</Text></Pressable>
-        <Confetti active intense={tier === 'olympia'} />
+        <Trophy size={90} color="#fde047" />
+        <Text style={{ color: theme.text }} className="font-bold text-4xl mt-6 text-center">CONGRATULATIONS!</Text>
+        <Text style={{ color: theme.subText }} className="text-xl mt-3 text-center opacity-80">{MEDAL_LABELS[medalTierForIndex(completion.index)]} Earned</Text>
+        <Text style={{ color: theme.subText }} className="text-lg mt-2 text-center opacity-60">You've completed {routine.title}. Great work!</Text>
+        <Pressable onPress={() => setPhase('summary')} className="mt-12 bg-orange-500 px-12 py-4 rounded-2xl active:opacity-80 shadow-lg"><Text className="text-white font-bold text-xl uppercase">View Summary</Text></Pressable>
+        <Confetti active intense={true} />
       </View>
     );
   }
 
   if (phase === 'running') {
-    return <RunnerView routine={routine} onExit={() => router.back()} onComplete={(w) => { setCompletedWorkout(w); setPhase('complete'); }} />;
+    return <RunnerView routine={routine} onExit={() => router.back()} onComplete={handleComplete} />;
   }
 
   return <InstructionsView routine={routine} onBegin={() => setPhase('running')} onBack={() => router.back()} customExercises={customExercises} addCustomExercise={addCustomExercise} renameCustomExercise={renameCustomExercise} />;

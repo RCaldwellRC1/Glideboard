@@ -232,10 +232,10 @@ export const useAdaptiveRepStore = create<AdaptiveRepState>((set, get) => ({
     const paceFactor = Math.max(0.5, Math.min(1.0, rawPaceFactor));
 
     const triggerThreshold = state.isLearningROM
-      ? 0.05 * sens * paceFactor
-      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.5 * adjustment * sens * paceFactor, 0.07);
+      ? 0.04 * sens * paceFactor // Dropped from 0.05 to help the first set catch more easily
+      : Math.max(safeNum(profile?.avgROM, 0.4) * 0.45 * adjustment * sens * paceFactor, 0.06); // dropped floor from 0.07 to 0.06
 
-    const returnThreshold = 0.04 * sens;
+    const returnThreshold = 0.035 * sens; // Lowered from 0.04 to help faster reps return correctly
 
     if (deviation > state.peakDeviation) set({ peakDeviation: deviation });
 
