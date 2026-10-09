@@ -1,7 +1,13 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useKeepAwake } from 'expo-keep-awake';
+import { Platform } from 'react-native';
+
+import { useKeepAwake, activateKeepAwakeAsync } from 'expo-keep-awake';
+
+
+
+
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from '@/lib/useColorScheme';
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
@@ -36,6 +42,33 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const queryClient = new QueryClient();
 
+function KeepAwake() {
+  return Platform.OS === 'web' ? <WebKeepAwake /> : <NativeKeepAwake />;
+}
+
+function NativeKeepAwake() {
+  useKeepAwake();
+  return null;
+}
+
+function WebKeepAwake() {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    const activateWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        activateKeepAwakeAsync().catch(() => {});
+      }
+    };
+
+    activateWhenVisible();
+    document.addEventListener('visibilitychange', activateWhenVisible);
+    return () => document.removeEventListener('visibilitychange', activateWhenVisible);
+  }, []);
+
+  return null;
+}
+
 function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null | undefined }) {
   const textSize = useSettingsStore(s => s.textSize);
   const colorTheme = useSettingsStore(s => s.colorTheme);
@@ -46,6 +79,7 @@ function RootLayoutNav({ colorScheme }: { colorScheme: 'light' | 'dark' | null |
   return (
     <ThemeProvider value={activeTheme === 'dark' ? DarkTheme : DefaultTheme}>
       <View style={[{ flex: 1 }, vars(getFontSizeVars(textSize))]}>
+        <KeepAwake />
         <StatusBar style={activeTheme === 'dark' ? 'light' : 'dark'} />
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -70,8 +104,6 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [appIsReady, setAppIsReady] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
-
-  useKeepAwake();
 
   useEffect(() => {
     async function prepare() {
